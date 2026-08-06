@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js / NextAuth models ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  handle        String?   @unique
+  passwordHash  String?
+  reputation    Int       @default(0)
+  capacityNotes String?   @db.Text
+  bio           String?   @db.Text
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]          @relation("ProposedProjects")
+  claims        TaskClaim[]
+  contributions Contribution[]
+  donations     Donation[]
+  reviews       ContributionReview[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Domain ---
+
+enum ProjectCategory {
+  CLIMATE
+  OPEN_SCIENCE
+  EDUCATION
+  PUBLIC_GOODS_SOFTWARE
+  HEALTH
+  OTHER
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  FUNDED
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  OPEN
+  CLAIMED
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+enum FundType {
+  COMPUTE
+  API_CREDITS
+  SUPERGROK_SPONSOR
+  GENERAL
+}
+
+enum ContributionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum LedgerKind {
+  LABOR
+  CAPITAL
+  MILESTONE
+  ADJUSTMENT
+}
+
+model Project {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  title            String
+  description      String          @db.Text
+  category         ProjectCategory
+  license          String          @default("MIT")
+  fundingGoalCents Int             @default(0)
+  status           ProjectStatus   @default(ACTIVE)
+  impactSummary    String?         @db.Text
+  alignmentCheck   String?         @db.Text
+  proposerId       String
+  proposer         User            @relation("ProposedProjects", fields: [proposerId], references: [id])
+  tasks            Task[]
+  fundPots         FundPot[]
+  milestones       Milestone[]
+  artifacts        Artifact[]
+  ledgerEntries    LedgerEntry[]
+  donations        Donation[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([category, status])
+}
+
+model Task {
+  id                 String         @id @default(cuid())
+  projectId          String
+  project            Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId           String?
+  parent             Task?          @relation("TaskTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children           Task[]         @relation("TaskTree")
+  title              String
+  prompt             String         @db.Text
+  acceptanceCriteria String         @db.Text
+  estimatedTokens    Int            @default(0)
+  status             TaskStatus     @default(OPEN)
+  sortOrder          Int            @default(0)
+  claims             TaskClaim[]
+  contributions      Contribution[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([projectId, status])
+}
+
+model TaskClaim {
+  id            String         @id @default(cuid())
+  taskId        String
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  claimedAt     DateTime       @default(now())
+  expiresAt     DateTime?
+  active        Boolean        @default(true)
+  contributions Contribution[]
+
+  @@index([taskId, active])
+  @@index([userId])
+}
+
+model Contribution {
+  id          String               @id @default(cuid())
+  taskId      String
+  task        Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  claimId     String?
+  claim       TaskClaim?           @relation(fields: [claimId], references: [id])
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id])
+  body        String               @db.Text
+  sources     String?              @db.Text
+  contentType String               @default("markdown")
+  status      ContributionStatus   @default(PENDING)
+  score       Int?
+  reviews     ContributionReview[]
+  artifacts   Artifact[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([taskId, status])
+}
+
+model ContributionReview {
+  id             String       @id @default(cuid())
+  contributionId String
+  contribution   Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  reviewerId     String
+  reviewer       User         @relation(fields: [reviewerId], references: [id])
+  score          Int
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now())
+}
+
+model FundPot {
+  id           String     @id @default(cuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type         FundType   @default(GENERAL)
+  label        String
+  balanceCents Int        @default(0)
+  donations    Donation[]
+  createdAt    DateTime   @default(now())
+}
+
+model Donation {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  potId           String
+  pot             FundPot  @relation(fields: [potId], references: [id])
+  donorId         String?
+  donor           User?    @relation(fields: [donorId], references: [id])
+  amountCents     Int
+  publicName      String?
+  stripeSessionId String?  @unique
+  message         String?
+  createdAt       DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String    @db.Text
+  targetCents Int       @default(0)
+  released    Boolean   @default(false)
+  releasedAt  DateTime?
+  sortOrder   Int       @default(0)
+}
+
+model Artifact {
+  id             String        @id @default(cuid())
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contributionId String?
+  contribution   Contribution? @relation(fields: [contributionId], references: [id])
+  title          String
+  url            String
+  license        String        @default("MIT")
+  createdAt      DateTime      @default(now())
+}
+
+model LedgerEntry {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind        LedgerKind
+  amountCents Int        @default(0)
+  summary     String
+  meta        String?    @db.Text
+  actorHandle String?
+  createdAt   DateTime   @default(now())
+
+  @@index([projectId, createdAt])
+}
