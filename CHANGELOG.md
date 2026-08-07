@@ -1,0 +1,247 @@
+﻿# Changelog
+
+## 2026-08-06 - One-click project Tweet on X
+
+- **Tweet project** button on discover cards, home live projects, and project detail
+- **Featured spotlight**: full-width "Tweet this spotlight" bar just above the pinned hero card (+ compact pill inside the card)
+- Ready X intent copy (title, category, @proposer, URL, hashtags) - one click opens compose
+
+## 2026-08-06 - Project banners (upload + Grok Imagine)
+
+- **Optional banner upload** on create/edit (JPEG/PNG/WebP, client resize, magic-byte validation)
+- **Auto Grok Imagine** after publish when no upload (platform `XAI_API_KEY`, default on)
+- Creator **Regenerate / Remove banner** controls on project page
+- Banners on project hero, discover cards, featured pin; HTTPS banners used for OG when present
+- Storage: Vercel Blob when `BLOB_READ_WRITE_TOKEN` set; else size-capped data URL in Postgres
+- Fields: `Project.bannerUrl`, `Project.bannerSource` (`upload` | `imagine`)
+
+## 2026-08-06 - Founder featured project pin (hero)
+
+- Home hero right column shows a **Featured** project card (fills the empty amber void)
+- **Founder-only** pin/unpin from any public project page (`Pin as featured`)
+- Stored on SiteStats.featuredProjectId; empty slot has founder-facing instructions
+- Pin writes a public ledger note; unpin clears the slot
+
+## 2026-08-06 - Full backlog wave (milestones, GitHub, matching)
+
+- **Milestone dual verification**: human verify + agent worker (XAI when keyed, else heuristic); both required to release; public ledger
+- **GitHub artifact linking**: paste repo/PR/commit URLs on project pages; optional `AUTH_GITHUB_*` OAuth fills `githubHandle`
+- **Smarter task matching**: dashboard ranks open leaves by category affinity, watches, past keywords, funding, recency
+- **X Money adapter** (`src/lib/x-money.ts`): deeplink provider live; `X_MONEY_API_MODE=native` reserved for official API
+- Tests for matching + GitHub URL parsing; status flags; .env.example notes
+
+## 2026-08-06 - Remaining polish wave
+
+- Home **Recent network activity** defaults to 3 rows (expand for more) + soft poll via `/api/activity`
+- **First-forge onboarding** tips for signed-in builders (dismissible, localStorage)
+- **Stat tip panels** on profiles (accepted, donated, X Money, rep, streak, watching)
+- Forge celebrate sparks on claim / submit / donate / accept
+- Nightcap discoverability (anchor `#nightcap`, leftover-tokens chip)
+- Watch button helper copy ("Notify on ship & capital")
+- Dashboard **comment reports** queue for project creators
+- Richer route **loading** skeletons
+- SUMMARY production TODOs reconciled with shipped state
+
+## 2026-08-06 - Master upgrade wave (social + themes + craft)
+
+- **X Money P2P on profiles**: Send X Money CTA, copy-handle fallback, optional project attribution, CAPITAL ledger marked `X_MONEY_P2P`, tips received on profile
+- **11 themes** (4 classic + 7 new): Void Plasma, Solar Forge (light), Abyssal Teal, Crimson Circuit, Mist Lavender, Neon Noir, Golden Hour - Control Center previews + Surprise me
+- **Share on X** for ranked builders (leaderboard row + own profile) with editable intent copy
+- **Badge hover/focus panels** + full **badge collection gallery** (earned + locked progress)
+- **Sticky mobile bar** (Propose / Tasks / Dash / You) for signed-in users
+- Live Forge **45s poll** via `/api/stats` (visitors + xBuilders included)
+- Micro **forge celebrate** sparks on accept / tip (reduced-motion safe)
+- DESIGN-TOKENS.md rewritten for full theme catalog
+
+## 2026-08-06 - Creator moderation + pending queue
+
+- **Creator accept/reject** on any pending submission (including own work) so labor can hit the leaderboard without waiting for a peer
+- **Creator queue** on project pages when you own the project
+- **Dashboard**: "Pending on your projects" moderation list + bulk accept; "My submissions" with pending/accepted counts
+- Fixed contribution author `user.id` select (peer-review gating and creator UI)
+- Status page flags creator moderation
+
+## 2026-08-06 - Fix founder missing from leaderboard
+
+- Root cause: leftover demo email (`@x-demo.grokforge.local`) made founder match `isDemoBotUser` and get filtered from ranks
+- Fix: founders + real handles never treated as demo bots; demo email alone insufficient if handle is real
+- Cleared synthetic demo email on founder account
+- Leaderboard copy clarifies only **accepted** work scores (pending does not)
+
+## 2026-08-06 - Mobile nav + chrome audit
+
+- **Hamburger drawer**: portaled to `document.body` (escapes header backdrop stacking), fully opaque `#050505` panel, dark scrim, safe-area insets, 44px+ touch targets
+- Mobile header solid (no translucent blur bleed); X follow pill hidden on xs to free space
+- Live Forge bar denser wrap; hero padding/type scale; main/footer mobile spacing
+- Theme panel + notification dropdown use solid surfaces on small screens
+
+## 2026-08-06 - Fix submit crash after contribution
+
+- Root cause: after successful submit, `revalidatePath` remounted the form and `e.currentTarget.reset()` threw, showing the global error UI even though Neon saved the work
+- Fix: capture form node before async; safe reset; navigate to `/c/{id}` receipt on success
+- Submit action fully try/catch; notify failures non-fatal; 200k body guard; claim-less re-submit path
+
+## 2026-08-06 - Proceed (showcase receipt + Person JSON-LD)
+
+- First **accepted showcase receipt** (founder contribution) with public `/c/{id}` + OG
+- Profile **Person** JSON-LD for AEO
+- `npm run seed:showcase-receipt` (idempotent)
+
+## 2026-08-06 - Proceed (home/receipt OG harden + sitemap profiles)
+
+- Hardened **receipt** opengraph-image (same Satori-safe pattern)
+- **Home** opengraph-image with live project/task counts
+- Sitemap includes builder profiles with public activity
+- Profile/project OG already live as PNG
+
+## 2026-08-06 - Proceed (profile/project OG + tweet pack)
+
+- Profile **opengraph-image** PNG (rep, accepted, badges)
+- Project **opengraph-image** PNG (title, category, open tasks)
+- Richer profile metadata (bio/rep description, twitter large image)
+- Desktop **GrokForge-tweet-ready** launch pack refreshed (tweet-body + card)
+
+## 2026-08-06 - Keep cooking (command palette, achievement cards, FAQ)
+
+- **Command palette**: Ctrl/Cmd+K or `?`; G-then chords (H/P/T/A/L/D/N)
+- **Achievement share card**: `/api/achievements/[handle]` 1200x630 SVG + Share on X on profiles
+- **About FAQ** + FAQPage JSON-LD for AEO
+- Layout JSON-LD graph: WebApplication + Organization
+
+## 2026-08-06 - Keep cooking (toasts, heatmap, challenges, theme pref)
+
+- **Badge unlock toast** when new achievements appear (localStorage snapshot)
+- **Contribution heatmap** on profiles (16-week UTC grid)
+- **Weekly challenges** on home (signed-in) + dashboard
+- **Theme pref** persisted to account when signed in (`themePref` + localStorage)
+- Tests for weekly challenges pure scoring
+
+## 2026-08-05 - Enhance wave (premium social forge)
+
+- **Auth-aware CTAs**: signed-in users never see Sign in with X; hero/empty states/footer swap to Propose, Tasks, Dashboard
+- **Live Forge bar**: visitors (IP-hash rate limit) + X builders + projects + open tasks with count-up
+- **Badge system**: Whale/Leviathan, Bee/Hive, Forger, Critic, Architect, Ember, Pioneer, Founder on leaderboard, profile, dashboard
+- **Nightcap gift**: user-reported leftover tokens to platform or project (no API keys)
+- **X bio widget**: `/api/widget/[handle]` SVG + copy markdown/HTML on profile/dashboard
+- **Theme Control Center**: floating mac-style panel; Obsidian Amber default + Violet/Emerald/Indigo; localStorage
+- **Assets**: `public/logo.svg`, `public/infographic-how-forge-works.svg`
+- **`/leaders`** alias redirects to `/leaderboard`
+- Plan: `docs/ENHANCE-PLAN.md`
+
+## 2026-08-05 - Proceed (catalog seed, status, RSS)
+
+- Seeded 3 greater-good projects (climate, open science, education) + leaf tasks under founder
+- Public **`/status`** capability page; **`/feed.xml`** RSS of network ledger
+- `npm run seed:catalog` for idempotent catalog upserts
+- Footer links: Status + RSS
+
+## 2026-08-05 - Keep cooking (activity, donate presets, receipts)
+
+- **`/activity`** full network ledger page (nav + sitemap + home link)
+- Donate: amount presets ($5/$10/$25/$50) + live button amount
+- Project: claim **~Nh left**, Copy link, JSON-LD SoftwareSourceCode, single public ledger
+- Receipt: copy link; Stripe donor **DONATION_RECEIPT** in-app notify
+- Home badge shows Stripe Checkout when configured
+
+## 2026-08-05 - Keep cooking (live Stripe Checkout)
+
+- Vaulted operator pack → restricted `rk_live` + webhook secret under `~\.grok\secrets\`
+- Vercel Production/Preview: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Stripe webhook endpoint registered for `checkout.session.completed` → `/api/stripe/webhook`
+- Donate form uses live Checkout when env set (demo ledger only if secret missing)
+
+## 2026-08-05 - Proceed (expire claims, agent-email notify)
+
+- **Claim auto-expire**: hourly Vercel cron `/api/cron/expire-claims` + soft expire on `/tasks` and project pages
+- Expired claims reopen tasks, ledger note, notify claimer + creator
+- **NOTIFY_WEBHOOK** agent-email bridge format (`/send` + high-signal types only)
+- Flags: `claimExpireCron`, `notifyFormat`, `claimAutoExpire`
+- Stripe: still demo-ledger until `STRIPE_SECRET_KEY` is vaulted (MCP account present; secret not on disk)
+
+## 2026-08-05 - Keep cooking (watcher labor, stats API, profiles)
+
+- **notifyProjectWatchers** on claim, release, submit, review result, donate (+ Stripe webhook)
+- Creator notified when claim released; contributor gets accept/reject outcome notify
+- Public **`/api/stats`** ecosystem JSON (projects, tasks, accepted, capital, watches)
+- Flags: feature map + notifyWebhook presence
+- Profile: accepted/proposed/donated/watching stats + recent support + SEO metadata
+- Dashboard claims: **expiry countdown** (~Nh left) + deep-link to task
+- About page: watches, open tasks, receipts
+
+## 2026-08-05 - Keep cooking (watch, open tasks, discover)
+
+- **Watch project** bookmarks (ProjectWatch) + dashboard Watching list
+- **Open tasks** board at `/tasks` with category chips + deep-link anchors
+- Discover: **sort** (newest / funding / open tasks / comments) + status filter + category chips
+- Project page: Watch + **Share on X** + watch count badge
+- Nav/footer/sitemap/home link to Tasks
+- Watchers get in-app notify on new comments
+
+## 2026-08-05 - Keep cooking (report, network feed)
+
+- **Report** comment (signed-in non-authors); auto-hide after 3 unique reports
+- Creator notified on reports
+- Homepage **Recent network activity** strip
+- Dashboard **Release claim** on active claims
+
+## 2026-08-05 - Keep cooking (edit, release claim, activity)
+
+- Creator **Edit proposal** (title, description, impact, license)
+- Claimers can **Release claim** (re-opens task when last claim)
+- Notify creator on claim + submission
+- Project **Recent activity** feed + per-project SEO metadata
+- Header notification bell; mobile sign-out
+- Layout `force-dynamic` for auth shell
+
+## 2026-08-05 - Keep cooking (notify, streaks, moderate)
+
+- In-app **notifications** when someone comments on your project (+ optional NOTIFY_WEBHOOK_URL)
+- Creator **Hide / Unhide** comment moderation (soft hide)
+- Contribution **streaks** on leaderboard, profile, dashboard
+- Stripe return banners `?donated=1` / `?canceled=1`
+
+## 2026-08-05 - Keep cooking (share OG, rate limits, drafts)
+
+- Per-receipt Open Graph image: `/c/[id]/opengraph-image`
+- Upstash-ready `rateLimitAsync` (falls back to memory)
+- Donate form shows Stripe vs demo ledger from env
+- `npm run tweet:top-builders` writes human-gated Desktop draft
+- Flags API: `stripeConfigured`, `rateLimitBackend`
+
+## 2026-08-05 - Keep cooking (nav, archive, discussion)
+
+- Mobile nav drawer (Leaders, Propose, Dash, Sign in with X)
+- Creator **Archive** / **Restore** for any project; **Delete** only if zero capital support
+- Dashboard: creator tools per project, comment counts, receipt links, Founder badge
+- Project listings show comment counts
+- Proposal **Discussion** comments + delete (author or creator)
+
+## 2026-08-05 - Wave A trust + receipts
+
+- X OAuth required to propose projects (email-only blocked on `/projects/new` + server action)
+- Curated founder project seed: Open Agent Civic Toolkit (`scripts/seed-founder-project.ts`)
+- Empty states for projects + leaderboard (no demo-bot theatre)
+- Public contribution receipts at `/c/[id]` with Share on X intent
+- Profile Founder badge + Follow on X; case-insensitive handle lookup
+- Demo bots purged; leaderboard filters bots forever
+
+## 2026-08-05 - Variant 3 Obsidian Amber
+
+### Visual
+- Locked Obsidian Amber theme (no blue): `#050505` void, `#121212` cards, `#f59e0b` accent
+- Header, footer, home, projects, login, dashboard, about restyled
+- Amber skeleton loaders and card hover lift (reduced-motion safe)
+- New OG / tweet card `og.jpg?v=2.0.0`
+
+### Product
+- Removed sample-project seed; seed no longer creates demo projects
+- `scripts/strip-demo-projects.ts` archives seed/demo/junk projects
+- Top Contributors leaderboard: global `/leaderboard` + home panel + per-project leaders
+- Ranking: capital + accepted labor + hours proxy + reviews + reputation
+- 1-click Follow opens real X intent for builder handles
+- Sign in with X remains primary; demo X gated behind `ENABLE_DEMO_AUTH`
+
+### Security
+- Response headers: CSP, X-Frame-Options, nosniff, referrer, permissions-policy
+- Next/Image remotePatterns limited to X + dicebear
+- Existing Zod validation + rate limits retained on claims/submissions/donations/decompose
