@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+/* Variant 3 - Obsidian Amber (locked) */
+:root {
+  --background: #050505;
+  --background-elevated: #0a0a0a;
+  --card: #121212;
+  --foreground: #fafaf9;
+  --muted: #a8a29e;
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-dim: rgba(245, 158, 11, 0.14);
+  --bronze: #b45309;
+  --bronze-edge: rgba(180, 83, 9, 0.45);
+  --glow: rgba(245, 158, 11, 0.28);
+  --success: #059669;
+  --danger: #e11d48;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-bronze: var(--bronze);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background:
+    radial-gradient(1100px 560px at 8% -8%, rgba(245, 158, 11, 0.1), transparent 55%),
+    radial-gradient(900px 480px at 92% 0%, rgba(180, 83, 9, 0.08), transparent 50%),
+    var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.4);
+  color: #0a0a0a;
+}
+
+:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Premium micro-interactions (respect reduced-motion block above) */
+.gf-card-hover {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gf-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.gf-btn-press:active {
+  transform: scale(0.98);
+}
+
+@keyframes gf-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes gf-tip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* Theme token transitions (honored by reduced-motion block) */
+html {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
+}
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+/* Smooth token handoff when Control Center switches themes */
+:root {
+  transition:
+    --background 0.35s ease,
+    --background-elevated 0.35s ease,
+    --card 0.35s ease,
+    --accent 0.35s ease,
+    --accent-hover 0.35s ease,
+    --bronze 0.35s ease,
+    --glow 0.35s ease;
+}
+
+/* Solar Forge (light) body gradient override via data-theme */
+html[data-theme="solar"] body {
+  background:
+    radial-gradient(1100px 560px at 8% -8%, rgba(234, 88, 12, 0.12), transparent 55%),
+    radial-gradient(900px 480px at 92% 0%, rgba(251, 191, 36, 0.1), transparent 50%),
+    var(--background);
+  color: var(--foreground);
+}
+html[data-theme="plasma"] body {
+  background:
+    radial-gradient(900px 500px at 10% -10%, rgba(232, 121, 249, 0.14), transparent 55%),
+    radial-gradient(800px 420px at 95% 0%, rgba(34, 211, 238, 0.1), transparent 50%),
+    var(--background);
+}
+html[data-theme="noir"] body {
+  background: var(--background);
+}
+
+
+.sr-only:focus {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 50;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border-radius: 0.5rem;
+  background: #f59e0b;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+.prose-invert-lite {
+  color: #d6d3d1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Mobile-first readability helpers */
+@media (max-width: 639px) {
+  /* Prefer solid surfaces over translucent glass on small screens */
+  .gf-mobile-solid {
+    background-color: #050505 !important;
+  }
+}
+
+.prose-invert-lite h1,
+.prose-invert-lite h2,
+.prose-invert-lite h3 {
+  color: #fafaf9;
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+/* Premium card hover lift (respects reduced motion via global rule) */
+.gf-card-hover {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+.gf-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 36px rgba(245, 158, 11, 0.12);
+}
+
+.gf-btn-press:active {
+  transform: scale(0.97);
+}
+
+.gf-skeleton {
+  background: linear-gradient(
+    90deg,
+    #121212 0%,
+    #1c1917 45%,
+    #121212 90%
+  );
+  background-size: 200% 100%;
+  animation: gf-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes gf-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-skeleton {
+    animation: none;
+  }
+  .gf-card-hover:hover {
+    transform: none;
+  }
+}
