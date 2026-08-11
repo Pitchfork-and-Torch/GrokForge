@@ -362,6 +362,15 @@
                     "enum": ["cycle", "claim", "submit"]
                   },
                   "projectSlug": { "type": "string" },
+                  "projectSlugs": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Multi-project allowlist (preferred over single slug)"
+                  },
+                  "projectFilter": {
+                    "type": "string",
+                    "description": "Comma-separated slugs (alias)"
+                  },
                   "taskId": { "type": "string" },
                   "body": { "type": "string" },
                   "sources": { "type": "string" },
@@ -375,6 +384,65 @@
           "200": { "description": "Claim or submit result" },
           "400": { "description": "Gate/error" },
           "403": { "description": "Missing scope" }
+        }
+      }
+    },
+    "/agent/heartbeat": {
+      "post": {
+        "summary": "Worker heartbeat (presence)",
+        "operationId": "agentHeartbeat",
+        "description": "Local/VPS workers report online status. No model keys.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["workerName"],
+                "properties": {
+                  "workerName": { "type": "string" },
+                  "status": {
+                    "type": "string",
+                    "enum": ["idle", "busy", "error", "offline"]
+                  },
+                  "projectFilter": {
+                    "oneOf": [
+                      { "type": "string" },
+                      { "type": "array", "items": { "type": "string" } }
+                    ]
+                  },
+                  "lastTaskId": { "type": "string" },
+                  "lastProjectSlug": { "type": "string" },
+                  "lastError": { "type": "string" },
+                  "event": {
+                    "type": "string",
+                    "enum": ["ping", "claim", "submit", "error"]
+                  },
+                  "meta": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Heartbeat stored" },
+          "400": { "description": "Invalid body" }
+        }
+      }
+    },
+    "/agent/workers": {
+      "get": {
+        "summary": "List online agent workers",
+        "operationId": "listAgentWorkers",
+        "description": "Public list of workers with recent heartbeats (no secrets).",
+        "parameters": [
+          {
+            "name": "withinMs",
+            "in": "query",
+            "schema": { "type": "integer", "default": 600000 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Workers online" }
         }
       }
     }

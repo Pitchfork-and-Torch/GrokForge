@@ -165,8 +165,72 @@ export async function moderateContributionForUser(
     actorHandle: user.handle,
   });
 
+  if (accepted) {
+    // Thin leaf-ready webhook when deps unlock new OPEN leaves
+    try {
+      await emitLeafReadyIfAny(contribution.task.projectId, contribution.task.project.slug);
+    } catch (e) {
+      console.error("[moderation] leaf-ready webhook", e);
+    }
+  }
+
   revalidateModSurfaces(contribution.task.project.slug, contribution.id);
   return { ok: true, accepted };
+}
+
+async function emitLeafReadyIfAny(projectId: string, projectSlug: string) {
+  const { readyOpenLeaves } = await import("@/lib/task-dag");
+  const { fireAgentRuntimeWebhook } = await import("@/lib/agent-workers");
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      slug: true,
+      title: true,
+      proposer: { select: { workerWebhookUrl: true } },
+      tasks: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          parentId: true,
+          sortOrder: true,
+          dependsOnJson: true,
+          estimatedTokens: true,
+          goodFirst: true,
+          tags: true,
+          claims: { where: { active: true }, select: { id: true } },
+        },
+      },
+    },
+  });
+  if (!project) return;
+  const ready = readyOpenLeaves(project.tasks).filter((r) => {
+    const t = project.tasks.find((x) => x.id === r.id);
+    return t && t.claims.length === 0;
+  });
+  if (ready.length === 0) return;
+
+  const top = ready.slice(0, 5).map((r) => {
+    const t = project.tasks.find((x) => x.id === r.id)!;
+    return { id: t.id, title: t.title, goodFirst: t.goodFirst };
+  });
+
+  await fireAgentRuntimeWebhook({
+    type: "leaf.ready",
+    title: `Ready leaves: ${project.title}`,
+    body: `${ready.length} claimable leaf(ves). Top: ${top.map((t) => t.title).join("; ")}`,
+    href: `/projects/${projectSlug}`,
+    projectSlug: project.slug,
+    taskId: top[0]?.id,
+    userWebhookUrl: project.proposer.workerWebhookUrl,
+    extra: {
+      readyCount: ready.length,
+      leaves: top,
+      workerHint: {
+        claim: "POST /api/v1/agent/worker { action: cycle, projectSlug }",
+      },
+    },
+  });
 }
 
 export async function bulkAcceptPendingForUser(

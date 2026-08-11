@@ -10,12 +10,23 @@ import { ProjectCompletedBadge } from "@/components/project-completed-badge";
 import { ShipSourceLinks } from "@/components/ship-source-links";
 import { ProjectBannerThumb } from "@/components/project-banner";
 import { ShareProjectButton } from "@/components/share-project-button";
+import { ProjectOrderAdmin } from "@/components/project-order-admin";
+import { isFounderHandle } from "@/lib/identity";
+import { PROJECT_LIST_ORDER } from "@/lib/project-order";
 
 export const dynamic = "force-dynamic";
 
-type SortKey = "newest" | "rank" | "thumbs" | "funding" | "tasks" | "comments";
+type SortKey =
+  | "curated"
+  | "newest"
+  | "rank"
+  | "thumbs"
+  | "funding"
+  | "tasks"
+  | "comments";
 
 const SORT_LABELS: Record<SortKey, string> = {
+  curated: "Curated",
   newest: "Newest",
   rank: "Highest ranked",
   thumbs: "Most thumbs-up",
@@ -36,6 +47,7 @@ export default async function ProjectsPage({
 }) {
   const session = await auth();
   const signedIn = !!session?.user?.id;
+  const isFounder = isFounderHandle(session?.user?.handle);
   const sp = await searchParams;
   const category =
     sp.category && Object.values(ProjectCategory).includes(sp.category as ProjectCategory)
@@ -47,9 +59,10 @@ export default async function ProjectsPage({
     sp.sort === "tasks" ||
     sp.sort === "comments" ||
     sp.sort === "rank" ||
-    sp.sort === "thumbs"
+    sp.sort === "thumbs" ||
+    sp.sort === "newest"
       ? sp.sort
-      : "newest";
+      : "curated";
   const statusFilter =
     sp.status &&
     ["ACTIVE", "FUNDED", "COMPLETED"].includes(sp.status.toUpperCase())
@@ -83,7 +96,7 @@ export default async function ProjectsPage({
       },
       _count: { select: { comments: true, watches: true, thumbs: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: PROJECT_LIST_ORDER,
   });
 
   const myThumbs = new Set<string>();
@@ -103,6 +116,15 @@ export default async function ProjectsPage({
   }
 
   const ranked = [...projects].sort((a, b) => {
+    if (sort === "curated") {
+      if (a.displayOrder !== b.displayOrder) {
+        return a.displayOrder - b.displayOrder;
+      }
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "newest") {
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
     if (sort === "rank") {
       const ta = a.scorecard?.totalScore;
       const tb = b.scorecard?.totalScore;
@@ -133,7 +155,7 @@ export default async function ProjectsPage({
     const merged = {
       q: q || undefined,
       category: category || undefined,
-      sort: sort !== "newest" ? sort : undefined,
+      sort: sort !== "curated" ? sort : undefined,
       status: statusFilter || undefined,
       ...extra,
     };
@@ -150,11 +172,11 @@ export default async function ProjectsPage({
         <div>
           <h1 className="text-3xl font-bold text-white">Discover projects</h1>
           <p className="mt-1 text-stone-400">
-            Filter by category, sort by{" "}
+            Default order is founder-curated. Also sort by{" "}
             <Link href="/projects?sort=rank" className="text-amber-400 hover:underline">
               ranking
             </Link>
-            , funding, or open tasks.{" "}
+            , newest, funding, or open tasks.{" "}
             <Link href="/rankings" className="text-amber-400 hover:underline">
               Full ranking board
             </Link>
@@ -172,6 +194,18 @@ export default async function ProjectsPage({
           </p>
         </div>
       </div>
+
+      {isFounder && (
+        <ProjectOrderAdmin
+          projects={projects.map((p) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            status: p.status,
+            displayOrder: p.displayOrder,
+          }))}
+        />
+      )}
 
       <form className="flex flex-wrap gap-2">
         <input

@@ -21,6 +21,7 @@ import { BadgeUnlockToast } from "@/components/badge-unlock-toast";
 import { WeeklyChallenges } from "@/components/weekly-challenges";
 import { AgentTokensCard } from "@/components/agent-tokens-card";
 import { LocalWorkerCard } from "@/components/local-worker-card";
+import { WorkerWebhookCard } from "@/components/worker-webhook-card";
 import { fetchUserBadges } from "@/lib/badges-data";
 import { fetchWeeklyChallenges } from "@/lib/challenges-data";
 
@@ -305,6 +306,7 @@ export default async function DashboardPage() {
       />
 
       <LocalWorkerCard />
+      <WorkerWebhookCard initialUrl={user.workerWebhookUrl} />
 
       <AgentTokensCard
         isFounder={founder}

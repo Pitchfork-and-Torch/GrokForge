@@ -39,6 +39,9 @@ model User {
   themePref     String?
   // Optional linked GitHub username (from OAuth or profile)
   githubHandle  String?
+  // Optional HTTPS webhook for leaf-ready / skill-pack events (agent runtime)
+  workerWebhookUrl String? @db.Text
+  agentWorkers  AgentWorkerHeartbeat[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -201,11 +204,39 @@ model Project {
   scorecard        ProjectScorecard?
   thumbs           ProjectThumb[]
   editHistory      ProjectEditHistory[]
+  // Founder-curated public list order (lower = higher). Default sort for viewers.
+  displayOrder     Int             @default(0)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
   @@index([category, status])
   @@index([createdAt])
+  @@index([displayOrder, createdAt])
+}
+
+// Always-on agent worker heartbeats (local/VPS loops; no model keys stored)
+model AgentWorkerHeartbeat {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Stable machine label, e.g. vps-hetzner-1 or pc-knock
+  workerName      String
+  // idle | busy | error
+  status          String   @default("idle")
+  // Comma-separated project slugs allowlist (empty = any ready leaf)
+  projectFilter   String?  @db.Text
+  lastTaskId      String?
+  lastProjectSlug String?
+  lastError       String?  @db.Text
+  lastClaimAt     DateTime?
+  lastSubmitAt    DateTime?
+  lastSeenAt      DateTime @default(now())
+  metaJson        String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, workerName])
+  @@index([lastSeenAt])
+  @@index([status, lastSeenAt])
 }
 
 // Public collapsible edit history (title/description and creator task edits)

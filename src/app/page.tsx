@@ -43,7 +43,7 @@ export default async function HomePage() {
         },
         _count: { select: { tasks: true, donations: true, thumbs: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
       take: 8,
     }),
     prisma.project.findUnique({

@@ -56,17 +56,18 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // claim / cycle
-  const projectSlug =
-    typeof parsed.body.projectSlug === "string"
-      ? parsed.body.projectSlug
-      : undefined;
+  // claim / cycle - optional single slug or multi-project allowlist
+  const projectSlugs = parseSlugList(
+    parsed.body.projectSlugs ??
+      parsed.body.projectFilter ??
+      parsed.body.projectSlug
+  );
   const taskIdIn =
     typeof parsed.body.taskId === "string" ? parsed.body.taskId : undefined;
 
   let taskId = taskIdIn;
   if (!taskId) {
-    const peek = await peekReady(projectSlug);
+    const peek = await peekReady(projectSlugs);
     if (!peek) return jsonError("No ready OPEN leaves", 404);
     taskId = peek.id;
   }
@@ -115,14 +116,31 @@ export async function POST(req: NextRequest) {
   });
 }
 
-async function peekReady(projectSlug?: string) {
+function parseSlugList(raw: unknown): string[] | undefined {
+  if (raw == null || raw === "") return undefined;
+  if (Array.isArray(raw)) {
+    const list = raw.map((x) => String(x).trim()).filter(Boolean);
+    return list.length ? list : undefined;
+  }
+  if (typeof raw === "string") {
+    const list = raw
+      .split(/[,\s]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+    return list.length ? list : undefined;
+  }
+  return undefined;
+}
+
+async function peekReady(projectSlugs?: string[]) {
   const projects = await prisma.project.findMany({
     where: {
       status: { in: ["ACTIVE", "FUNDED"] },
-      ...(projectSlug ? { slug: projectSlug } : {}),
+      ...(projectSlugs?.length ? { slug: { in: projectSlugs } } : {}),
     },
     select: {
       slug: true,
+      displayOrder: true,
       tasks: {
         select: {
           id: true,
@@ -138,10 +156,17 @@ async function peekReady(projectSlug?: string) {
         },
       },
     },
-    take: projectSlug ? 1 : 25,
-    orderBy: { updatedAt: "desc" },
+    take: projectSlugs?.length ? Math.min(50, projectSlugs.length) : 40,
+    orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }],
   });
-  for (const p of projects) {
+  // Prefer allowlist order when provided
+  const ordered = projectSlugs?.length
+    ? [...projects].sort(
+        (a, b) =>
+          projectSlugs.indexOf(a.slug) - projectSlugs.indexOf(b.slug)
+      )
+    : projects;
+  for (const p of ordered) {
     for (const r of readyOpenLeaves(p.tasks)) {
       const t = p.tasks.find((x) => x.id === r.id);
       if (t && t.claims.length === 0) return t;

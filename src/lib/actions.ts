@@ -1521,6 +1521,135 @@ export async function pinFeaturedProjectAction(projectId: string | null) {
   }
 }
 
+/**
+ * Founder-only: set public project list order (displayOrder ascending).
+ * Pass ordered project ids top-to-bottom as viewers should see them.
+ */
+export async function reorderProjectsAction(orderedIds: string[]) {
+  try {
+    const user = await requireUser();
+    const { isFounderHandle } = await import("@/lib/identity");
+    if (!isFounderHandle(user.handle)) {
+      return { error: "Only the founder can reorder the public project list" };
+    }
+    const rl = await rateLimitAsync(`reorder-projects:${user.id}`, {
+      limit: 60,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rl.ok) return { error: `Rate limit: try again in ${rl.retryAfterSec}s` };
+
+    const ids = Array.from(
+      new Set(
+        (orderedIds || [])
+          .map((x) => String(x || "").trim())
+          .filter(Boolean)
+          .slice(0, 500)
+      )
+    );
+    if (ids.length < 1) return { error: "Need at least one project id" };
+
+    const existing = await prisma.project.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, slug: true },
+    });
+    if (existing.length !== ids.length) {
+      return { error: "One or more projects not found" };
+    }
+
+    await prisma.$transaction(
+      ids.map((id, index) =>
+        prisma.project.update({
+          where: { id },
+          data: { displayOrder: index },
+        })
+      )
+    );
+
+    await prisma.ledgerEntry.create({
+      data: {
+        projectId: existing[0].id,
+        kind: LedgerKind.ADJUSTMENT,
+        amountCents: 0,
+        summary: `@${user.handle || user.name} reordered public project list (${ids.length} projects)`,
+        actorHandle: user.handle,
+        meta: JSON.stringify({
+          projectReorder: true,
+          count: ids.length,
+          topSlug: existing.find((e) => e.id === ids[0])?.slug,
+        }),
+      },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+    revalidatePath("/rankings");
+    return { ok: true, count: ids.length };
+  } catch (e) {
+    console.error("[reorderProjectsAction]", e);
+    return {
+      error: e instanceof Error ? e.message.slice(0, 300) : "Reorder failed",
+    };
+  }
+}
+
+/** Move one project up/down one slot in curated order (founder). */
+export async function nudgeProjectOrderAction(
+  projectId: string,
+  direction: "up" | "down"
+) {
+  try {
+    const user = await requireUser();
+    const { isFounderHandle } = await import("@/lib/identity");
+    if (!isFounderHandle(user.handle)) {
+      return { error: "Only the founder can reorder projects" };
+    }
+    const rows = await prisma.project.findMany({
+      where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      select: { id: true },
+    });
+    const idx = rows.findIndex((r) => r.id === projectId);
+    if (idx < 0) return { error: "Project not in public list" };
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= rows.length) {
+      return { ok: true, noop: true };
+    }
+    const ordered = rows.map((r) => r.id);
+    const tmp = ordered[idx];
+    ordered[idx] = ordered[swapWith];
+    ordered[swapWith] = tmp;
+    return reorderProjectsAction(ordered);
+  } catch (e) {
+    console.error("[nudgeProjectOrderAction]", e);
+    return {
+      error: e instanceof Error ? e.message.slice(0, 300) : "Nudge failed",
+    };
+  }
+}
+
+/** Optional agent-runtime webhook URL for the signed-in user (HTTPS only). */
+export async function saveWorkerWebhookAction(url: string) {
+  try {
+    const user = await requireUser();
+    const trimmed = (url || "").trim();
+    if (trimmed && !/^https:\/\//i.test(trimmed)) {
+      return { error: "Webhook must be https://" };
+    }
+    if (trimmed.length > 500) return { error: "URL too long" };
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { workerWebhookUrl: trimmed || null },
+    });
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message.slice(0, 200) : "Save failed",
+    };
+  }
+}
+
 /** Persist theme preference for signed-in users (also stored in localStorage). */
 export async function saveThemePrefAction(theme: string) {
   const user = await requireUser();

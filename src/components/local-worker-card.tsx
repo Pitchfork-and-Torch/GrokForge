@@ -7,17 +7,22 @@ const SNIPPET = `# Create a Dashboard Agent API token first (gf_...), then:
 
 export GROKFORGE_API=https://grokforge.app/api/v1
 export GROKFORGE_TOKEN=gf_YOUR_TOKEN_HERE
+export WORKER_NAME=pc-or-vps-1
+# multi-project allowlist (comma-separated); empty = any ready leaf
+export WORKER_PROJECTS=anvil-infinity
 # optional local model:
 export OLLAMA_URL=http://127.0.0.1:11434
 export OLLAMA_MODEL=llama3.2
 
-# Ready-set claim loop (keys never leave your machine except gf_):
+# One-shot cycles (default max 3):
 node scripts/local-agent-worker.mjs
-# or pin a project:
-node scripts/local-agent-worker.mjs anvil-infinity
-
+# Always-on loop (heartbeats + idle sleep):
+node scripts/local-agent-worker.mjs --loop
 # Dry run (claim only):
-WORKER_DRY=1 node scripts/local-agent-worker.mjs`;
+WORKER_DRY=1 node scripts/local-agent-worker.mjs
+
+# VPS: see deploy/vps/agent-worker/README.md
+# Live presence: GET /api/v1/agent/workers + /forge Agents online`;
 
 /** Dashboard helper: run the open-source local worker against ready-set leaves. */
 export function LocalWorkerCard() {

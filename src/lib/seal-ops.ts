@@ -149,6 +149,7 @@ export async function sealProjectForUser(
       contentHash: string;
       shipPath: string;
       downloadPath: string;
+      skillPackPath?: string;
     }
   | { error: string }
 > {
@@ -300,12 +301,46 @@ export async function sealProjectForUser(
     });
   }
 
+  // Agent runtime: skill-pack ready for install into local Grok Build
+  const skillPackPath = `/api/projects/${project.slug}/skill-pack`;
+  await notifyUser({
+    userId: user.id,
+    type: "SKILL_PACK_READY",
+    title: `Skill pack ready: ${project.title}`,
+    body: `Install with: node scripts/install-skill-pack.mjs ${project.slug}`,
+    href: skillPackPath,
+  });
+  try {
+    const { fireAgentRuntimeWebhook } = await import("@/lib/agent-workers");
+    const proposer = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { workerWebhookUrl: true },
+    });
+    await fireAgentRuntimeWebhook({
+      type: "skill_pack.ready",
+      title: `Skill pack: ${project.title}`,
+      body: `Sealed ${version}. Install: node scripts/install-skill-pack.mjs ${project.slug}`,
+      href: skillPackPath,
+      projectSlug: project.slug,
+      userWebhookUrl: proposer?.workerWebhookUrl,
+      extra: {
+        version,
+        contentHash: pack.hash,
+        installCommand: `node scripts/install-skill-pack.mjs ${project.slug}`,
+        shipPath,
+      },
+    });
+  } catch (e) {
+    console.error("[seal] skill-pack webhook", e);
+  }
+
   revalidatePath(`/projects/${project.slug}`);
   revalidatePath(shipPath);
   revalidatePath(`/projects/${project.slug}/seal`);
   revalidatePath("/dashboard");
   revalidatePath("/");
   revalidatePath("/activity");
+  revalidatePath("/forge");
 
   return {
     ok: true,
@@ -314,5 +349,6 @@ export async function sealProjectForUser(
     contentHash: pack.hash,
     shipPath,
     downloadPath,
+    skillPackPath,
   };
 }

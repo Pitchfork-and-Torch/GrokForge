@@ -1,5 +1,15 @@
 ﻿# Changelog
 
+## 2026-08-10 - Agent Runtime wave + founder project order
+
+- **Founder project order**: curated `displayOrder` on projects; default Discover/home sort is founder order; Up/Down + Save panel on `/projects` for founder only
+- **Worker heartbeats**: `POST /api/v1/agent/heartbeat`, public `GET /api/v1/agent/workers`, **Agents online** on `/forge`
+- **Multi-project worker**: `WORKER_PROJECTS` / `projectSlugs` allowlist; `local-agent-worker.mjs --loop` with idle sleep + heartbeats
+- **VPS unit**: `deploy/vps/agent-worker/` (systemd + env example + install script)
+- **Skill-pack after seal**: in-app notify + `skill_pack.ready` runtime webhook + install command
+- **Leaf-ready webhooks**: `leaf.ready` on accept when deps unlock; optional per-user HTTPS webhook on Dashboard
+- OpenAPI paths for heartbeat + workers
+
 ## 2026-08-10 - Readable project images + clean nav
 
 - **Full-size project banners**: no more `object-cover` crop; hero shows the whole image, click for full size

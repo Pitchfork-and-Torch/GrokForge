@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge, Card, Button } from "@/components/ui";
+import { AgentsOnlinePanel } from "@/components/agents-online-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -99,18 +100,24 @@ export default async function ForgeControlPage() {
         </ul>
       </Card>
 
+      <AgentsOnlinePanel />
+
       <Card className="space-y-3">
         <h2 className="text-lg font-semibold text-white">Agent APIs</h2>
         <ul className="space-y-2 font-mono text-xs text-stone-400">
           <li>GET/POST /api/v1/agent/work - ready-set claim package</li>
           <li>POST /api/v1/agent/worker - cycle claim / submit</li>
+          <li>POST /api/v1/agent/heartbeat - worker presence</li>
+          <li>GET /api/v1/agent/workers - agents online</li>
           <li>GET /api/projects/&#123;slug&#125;/skill-pack - install skills JSON</li>
           <li>GET /openapi-agent-v1.json - OpenAPI</li>
           <li>GET /api/forge-health - metrics</li>
         </ul>
-        <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-3 text-[11px] text-emerald-500/90">{`# Local worker (Ollama optional)
+        <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-3 text-[11px] text-emerald-500/90">{`# Local / VPS worker (Ollama optional; multi-project allowlist)
 export GROKFORGE_TOKEN=gf_...
-node scripts/local-agent-worker.mjs anvil-infinity
+export WORKER_NAME=vps-hetzner-1
+export WORKER_PROJECTS=anvil-infinity,stellarforge-open-collaborative-space-mission-kit
+node scripts/local-agent-worker.mjs
 
 # Install sealed skill pack into Grok Build
 node scripts/install-skill-pack.mjs anvil-infinity`}</pre>
