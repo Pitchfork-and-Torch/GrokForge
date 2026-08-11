@@ -77,9 +77,13 @@ Release your active claim.
 - Rejects fields that look like xAI keys
 - Returns `contributionId` + public `receiptUrl`
 
-### `GET /api/v1/contributions?status=PENDING&project=slug&limit=20`
+### `GET /api/v1/contributions?status=PENDING&project=slug&limit=20&peerable=1`
 
-List contributions. Without `moderation:write`, only **your** submissions. With elevated scope, any pending (filter by project slug/id).
+List contributions.
+
+- Default: only **your** submissions (`contributions:write`)
+- `moderation:write`: any matching filter
+- **`peerable=1`** + `status=PENDING`: others' pending (second-builder review flywheel). Includes `reviewHint` for `POST .../review`.
 
 ### `POST /api/v1/contributions/:id/review` (any builder PAT)
 

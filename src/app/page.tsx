@@ -23,7 +23,9 @@ import { ShipSourceLinks } from "@/components/ship-source-links";
 import { ShareProjectButton } from "@/components/share-project-button";
 import { GoodFirstStrip } from "@/components/good-first-strip";
 import { NetworkTrustStrip } from "@/components/network-trust-strip";
+import { BuilderFlywheelPanel } from "@/components/builder-flywheel-panel";
 import { getNetworkTrustSnapshot } from "@/lib/network-trust";
+import { isAgentSubmission } from "@/lib/deliverable-quality";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +34,8 @@ export default async function HomePage() {
   const signedIn = !!session?.user?.id;
   const isFounder = isFounderHandle(session?.user?.handle);
 
-  const [projects, anvilMeta, goodFirstLeaves, networkTrust] = await Promise.all([
+  const [projects, anvilMeta, goodFirstLeaves, networkTrust, peerableHome, myAwaitingHome] =
+    await Promise.all([
     prisma.project.findMany({
       where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
       include: {
@@ -78,6 +81,45 @@ export default async function HomePage() {
       },
     }),
     getNetworkTrustSnapshot().catch(() => null),
+    prisma.contribution
+      .findMany({
+        where: {
+          status: "PENDING",
+          ...(session?.user?.id ? { userId: { not: session.user.id } } : {}),
+          task: {
+            project: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+        take: 6,
+        include: {
+          user: { select: { handle: true } },
+          task: {
+            select: {
+              title: true,
+              project: { select: { slug: true, title: true } },
+            },
+          },
+        },
+      })
+      .catch(() => [] as never[]),
+    session?.user?.id
+      ? prisma.contribution
+          .findMany({
+            where: { status: "PENDING", userId: session.user.id },
+            orderBy: { createdAt: "asc" },
+            take: 6,
+            include: {
+              task: {
+                select: {
+                  title: true,
+                  project: { select: { slug: true } },
+                },
+              },
+            },
+          })
+          .catch(() => [] as never[])
+      : Promise.resolve([] as never[]),
   ]);
 
   const homeMyThumbs = new Set<string>();
@@ -152,6 +194,44 @@ export default async function HomePage() {
       {/* Top of site: network pulse sits above the hero so it is never under the pin */}
       <LiveForgeBar stats={live} />
       {networkTrust && <NetworkTrustStrip trust={networkTrust} />}
+
+      <BuilderFlywheelPanel
+        signedIn={signedIn}
+        peerable={(peerableHome as Array<{
+          id: string;
+          createdAt: Date;
+          sources: string | null;
+          contentType: string;
+          user: { handle: string | null };
+          task: {
+            title: string;
+            project: { slug: string; title: string };
+          };
+        }>).map((c) => ({
+          id: c.id,
+          taskTitle: c.task.title,
+          projectSlug: c.task.project.slug,
+          projectTitle: c.task.project.title,
+          authorHandle: c.user.handle,
+          createdAtLabel:
+            c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+          agent: isAgentSubmission({
+            sources: c.sources,
+            contentType: c.contentType,
+          }),
+        }))}
+        awaiting={(myAwaitingHome as Array<{
+          id: string;
+          createdAt: Date;
+          task: { title: string; project: { slug: string } };
+        }>).map((c) => ({
+          id: c.id,
+          taskTitle: c.task.title,
+          projectSlug: c.task.project.slug,
+          createdAtLabel:
+            c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+        }))}
+      />
 
       {anvilMeta && (
         <Card className="border-amber-500/30 bg-gradient-to-r from-amber-950/40 to-black/40">

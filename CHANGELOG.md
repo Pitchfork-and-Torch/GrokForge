@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 2026-08-10 - Builder Flywheel wave
+
+- **GET /api/v1/contributions?peerable=1** - second builders discover others' pending + reviewHint
+- **Builder flywheel panel** on home + dashboard: ready-to-review vs your submits awaiting peers
+- Continues Network Gravity: peer reviews unlock ready-set; invite second builders
+
 ## 2026-08-10 - Second-builder peer review API
 
 - **POST /api/v1/contributions/:id/review** - any Agent PAT can peer-review others (score 1-5); shared `peer-review-ops`

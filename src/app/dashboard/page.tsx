@@ -23,8 +23,10 @@ import { WeeklyChallenges } from "@/components/weekly-challenges";
 import { AgentTokensCard } from "@/components/agent-tokens-card";
 import { LocalWorkerCard } from "@/components/local-worker-card";
 import { WorkerWebhookCard } from "@/components/worker-webhook-card";
+import { BuilderFlywheelPanel } from "@/components/builder-flywheel-panel";
 import { fetchUserBadges } from "@/lib/badges-data";
 import { fetchWeeklyChallenges } from "@/lib/challenges-data";
+import { isAgentSubmission } from "@/lib/deliverable-quality";
 
 export const dynamic = "force-dynamic";
 
@@ -216,6 +218,54 @@ export default async function DashboardPage() {
   const myPending = user.contributions.filter((c) => c.status === "PENDING");
   const myAccepted = user.contributions.filter((c) => c.status === "ACCEPTED");
 
+  // Builder Flywheel: others' pending for peer review
+  let peerableForMe: {
+    id: string;
+    taskTitle: string;
+    projectSlug: string;
+    projectTitle: string;
+    authorHandle: string | null;
+    createdAtLabel: string;
+    agent: boolean;
+  }[] = [];
+  try {
+    const peerRows = await prisma.contribution.findMany({
+      where: {
+        status: "PENDING",
+        userId: { not: user.id },
+        task: {
+          project: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 8,
+      include: {
+        user: { select: { handle: true } },
+        task: {
+          select: {
+            title: true,
+            project: { select: { slug: true, title: true } },
+          },
+        },
+      },
+    });
+    peerableForMe = peerRows.map((c) => ({
+      id: c.id,
+      taskTitle: c.task.title,
+      projectSlug: c.task.project.slug,
+      projectTitle: c.task.project.title,
+      authorHandle: c.user.handle,
+      createdAtLabel:
+        c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+      agent: isAgentSubmission({
+        sources: c.sources,
+        contentType: c.contentType,
+      }),
+    }));
+  } catch {
+    peerableForMe = [];
+  }
+
   // Comment reports on projects I own (moderation queue light)
   let reportedComments: {
     id: string;
@@ -299,6 +349,18 @@ export default async function DashboardPage() {
 
       <BadgeUnlockToast userId={user.id} badges={badges} />
       <WeeklyChallenges challenges={challenges} />
+
+      <BuilderFlywheelPanel
+        signedIn
+        peerable={peerableForMe}
+        awaiting={myPending.map((c) => ({
+          id: c.id,
+          taskTitle: c.task.title,
+          projectSlug: c.task.project.slug,
+          createdAtLabel:
+            c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+        }))}
+      />
 
       {user.handle && (
         <BuilderWidgetCard handle={user.handle} siteUrl="https://grokforge.app" />
