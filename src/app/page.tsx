@@ -316,9 +316,11 @@ export default async function HomePage() {
               </span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-stone-400 sm:mt-4 sm:text-base sm:text-lg">
-              GrokForge is GoFundMe + task marketplace + open collab hub for Grok users. Propose
-              projects, fund compute, claim nested tasks, climb the leaderboard.
-              {signedIn ? " Welcome back - the forge is hot." : " Sign in with X to start building."}
+              GrokForge is a public collab forge for Grok users: open-license community projects,
+              hierarchical tasks you can claim and build, peer review, and ships that stay public.
+              {signedIn
+                ? " Welcome back - pick a leaf and keep building."
+                : " Sign in with X to join a project."}
             </p>
             <div className="mt-6 flex flex-col gap-2.5 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
               {signedIn ? (
@@ -353,8 +355,8 @@ export default async function HomePage() {
                   </Link>
                 </>
               )}
-              <Link href="/leaderboard">
-                <Button variant="ghost">Top contributors</Button>
+              <Link href="/projects">
+                <Button variant="ghost">Community projects</Button>
               </Link>
             </div>
           </div>
@@ -406,16 +408,16 @@ export default async function HomePage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
             {
-              k: "Labor",
-              v: "Claim hierarchical tasks, run with your own Grok, submit + peer review",
+              k: "Build",
+              v: "Claim hierarchical leaves on real community projects; run Grok with your own keys",
             },
             {
-              k: "Capital",
-              v: "Transparent pots: API credits, compute, SuperGrok sponsorship",
+              k: "Review",
+              v: "Peer-review submissions so good work lands and the next ready leaves unlock",
             },
             {
-              k: "Recognition",
-              v: "Public leaderboard with Follow on X for top builders",
+              k: "Ship",
+              v: "Accepted work becomes public receipts, sealed packages, and open kits others can use",
             },
           ].map((item) => (
             <div
@@ -435,8 +437,8 @@ export default async function HomePage() {
         rows={leaders}
         signedIn={signedIn}
         badgeMap={badgeMap}
-        title="Top contributors"
-        subtitle="Capital donated + accepted labor + reviews. Badges unlock as you build."
+        title="Builders in the network"
+        subtitle="Accepted labor and peer reviews on public projects - credit for real contributions."
       />
 
       <section aria-labelledby="activity-heading">
@@ -446,7 +448,7 @@ export default async function HomePage() {
               Recent network activity
             </h2>
             <p className="text-sm text-stone-500">
-              Live ledger across active projects - claims, submissions, capital, and edits.
+              Live ledger across community projects - claims, submissions, reviews, and ships.
             </p>
           </div>
           <Link href="/activity" className="text-sm text-amber-400 hover:text-amber-300">
@@ -471,10 +473,26 @@ export default async function HomePage() {
         </h2>
         <ol className="mt-4 grid gap-4 sm:grid-cols-4">
           {[
-            { n: "01", t: "Propose", d: "Hierarchical goals + open license + funding target" },
-            { n: "02", t: "Fund", d: "Public pots for credits, compute, SuperGrok sponsorship" },
-            { n: "03", t: "Claim", d: "Take a leaf task; run agents with your own keys" },
-            { n: "04", t: "Ship", d: "Submit output, peer review, climb the leaderboard" },
+            {
+              n: "01",
+              t: "Propose",
+              d: "Open a community project with hierarchical goals and an open license",
+            },
+            {
+              n: "02",
+              t: "Break it down",
+              d: "Split the mission into claimable leaves so many builders can help in parallel",
+            },
+            {
+              n: "03",
+              t: "Claim",
+              d: "Pick a ready leaf; build with your own Grok or tools - keys stay local",
+            },
+            {
+              n: "04",
+              t: "Ship",
+              d: "Submit work, get peer review, and leave a public artifact for the community",
+            },
           ].map((step) => (
             <li
               key={step.n}
@@ -602,8 +620,8 @@ export default async function HomePage() {
         <h2 className="text-xl font-semibold text-white">Trust rails</h2>
         <ul className="mt-3 grid gap-2 text-sm text-stone-300 sm:grid-cols-2">
           <li>Never stores user xAI / SuperGrok credentials</li>
-          <li>Public labor + capital ledgers on every project</li>
-          <li>Open license commitment required for funded work</li>
+          <li>Public labor ledgers and contribution receipts on every project</li>
+          <li>Open license commitment for shared community outputs</li>
           <li>Alignment pre-check on new project proposals</li>
         </ul>
         <div className="mt-5">
