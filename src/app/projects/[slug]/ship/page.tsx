@@ -9,6 +9,7 @@ import { CopyLinkButton } from "@/components/copy-link-button";
 import { PublishGitHubButton } from "@/components/publish-github-button";
 import { CreatorGitHubPublish } from "@/components/creator-github-publish";
 import { ShipChecklist } from "@/components/ship-checklist";
+import { SkillPackInstall } from "@/components/skill-pack-install";
 import { getOptionalUser } from "@/lib/session";
 import { isFounderHandle } from "@/lib/identity";
 import {
@@ -209,11 +210,8 @@ export default async function ShipPage({
               Download GitHub-ready ZIP
             </Button>
           </a>
-          <a href={skillPackUrl}>
-            <Button variant="secondary">Install skill pack (JSON)</Button>
-          </a>
-          <a href={`${skillPackUrl}?format=md`}>
-            <Button variant="ghost">SKILL.md only</Button>
+          <a href={`${skillPackUrl}?download=1`}>
+            <Button variant="secondary">Download skill pack</Button>
           </a>
           {githubArt?.url ? (
             <a href={githubArt.url} target="_blank" rel="noopener noreferrer">
@@ -243,9 +241,15 @@ export default async function ShipPage({
         hasGithub={!!githubArt?.url}
         githubUrl={githubArt?.url}
         downloadUrl={downloadUrl}
-        skillPackUrl={skillPackUrl}
+        skillPackUrl={`${skillPackUrl}?download=1`}
         shipUrl={shipUrl}
         canPublish={canPublish}
+      />
+
+      <SkillPackInstall
+        slug={slug}
+        title={project.title}
+        skillPackApiUrl={skillPackUrl}
       />
 
       <PublishGitHubButton

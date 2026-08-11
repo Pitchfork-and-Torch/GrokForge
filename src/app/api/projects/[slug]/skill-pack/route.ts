@@ -76,14 +76,35 @@ export async function GET(
     });
   }
 
-  return NextResponse.json({
-    ok: true,
+  const payload = {
+    ok: true as const,
     slug: project.slug,
     title: project.title,
     installHint:
-      "Write each files[].path under ~/.grok/skills/ (or your agent skills root)",
+      "Write each files[].path under ~/.grok/skills/ (or your agent skills root). CLI: node scripts/install-skill-pack.mjs " +
+      project.slug,
+    installCommand: `node scripts/install-skill-pack.mjs ${project.slug}`,
     files,
     sealedSkillCount: fromSeal.length,
     generated: true,
-  });
+  };
+
+  // Browsers: ?download=1 forces a file save instead of a wall of JSON
+  const asDownload =
+    url.searchParams.get("download") === "1" ||
+    url.searchParams.get("download") === "true" ||
+    format === "download";
+
+  if (asDownload) {
+    return new NextResponse(JSON.stringify(payload, null, 2), {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${project.slug}-skill-pack.json"`,
+        "Cache-Control": "public, max-age=60",
+      },
+    });
+  }
+
+  // Programmatic install (install-skill-pack.mjs) keeps plain JSON
+  return NextResponse.json(payload);
 }

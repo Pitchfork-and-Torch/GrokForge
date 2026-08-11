@@ -55,7 +55,8 @@ export function ShipChecklist({
       done: false,
       label: "Install skill pack",
       href: skillPackUrl,
-      hint: "JSON for Grok Build: node scripts/install-skill-pack.mjs " + slug,
+      hint:
+        "Download JSON or run: node scripts/install-skill-pack.mjs " + slug,
     },
     {
       done: false,
