@@ -305,12 +305,14 @@ async function main() {
       fail += 1;
       const msg = e.message || String(e);
       console.error(`[cycle ${i}]`, msg);
+      const noReady = msg.includes("No ready");
       await heartbeat({
-        status: "error",
-        event: "error",
-        lastError: msg.slice(0, 500),
+        status: noReady ? "idle" : "error",
+        event: noReady ? "ping" : "error",
+        lastError: noReady ? null : msg.slice(0, 500),
+        meta: noReady ? { idleReason: "no_ready_leaves" } : undefined,
       });
-      if (msg.includes("No ready")) {
+      if (noReady) {
         if (MAX === 0 || LOOP) {
           console.log(`[idle] no ready leaves; sleep ${SLEEP_MS}ms`);
           await sleep(SLEEP_MS);
