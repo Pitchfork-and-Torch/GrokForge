@@ -896,154 +896,26 @@ export async function reviewContributionAction(
   score: number,
   notes: string
 ) {
-  const user = await requireUser();
-  const rl = await rateLimitAsync(`review:${user.id}`, { limit: 60, windowMs: 60 * 60 * 1000 });
-  if (!rl.ok) return { error: `Rate limit: try again in ${rl.retryAfterSec}s` };
-  if (score < 1 || score > 5) return { error: "Score must be 1-5" };
-
-  const contribution = await prisma.contribution.findUnique({
-    where: { id: contributionId },
-    include: { task: { include: { project: true } }, user: true },
-  });
-  if (!contribution) return { error: "Not found" };
-  if (contribution.userId === user.id) {
-    return { error: "Cannot review your own submission" };
-  }
-
-  await prisma.contributionReview.create({
-    data: {
-      contributionId,
-      reviewerId: user.id,
-      score,
-      notes: notes || null,
-    },
-  });
-
-  // Review flywheel: small rep for honest peer reviews
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { reputation: { increment: 2 } },
-  });
-
-  // Notify contributor of the review (after we know accept/reject below - light ping now)
-  if (contribution.userId !== user.id) {
-    await notifyUser({
-      userId: contribution.userId,
-      type: "REVIEW",
-      title: `Review on "${contribution.task.title}"`,
-      body: `@${user.handle || "reviewer"} scored ${score}/5`,
-      href: `/c/${contribution.id}`,
-    });
-  }
-
-  const reviews = await prisma.contributionReview.findMany({
-    where: { contributionId },
-  });
-  const avg = Math.round(
-    reviews.reduce((s, r) => s + r.score, 0) / reviews.length
-  );
-
-  const accepted = avg >= 3;
-  await prisma.contribution.update({
-    where: { id: contributionId },
-    data: {
-      score: avg,
-      status: accepted ? "ACCEPTED" : "REJECTED",
-    },
-  });
-
-  await prisma.task.update({
-    where: { id: contribution.taskId },
-    data: { status: accepted ? TaskStatus.ACCEPTED : TaskStatus.OPEN },
-  });
-
-  if (accepted) {
-    await prisma.user.update({
-      where: { id: contribution.userId },
-      data: { reputation: { increment: 5 } },
-    });
-  }
-
   try {
-    const { syncProjectCompletionStatus } = await import("@/lib/project-completion");
-    await syncProjectCompletionStatus(contribution.task.projectId, {
-      actorHandle: user.handle,
-    });
+    const user = await requireUser();
+    const { peerReviewContributionForUser } = await import(
+      "@/lib/peer-review-ops"
+    );
+    const res = await peerReviewContributionForUser(
+      { id: user.id, handle: user.handle, name: user.name },
+      contributionId,
+      score,
+      notes,
+      { via: "ui" }
+    );
+    if ("error" in res) return { error: res.error };
+    return { ok: true, accepted: res.accepted, avg: res.avg };
   } catch (e) {
-    console.warn("[reviewContributionAction] completion sync", e);
+    console.error("[reviewContributionAction]", e);
+    return {
+      error: e instanceof Error ? e.message.slice(0, 300) : "Review failed",
+    };
   }
-
-  await prisma.ledgerEntry.create({
-    data: {
-      projectId: contribution.task.projectId,
-      kind: LedgerKind.LABOR,
-      amountCents: 0,
-      summary: `@${user.handle} reviewed contribution (${avg}/5) -> ${accepted ? "accepted" : "rejected"}`,
-      actorHandle: user.handle,
-      meta: JSON.stringify({
-        contributionId,
-        peerReview: true,
-        avg,
-        accepted,
-      }),
-    },
-  });
-
-  // Final outcome ping (review score already notified above)
-  if (contribution.userId !== user.id) {
-    await notifyUser({
-      userId: contribution.userId,
-      type: accepted ? "ACCEPTED" : "REJECTED",
-      title: accepted
-        ? `Accepted: ${contribution.task.title}`
-        : `Needs more work: ${contribution.task.title}`,
-      body: `Peer average ${avg}/5 - ${accepted ? "+5 rep" : "task reopened"}`,
-      href: `/c/${contribution.id}`,
-    });
-  }
-  if (contribution.task.project.proposerId !== user.id && contribution.task.project.proposerId !== contribution.userId) {
-    await notifyUser({
-      userId: contribution.task.project.proposerId,
-      type: "REVIEW_RESULT",
-      title: `Review result on ${contribution.task.project.title}`,
-      body: `"${contribution.task.title}" scored ${avg}/5 (${accepted ? "accepted" : "rejected"})`,
-      href: `/c/${contribution.id}`,
-    });
-  }
-  await notifyProjectWatchers({
-    projectId: contribution.task.projectId,
-    excludeUserIds: [
-      user.id,
-      contribution.userId,
-      contribution.task.project.proposerId,
-    ],
-    type: "WATCH_REVIEW",
-    title: `Watched: ${contribution.task.project.title}`,
-    body: `"${contribution.task.title}" ${accepted ? "accepted" : "rejected"} (${avg}/5)`,
-    href: `/c/${contribution.id}`,
-  });
-
-  // Network Gravity: peer accepts must unlock ready-set + worker webhooks
-  if (accepted) {
-    try {
-      const { emitLeafReadyIfAny } = await import("@/lib/moderation-ops");
-      await emitLeafReadyIfAny(
-        contribution.task.projectId,
-        contribution.task.project.slug
-      );
-    } catch (e) {
-      console.warn("[reviewContributionAction] leaf-ready", e);
-    }
-  }
-
-  revalidatePath(`/projects/${contribution.task.project.slug}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/leaderboard");
-  revalidatePath("/tasks");
-  revalidatePath("/forge");
-  revalidatePath("/");
-  revalidatePath(`/c/${contribution.id}`);
-  return { ok: true };
 }
 
 /**

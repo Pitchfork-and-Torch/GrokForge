@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 2026-08-10 - Second-builder peer review API
+
+- **POST /api/v1/contributions/:id/review** - any Agent PAT can peer-review others (score 1-5); shared `peer-review-ops`
+- Script `scripts/second-builder-clear-pending.ts` for second-account backlog clear (API or local Neon)
+- Review queue already shows own pending with creator accept
+
 ## 2026-08-10 - Network Gravity wave
 
 - **Review velocity**: one-tap Ship it (5) / Good (4) / Needs work (2); age + stale badges; creator moderate on review queue; peer accepts fire leaf-ready webhooks (unblocks ready-set + workers)

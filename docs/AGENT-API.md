@@ -35,7 +35,7 @@ Scopes (default on create):
 | Scope | Use |
 |-------|-----|
 | `moderation:write` | Accept / reject pending submissions; bulk-accept a project |
-| `reviews:write` | Reserved for review writes |
+| `reviews:write` | Founder elevated (optional); peer review also works with default PAT |
 
 Elevated tokens are never mintable by non-founders (server enforces). Store elevated secrets only under `~/.grok/secrets/` - never commit.
 
@@ -80,6 +80,16 @@ Release your active claim.
 ### `GET /api/v1/contributions?status=PENDING&project=slug&limit=20`
 
 List contributions. Without `moderation:write`, only **your** submissions. With elevated scope, any pending (filter by project slug/id).
+
+### `POST /api/v1/contributions/:id/review` (any builder PAT)
+
+Second-builder peer review (cannot review your own work).
+
+```json
+{ "score": 4, "notes": "optional" }
+```
+
+`score` is 1-5. Average ≥3 accepts the contribution and unlocks ready-set; below 3 reopens the leaf. Uses default scopes (no founder elevation). Reviewer earns +2 rep.
 
 ### `POST /api/v1/contributions/:id/moderate` (founder elevated)
 
