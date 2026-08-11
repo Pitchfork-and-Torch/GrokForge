@@ -12,7 +12,6 @@ import { ProjectBannerThumb } from "@/components/project-banner";
 import { ShareProjectButton } from "@/components/share-project-button";
 import { ProjectOrderAdmin } from "@/components/project-order-admin";
 import { isFounderHandle } from "@/lib/identity";
-import { PROJECT_LIST_ORDER } from "@/lib/project-order";
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +25,204 @@ type SortKey =
   | "comments";
 
 const SORT_LABELS: Record<SortKey, string> = {
-  curated: "Curated",
-  newest: "Newest",
+  newest: "Newest first",
+  curated: "Founder curated",
   rank: "Highest ranked",
   thumbs: "Most thumbs-up",
   funding: "Most funded",
   tasks: "Most open tasks",
   comments: "Most discussion",
 };
+
+type ProjectRow = Awaited<
+  ReturnType<typeof loadProjects>
+>[number];
+
+async function loadProjects(args: {
+  statusFilter?: ProjectStatus;
+  category?: ProjectCategory;
+  q?: string;
+}) {
+  return prisma.project.findMany({
+    where: {
+      status: args.statusFilter
+        ? args.statusFilter
+        : { in: ["ACTIVE", "FUNDED", "COMPLETED"] },
+      ...(args.category ? { category: args.category } : {}),
+      ...(args.q
+        ? {
+            OR: [
+              { title: { contains: args.q, mode: "insensitive" } },
+              { description: { contains: args.q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      proposer: { select: { handle: true, reputation: true } },
+      fundPots: true,
+      scorecard: { select: { totalScore: true } },
+      tasks: { select: { id: true, status: true, parentId: true } },
+      artifacts: {
+        where: { source: "package" },
+        select: { id: true },
+        take: 1,
+      },
+      _count: { select: { comments: true, watches: true, thumbs: true } },
+    },
+    // Default list is newest; JS sort refinements below
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+function sortProjects(projects: ProjectRow[], sort: SortKey): ProjectRow[] {
+  return [...projects].sort((a, b) => {
+    if (sort === "curated") {
+      if (a.displayOrder !== b.displayOrder) {
+        return a.displayOrder - b.displayOrder;
+      }
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "newest") {
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "rank") {
+      const ta = a.scorecard?.totalScore;
+      const tb = b.scorecard?.totalScore;
+      if (ta == null && tb == null) {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      }
+      if (ta == null) return 1;
+      if (tb == null) return -1;
+      if (tb !== ta) return tb - ta;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "thumbs") {
+      const d = (b._count.thumbs || 0) - (a._count.thumbs || 0);
+      return d !== 0 ? d : b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "funding") {
+      const ra = a.fundPots.reduce((s, f) => s + f.balanceCents, 0);
+      const rb = b.fundPots.reduce((s, f) => s + f.balanceCents, 0);
+      return rb !== ra ? rb - ra : b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "tasks") {
+      const oa = projectTaskProgress(a.tasks).open;
+      const ob = projectTaskProgress(b.tasks).open;
+      return ob !== oa ? ob - oa : b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    if (sort === "comments") {
+      const d = b._count.comments - a._count.comments;
+      return d !== 0 ? d : b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+}
+
+function ProjectDiscoverCard({
+  p,
+  signedIn,
+  myThumbs,
+}: {
+  p: ProjectRow;
+  signedIn: boolean;
+  myThumbs: Set<string>;
+}) {
+  const progress = projectTaskProgress(p.tasks);
+  const rankScore = p.scorecard?.totalScore;
+  const done = isProjectCompleteDisplay(p.status, p.tasks);
+  const sealed = p.artifacts.length > 0;
+  return (
+    <Card
+      className={`h-full transition hover:border-amber-500/40 ${
+        done || sealed ? "border-emerald-500/35" : ""
+      }`}
+    >
+      <ProjectBannerThumb url={p.bannerUrl} title={p.title} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge>{CATEGORY_LABELS[p.category]}</Badge>
+        {done ? (
+          <ProjectCompletedBadge size="sm" />
+        ) : (
+          <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+            {progress.open} open
+          </Badge>
+        )}
+        <ShipSourceLinks slug={p.slug} sealed={sealed} compact />
+        {!done && progress.claimed > 0 && (
+          <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-200">
+            {progress.claimed} claimed
+          </Badge>
+        )}
+        {!done && progress.submitted > 0 && (
+          <Badge className="border-sky-500/30 bg-sky-500/10 text-sky-200">
+            {progress.submitted} submitted
+          </Badge>
+        )}
+        {rankScore != null && (
+          <Badge className="border-amber-500/40 bg-amber-500/10 text-amber-200">
+            Rank {rankScore.toFixed(2)}/5
+          </Badge>
+        )}
+        {p.status !== "ACTIVE" && !done && (
+          <Badge className="border-white/10 bg-white/5 text-stone-400">
+            {p.status}
+          </Badge>
+        )}
+        <span className="ml-auto flex flex-wrap items-center gap-1.5">
+          <ShareProjectButton
+            title={p.title}
+            slug={p.slug}
+            category={p.category}
+            proposerHandle={p.proposer.handle}
+            variant="compact"
+          />
+          <ProjectThumbButton
+            projectId={p.id}
+            initialCount={p._count.thumbs}
+            initiallyThumbed={myThumbs.has(p.id)}
+            signedIn={signedIn}
+            compact
+          />
+        </span>
+      </div>
+      <Link
+        href={sealed ? `/projects/${p.slug}/ship` : `/projects/${p.slug}`}
+        className="mt-3 block text-xl font-semibold text-white hover:text-amber-200"
+      >
+        {p.title}
+      </Link>
+      <p className="mt-2 line-clamp-3 text-sm text-stone-400">{p.description}</p>
+      <div className="mt-4 space-y-2">
+        <div className="flex justify-between text-xs text-stone-500">
+          <span>
+            {progress.completed} / {progress.total} tasks done
+          </span>
+          <span>
+            {progress.total > 0 ? Math.round(progress.pct) : 0}% complete
+          </span>
+        </div>
+        <ProgressBar value={progress.pct} />
+      </div>
+      <p className="mt-3 text-xs text-stone-500">
+        by @{p.proposer.handle} · {p.proposer.reputation} rep · {p.license} ·{" "}
+        <Link
+          href={`/projects/${p.slug}`}
+          className="text-amber-400/90 hover:underline"
+        >
+          project
+        </Link>
+        {" · "}
+        {p._count.comments} comments
+        {p._count.watches > 0 ? ` · ${p._count.watches} watching` : ""}
+        {" · "}
+        <time dateTime={p.createdAt.toISOString()}>
+          {p.createdAt.toISOString().slice(0, 10)}
+        </time>
+      </p>
+    </Card>
+  );
+}
 
 export default async function ProjectsPage({
   searchParams,
@@ -54,50 +243,24 @@ export default async function ProjectsPage({
       ? (sp.category as ProjectCategory)
       : undefined;
   const q = sp.q?.trim();
+  // Default: newest first (completed split to bottom panel)
   const sort: SortKey =
     sp.sort === "funding" ||
     sp.sort === "tasks" ||
     sp.sort === "comments" ||
     sp.sort === "rank" ||
     sp.sort === "thumbs" ||
+    sp.sort === "curated" ||
     sp.sort === "newest"
-      ? sp.sort
-      : "curated";
+      ? (sp.sort as SortKey)
+      : "newest";
   const statusFilter =
     sp.status &&
     ["ACTIVE", "FUNDED", "COMPLETED"].includes(sp.status.toUpperCase())
       ? (sp.status.toUpperCase() as ProjectStatus)
       : undefined;
 
-  const projects = await prisma.project.findMany({
-    where: {
-      status: statusFilter
-        ? statusFilter
-        : { in: ["ACTIVE", "FUNDED", "COMPLETED"] },
-      ...(category ? { category } : {}),
-      ...(q
-        ? {
-            OR: [
-              { title: { contains: q, mode: "insensitive" } },
-              { description: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      proposer: { select: { handle: true, reputation: true } },
-      fundPots: true,
-      scorecard: { select: { totalScore: true } },
-      tasks: { select: { id: true, status: true, parentId: true } },
-      artifacts: {
-        where: { source: "package" },
-        select: { id: true },
-        take: 1,
-      },
-      _count: { select: { comments: true, watches: true, thumbs: true } },
-    },
-    orderBy: PROJECT_LIST_ORDER,
-  });
+  const projects = await loadProjects({ statusFilter, category, q });
 
   const myThumbs = new Set<string>();
   if (session?.user?.id) {
@@ -115,47 +278,25 @@ export default async function ProjectsPage({
     }
   }
 
-  const ranked = [...projects].sort((a, b) => {
-    if (sort === "curated") {
-      if (a.displayOrder !== b.displayOrder) {
-        return a.displayOrder - b.displayOrder;
-      }
-      return b.createdAt.getTime() - a.createdAt.getTime();
-    }
-    if (sort === "newest") {
-      return b.createdAt.getTime() - a.createdAt.getTime();
-    }
-    if (sort === "rank") {
-      const ta = a.scorecard?.totalScore;
-      const tb = b.scorecard?.totalScore;
-      if (ta == null && tb == null) return 0;
-      if (ta == null) return 1;
-      if (tb == null) return -1;
-      return tb - ta;
-    }
-    if (sort === "thumbs") {
-      return (b._count.thumbs || 0) - (a._count.thumbs || 0);
-    }
-    if (sort === "funding") {
-      const ra = a.fundPots.reduce((s, f) => s + f.balanceCents, 0);
-      const rb = b.fundPots.reduce((s, f) => s + f.balanceCents, 0);
-      return rb - ra;
-    }
-    if (sort === "tasks") {
-      const oa = projectTaskProgress(a.tasks).open;
-      const ob = projectTaskProgress(b.tasks).open;
-      return ob - oa;
-    }
-    if (sort === "comments") return b._count.comments - a._count.comments;
-    return 0; // already newest
-  });
+  const ranked = sortProjects(projects, sort);
+
+  // Split: live work on top; completed (status or all leaves done) in second panel
+  const forceCompletedOnly = statusFilter === "COMPLETED";
+  const forceActiveOnly =
+    statusFilter === "ACTIVE" || statusFilter === "FUNDED";
+  const live = forceCompletedOnly
+    ? []
+    : ranked.filter((p) => !isProjectCompleteDisplay(p.status, p.tasks));
+  const completed = forceActiveOnly
+    ? []
+    : ranked.filter((p) => isProjectCompleteDisplay(p.status, p.tasks));
 
   const qs = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     const merged = {
       q: q || undefined,
       category: category || undefined,
-      sort: sort !== "curated" ? sort : undefined,
+      sort: sort !== "newest" ? sort : undefined,
       status: statusFilter || undefined,
       ...extra,
     };
@@ -172,11 +313,12 @@ export default async function ProjectsPage({
         <div>
           <h1 className="text-3xl font-bold text-white">Discover projects</h1>
           <p className="mt-1 text-stone-400">
-            Default order is founder-curated. Also sort by{" "}
+            Newest live projects first. Completed work is listed in a separate
+            panel below. Sort by{" "}
             <Link href="/projects?sort=rank" className="text-amber-400 hover:underline">
               ranking
             </Link>
-            , newest, funding, or open tasks.{" "}
+            , curated, funding, or open tasks.{" "}
             <Link href="/rankings" className="text-amber-400 hover:underline">
               Full ranking board
             </Link>
@@ -283,106 +425,131 @@ export default async function ProjectsPage({
       </div>
 
       <p className="text-xs text-stone-500">
-        {ranked.length} project{ranked.length === 1 ? "" : "s"} · sorted by{" "}
+        {live.length} live · {completed.length} completed · sorted by{" "}
         {SORT_LABELS[sort].toLowerCase()}
+        {!forceCompletedOnly && completed.length > 0
+          ? " · completed in panel below"
+          : ""}
       </p>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {ranked.map((p) => {
-          const progress = projectTaskProgress(p.tasks);
-          const rankScore = p.scorecard?.totalScore;
-          const done = isProjectCompleteDisplay(p.status, p.tasks);
-          const sealed = p.artifacts.length > 0;
-          return (
-            <Card
-              key={p.id}
-              className={`h-full transition hover:border-amber-500/40 ${
-                done || sealed ? "border-emerald-500/35" : ""
-              }`}
-            >
-              <ProjectBannerThumb url={p.bannerUrl} title={p.title} />
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge>{CATEGORY_LABELS[p.category]}</Badge>
-                {done ? (
-                  <ProjectCompletedBadge size="sm" />
-                ) : (
-                  <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
-                    {progress.open} open
-                  </Badge>
-                )}
-                <ShipSourceLinks slug={p.slug} sealed={sealed} compact />
-                {!done && progress.claimed > 0 && (
-                  <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-200">
-                    {progress.claimed} claimed
-                  </Badge>
-                )}
-                {!done && progress.submitted > 0 && (
-                  <Badge className="border-sky-500/30 bg-sky-500/10 text-sky-200">
-                    {progress.submitted} submitted
-                  </Badge>
-                )}
-                {rankScore != null && (
-                  <Badge className="border-amber-500/40 bg-amber-500/10 text-amber-200">
-                    Rank {rankScore.toFixed(2)}/5
-                  </Badge>
-                )}
-                {p.status !== "ACTIVE" && !done && (
-                  <Badge className="border-white/10 bg-white/5 text-stone-400">
-                    {p.status}
-                  </Badge>
-                )}
-                <span className="ml-auto flex flex-wrap items-center gap-1.5">
-                  <ShareProjectButton
-                    title={p.title}
-                    slug={p.slug}
-                    category={p.category}
-                    proposerHandle={p.proposer.handle}
-                    variant="compact"
-                  />
-                  <ProjectThumbButton
-                    projectId={p.id}
-                    initialCount={p._count.thumbs}
-                    initiallyThumbed={myThumbs.has(p.id)}
-                    signedIn={signedIn}
-                    compact
-                  />
-                </span>
-              </div>
-              <Link
-                href={sealed ? `/projects/${p.slug}/ship` : `/projects/${p.slug}`}
-                className="mt-3 block text-xl font-semibold text-white hover:text-amber-200"
+      {!forceCompletedOnly && (
+        <section className="space-y-3" aria-labelledby="live-projects-heading">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2
+                id="live-projects-heading"
+                className="text-lg font-semibold text-white"
               >
-                {p.title}
-              </Link>
-              <p className="mt-2 line-clamp-3 text-sm text-stone-400">{p.description}</p>
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-xs text-stone-500">
-                  <span>
-                    {progress.completed} / {progress.total} tasks done
-                  </span>
-                  <span>
-                    {progress.total > 0 ? Math.round(progress.pct) : 0}% complete
-                  </span>
-                </div>
-                <ProgressBar value={progress.pct} />
-              </div>
-              <p className="mt-3 text-xs text-stone-500">
-                by @{p.proposer.handle} · {p.proposer.reputation} rep · {p.license} ·{" "}
-                <Link href={`/projects/${p.slug}`} className="text-amber-400/90 hover:underline">
-                  project
-                </Link>
-                {" · "}
-                {p._count.comments} comments
-                {p._count.watches > 0 ? ` · ${p._count.watches} watching` : ""}
+                Live projects
+              </h2>
+              <p className="text-xs text-stone-500">
+                Active and funded work with open or in-progress leaves · newest
+                first by default
               </p>
-            </Card>
-          );
-        })}
-      </div>
-      {ranked.length === 0 && (
+            </div>
+            {completed.length > 0 && !forceActiveOnly && (
+              <a
+                href="#completed-projects"
+                className="text-xs text-emerald-300/90 hover:underline"
+              >
+                Jump to completed ({completed.length})
+              </a>
+            )}
+          </div>
+          {live.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {live.map((p) => (
+                <ProjectDiscoverCard
+                  key={p.id}
+                  p={p}
+                  signedIn={signedIn}
+                  myThumbs={myThumbs}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              signedIn={signedIn}
+              title={
+                q || category || statusFilter
+                  ? "No live matches for that filter"
+                  : "No live projects right now"
+              }
+              body={
+                completed.length > 0
+                  ? "Everything matching is completed - see the panel below, or propose a new project."
+                  : q || category || statusFilter
+                    ? "Try clearing filters or browse open tasks while you wait."
+                    : "Propose an open-license greater-good project and invite builders."
+              }
+              primaryHref={signedIn ? "/projects/new" : "/login"}
+              primaryLabel={signedIn ? "Propose a project" : "Sign in with X"}
+              secondaryHref="/tasks"
+              secondaryLabel="Browse open tasks"
+            />
+          )}
+        </section>
+      )}
+
+      {completed.length > 0 && (
+        <section
+          id="completed-projects"
+          className="scroll-mt-24 space-y-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-4 sm:p-5"
+          aria-labelledby="completed-projects-heading"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300/90">
+                Second panel
+              </p>
+              <h2
+                id="completed-projects-heading"
+                className="text-lg font-semibold text-emerald-50"
+              >
+                Completed projects
+              </h2>
+              <p className="text-xs text-stone-500">
+                Status COMPLETED or all claimable leaves accepted · sealed ships
+                and archives. Sorted the same way as live (
+                {SORT_LABELS[sort].toLowerCase()}).
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Link
+                href={`/projects${qs({ status: "COMPLETED" })}`}
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-emerald-100 hover:border-emerald-400/60"
+              >
+                Completed only
+              </Link>
+              <Link
+                href="/ships"
+                className="rounded-full border border-white/10 px-3 py-1 text-stone-300 hover:border-amber-500/40"
+              >
+                Sealed ships gallery
+              </Link>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {completed.map((p) => (
+              <ProjectDiscoverCard
+                key={p.id}
+                p={p}
+                signedIn={signedIn}
+                myThumbs={myThumbs}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {live.length === 0 && completed.length === 0 && (
         <EmptyState
           signedIn={signedIn}
-          title={q || category || statusFilter ? "No matches for that filter" : "No live projects yet"}
+          title={
+            q || category || statusFilter
+              ? "No matches for that filter"
+              : "No live projects yet"
+          }
           body={
             q || category || statusFilter
               ? "Try clearing filters or browse open tasks while you wait."
@@ -390,7 +557,7 @@ export default async function ProjectsPage({
           }
           primaryHref={signedIn ? "/projects/new" : "/login"}
           primaryLabel={signedIn ? "Propose a project" : "Sign in with X"}
-          secondaryHref={signedIn ? "/tasks" : "/tasks"}
+          secondaryHref="/tasks"
           secondaryLabel="Browse open tasks"
         />
       )}

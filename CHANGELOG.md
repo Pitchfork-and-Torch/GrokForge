@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 2026-08-10 - Discover: newest first + completed panel
+
+- **/projects** default sort is **newest first** (founder curated still available)
+- **Live projects** panel on top; **Completed projects** second panel (status COMPLETED or all leaves done)
+- Jump link + "Completed only" / ships gallery CTAs
+
 ## 2026-08-10 - Builder Flywheel wave
 
 - **GET /api/v1/contributions?peerable=1** - second builders discover others' pending + reviewHint
