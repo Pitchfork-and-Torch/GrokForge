@@ -8,6 +8,7 @@ import { ShareProjectButton } from "@/components/share-project-button";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { PublishGitHubButton } from "@/components/publish-github-button";
 import { CreatorGitHubPublish } from "@/components/creator-github-publish";
+import { ShipChecklist } from "@/components/ship-checklist";
 import { getOptionalUser } from "@/lib/session";
 import { isFounderHandle } from "@/lib/identity";
 import {
@@ -141,10 +142,11 @@ export default async function ShipPage({
   }
 
   const sessionUser = await getOptionalUser();
-  const canPublish = isFounderHandle(sessionUser?.handle);
   const isCreator = Boolean(
     sessionUser?.id && sessionUser.id === project.proposer.id
   );
+  const canPublish =
+    isFounderHandle(sessionUser?.handle) || isCreator;
   const ghConfigured = githubPublishConfigured();
 
   const sealedLabel = primary.createdAt
@@ -233,6 +235,18 @@ export default async function ShipPage({
           Ready for a public repo under {getPublishOrg()} or your own account.
         </p>
       </div>
+
+      <ShipChecklist
+        slug={slug}
+        title={project.title}
+        hasPackage
+        hasGithub={!!githubArt?.url}
+        githubUrl={githubArt?.url}
+        downloadUrl={downloadUrl}
+        skillPackUrl={skillPackUrl}
+        shipUrl={shipUrl}
+        canPublish={canPublish}
+      />
 
       <PublishGitHubButton
         projectId={project.id}

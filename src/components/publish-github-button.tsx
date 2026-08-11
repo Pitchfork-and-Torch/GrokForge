@@ -26,12 +26,15 @@ export function PublishGitHubButton({
 
   if (!canPublish) {
     return (
-      <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2">
+      <div
+        id="ship-github"
+        className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2"
+      >
         <h3 className="text-sm font-semibold text-white">Ship to GitHub</h3>
         <p className="text-xs text-stone-500">
-          Founder/admin can publish this sealed package to the GrokForge org with
-          full credits. Anyone can download the GitHub-ready ZIP and push manually
-          (see GITHUB.md inside the archive).
+          The project creator or founder can publish this sealed package to the
+          GrokForge org with full credits. Anyone can download the GitHub-ready ZIP
+          and push manually (see GITHUB.md inside the archive).
         </p>
         {existingUrl ? (
           <a
@@ -62,12 +65,16 @@ export function PublishGitHubButton({
   }
 
   return (
-    <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 space-y-3">
+    <div
+      id="ship-github"
+      className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 space-y-3"
+    >
       <div>
         <h3 className="text-sm font-semibold text-emerald-100">Ship to GitHub</h3>
         <p className="mt-1 text-xs text-stone-400">
           Creates or updates a public org repo with README, CONTRIBUTORS, NOTICE,
-          topics, and homepage pointing at this ship page.
+          topics, and homepage pointing at this ship page. Creators and founder can
+          publish sealed packages.
         </p>
       </div>
       <label className="block text-xs text-stone-500">

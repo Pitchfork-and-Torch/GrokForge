@@ -60,13 +60,6 @@ export async function publishSealedToGitHubForUser(
     };
   }
 
-  if (!isFounderHandle(user.handle)) {
-    return {
-      error:
-        "Phase 1: only the founder/admin can publish sealed packages to the org GitHub. Creators can download the GitHub-ready ZIP.",
-    };
-  }
-
   const rl = await rateLimitAsync(`gh-publish:${user.id}`, {
     limit: 15,
     windowMs: 60 * 60 * 1000,
@@ -85,6 +78,7 @@ export async function publishSealedToGitHubForUser(
       license: true,
       category: true,
       impactSummary: true,
+      proposerId: true,
       artifacts: {
         where: { source: "package" },
         orderBy: { createdAt: "desc" },
@@ -101,6 +95,16 @@ export async function publishSealedToGitHubForUser(
   if (!project) return { error: "Project not found" };
   if (!project.artifacts.length) {
     return { error: "Project has not been sealed yet. Seal & Ship first." };
+  }
+
+  // Phase 2: project creator or founder may publish sealed packages to the org.
+  const isCreator = project.proposerId === user.id;
+  const isFounder = isFounderHandle(user.handle);
+  if (!isCreator && !isFounder) {
+    return {
+      error:
+        "Only the project creator or founder can publish sealed packages to the org GitHub. Others can download the GitHub-ready ZIP.",
+    };
   }
 
   const pack = await loadPackageFilesForProject(project.id, {

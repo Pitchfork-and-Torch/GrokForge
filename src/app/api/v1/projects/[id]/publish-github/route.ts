@@ -2,32 +2,29 @@ import { NextRequest } from "next/server";
 import { requireApiUser, readJsonBody, jsonOk, jsonError } from "@/lib/api-v1";
 import { publishSealedToGitHubForUser } from "@/lib/github-ship-ops";
 import { prisma } from "@/lib/prisma";
-import { hasScope } from "@/lib/api-tokens";
 
 export const dynamic = "force-dynamic";
 
 /**
  * POST /api/v1/projects/:id/publish-github
  * Body: { repoName? }
- * Scope: moderation:write (founder elevated). Phase 1 founder-only publish.
+ * Scope: tasks:read minimum; auth checks creator/founder in publishSealedToGitHubForUser.
+ * Elevated moderation:write still works for founder ops tokens.
  */
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireApiUser(req, "moderation:write");
+  // Accept either elevated moderation or a normal agent token; role checked in ops.
+  let auth = await requireApiUser(req, "tasks:read");
   if (!auth.ok) return auth.response;
-
-  if (!hasScope(auth.user.scopes, "moderation:write")) {
-    return jsonError("moderation:write scope required for Ship to GitHub", 403);
-  }
 
   const { id } = await ctx.params;
   if (!id) return jsonError("Missing project id or slug", 400);
 
   const project = await prisma.project.findFirst({
     where: { OR: [{ id }, { slug: id }] },
-    select: { id: true, slug: true },
+    select: { id: true, slug: true, proposerId: true },
   });
   if (!project) return jsonError("Project not found", 404);
 
@@ -48,7 +45,7 @@ export async function POST(
   );
 
   if ("error" in res) {
-    const status = res.error.includes("only the founder")
+    const status = res.error.includes("Only the project creator")
       ? 403
       : res.error.includes("not configured")
         ? 503

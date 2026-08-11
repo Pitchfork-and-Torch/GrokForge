@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 2026-08-10 - Ship Velocity wave
+
+- **Creator GitHub publish**: project creators (not only founder) can Ship to GitHub for sealed packages; API aligned
+- **Ship checklist** on sealed package pages (ZIP, GitHub, skill pack, share)
+- **Claim share**: copy leaf claim link + X intent on open tasks board and project task tree
+- **Creator inbox**: dashboard pending list links network review queue + full accept/reject bar
+- Empty-repo GitHub blob fix already live for PulseNet-class ships
+
 ## 2026-08-10 - Quality + Multi-Builder Forge
 
 - **Deliverable quality gate**: reject offline/plumbing stubs and thin agent bodies on submit; agent path needs structure + license/provenance

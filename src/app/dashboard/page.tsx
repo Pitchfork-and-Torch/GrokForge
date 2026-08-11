@@ -9,6 +9,7 @@ import {
   CancelClaimButton,
   CreatorAcceptButton,
   CreatorBulkAcceptButton,
+  CreatorModerationBar,
 } from "@/components/task-actions";
 import { formatCents, projectTaskProgress } from "@/lib/utils";
 import { markNotificationsReadAction, updateProfileAction } from "@/lib/actions";
@@ -382,7 +383,11 @@ export default async function DashboardPage() {
               </h2>
               <p className="mt-1 text-xs text-stone-500">
                 Accept so builders score on the labor leaderboard. Pending work does not rank until
-                accepted.
+                accepted. Network peers can also help at{" "}
+                <Link href="/tasks?review=1" className="text-amber-400 hover:underline">
+                  /tasks?review=1
+                </Link>
+                .
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -393,6 +398,12 @@ export default async function DashboardPage() {
                   count={p.count}
                 />
               ))}
+              <Link
+                href="/tasks?review=1"
+                className="inline-flex items-center rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-100 hover:border-sky-400/60"
+              >
+                Open review queue
+              </Link>
             </div>
           </div>
           <ul className="mt-4 space-y-2 text-sm">
@@ -415,7 +426,10 @@ export default async function DashboardPage() {
                     </Link>
                   </div>
                 </div>
-                <CreatorAcceptButton contributionId={c.id} />
+                <div className="flex flex-wrap gap-2">
+                  <CreatorAcceptButton contributionId={c.id} />
+                  <CreatorModerationBar contributionId={c.id} />
+                </div>
               </li>
             ))}
           </ul>

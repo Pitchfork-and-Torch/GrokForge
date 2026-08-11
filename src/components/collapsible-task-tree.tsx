@@ -11,6 +11,7 @@ import {
   CreatorModerationBar,
 } from "@/components/task-actions";
 import { ContentBody } from "@/components/content-body";
+import { ClaimShareButton } from "@/components/claim-share-button";
 import { formatTokens } from "@/lib/utils";
 
 export type TaskTreeNode = {
@@ -87,6 +88,7 @@ function TaskCard({
   isCreator,
   expandAll,
   expandNonce,
+  projectSlug,
 }: {
   task: TaskTreeNode;
   depth: number;
@@ -95,6 +97,7 @@ function TaskCard({
   isCreator?: boolean;
   expandAll: boolean | null;
   expandNonce: number;
+  projectSlug?: string;
 }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -188,11 +191,18 @@ function TaskCard({
 
         {expanded && (
           <div className="space-y-3 border-t border-white/5 px-3 py-3 sm:px-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {signedIn && task.status === "OPEN" && task.parentId && (
                 <ClaimButton taskId={task.id} />
               )}
               {myActiveClaim && <CancelClaimButton taskId={task.id} />}
+              {task.parentId && projectSlug && (
+                <ClaimShareButton
+                  projectSlug={projectSlug}
+                  taskId={task.id}
+                  taskTitle={task.title}
+                />
+              )}
             </div>
             {activeClaim && (
               <p className="text-xs text-stone-500">
@@ -290,6 +300,7 @@ function TaskCard({
           isCreator={isCreator}
           expandAll={expandAll}
           expandNonce={expandNonce}
+          projectSlug={projectSlug}
         />
       ))}
     </div>
@@ -333,11 +344,13 @@ export function CollapsibleTaskTree({
   signedIn,
   currentUserId,
   isCreator,
+  projectSlug,
 }: {
   tree: TaskTreeNode[];
   signedIn: boolean;
   currentUserId?: string | null;
   isCreator?: boolean;
+  projectSlug?: string;
 }) {
   const [expandAll, setExpandAll] = useState<boolean | null>(null);
   const [expandNonce, setExpandNonce] = useState(0);
@@ -398,6 +411,7 @@ export function CollapsibleTaskTree({
           isCreator={isCreator}
           expandAll={expandAll}
           expandNonce={expandNonce}
+          projectSlug={projectSlug}
         />
       ))}
     </div>

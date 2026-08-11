@@ -663,6 +663,7 @@ export default async function ProjectDetailPage({
               signedIn={!!session?.user}
               currentUserId={session?.user?.id}
               isCreator={isCreator}
+              projectSlug={project.slug}
             />
             {!session?.user && (
               <p className="mt-3 text-sm text-stone-500">
