@@ -269,6 +269,11 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {founder && (
+            <Link href="/admin/builders">
+              <Button variant="secondary">Builders (founder)</Button>
+            </Link>
+          )}
           <Link href="/cockpit">
             <Button>Creator cockpit</Button>
           </Link>
