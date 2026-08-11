@@ -7,7 +7,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-TEAM = "team_er6zwd5YZa517zX4qeOC8wBf"
+# Prefer VERCEL_TEAM_ID; default is FIRSTHALFODD hobby (not a secret).
+DEFAULT_HOBBY_TEAM_ID = "team_er6zwd5YZa517zX4qeOC8wBf"
+TEAM = os.environ.get("VERCEL_TEAM_ID", DEFAULT_HOBBY_TEAM_ID).strip() or DEFAULT_HOBBY_TEAM_ID
 
 
 def get_token() -> str:
@@ -149,7 +151,7 @@ def main() -> None:
         dep.get("readyState") if isinstance(dep, dict) else dep,
     )
     print("PROJECT_ID", pid)
-    print("TEAM firsthalfodd - transfer this project to GrokForge Pro after READY")
+    print("TEAM", TEAM, "- transfer this project to GrokForge Pro after READY")
 
 
 if __name__ == "__main__":

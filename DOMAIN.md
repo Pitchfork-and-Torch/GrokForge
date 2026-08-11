@@ -42,7 +42,7 @@ DNS and SSL are live. Prefer the apex URL in docs, OG tags, and tweets.
 
 ### Stripe (live Checkout)
 
-- Account: `acct_1TpISNLRSReqU8Na` (dashboard display name "Twitter")
+- Account: `acct_1TpI…U8Na` (dashboard display name "Twitter"; full id in Stripe dashboard / local ops notes — not committed)
 - `STRIPE_SECRET_KEY` on Vercel = restricted live API key (Checkout Sessions verified)
 - Webhook: `https://grokforge.app/api/stripe/webhook` event `checkout.session.completed`
 - `STRIPE_WEBHOOK_SECRET` vaulted + on Vercel (from endpoint create)
