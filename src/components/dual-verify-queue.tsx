@@ -28,10 +28,14 @@ export function DualVerifyQueue({
   projectId,
   projectSlug,
   items,
+  requireDualKey = false,
+  dualKeyTokenThreshold = 50000,
 }: {
   projectId: string;
   projectSlug: string;
   items: QueueItem[];
+  requireDualKey?: boolean;
+  dualKeyTokenThreshold?: number;
 }) {
   const [hideSoftOnly, setHideSoftOnly] = useState(false);
   const shown = hideSoftOnly
@@ -58,8 +62,11 @@ export function DualVerifyQueue({
             Dual-verify queue
           </h3>
           <p className="mt-1 text-xs text-stone-400">
-            {items.length} pending. Prefer accept after ≥1 peer review on large
-            leaves. Disputes stay visible until resolved.
+            {items.length} pending.{" "}
+            {requireDualKey
+              ? `Hard dual-key ON (≥${dualKeyTokenThreshold.toLocaleString()} tok needs peer review).`
+              : "Prefer accept after ≥1 peer review on large leaves."}{" "}
+            Disputes stay visible until resolved.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -77,8 +84,9 @@ export function DualVerifyQueue({
 
       <ul className="space-y-2">
         {shown.map((item) => {
-          const large = item.estimatedTokens >= 50_000;
+          const large = item.estimatedTokens >= dualKeyTokenThreshold;
           const dualOk = item.peerReviewCount >= 1;
+          const hardBlock = requireDualKey && large && !dualOk;
           return (
             <li
               key={item.id}
@@ -118,8 +126,16 @@ export function DualVerifyQueue({
                       </Badge>
                     )}
                     {large && !dualOk && (
-                      <Badge className="border-amber-500/40 bg-amber-500/10 text-amber-100">
-                        large leaf - peer review recommended
+                      <Badge
+                        className={
+                          hardBlock
+                            ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-100"
+                        }
+                      >
+                        {hardBlock
+                          ? "dual-key blocked - need peer review"
+                          : "large leaf - peer review recommended"}
                       </Badge>
                     )}
                   </div>
@@ -137,7 +153,7 @@ export function DualVerifyQueue({
                   >
                     Task
                   </Link>
-                  <CreatorAcceptButton contributionId={item.id} />
+                  {!hardBlock && <CreatorAcceptButton contributionId={item.id} />}
                 </div>
               </div>
             </li>

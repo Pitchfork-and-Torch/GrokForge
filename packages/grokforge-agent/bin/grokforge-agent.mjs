@@ -48,7 +48,7 @@ async function main() {
     console.log(`Usage:
   me
   list
-  work                 # claim first OPEN task + print next step
+  work [projectSlug]   # ready-set claim via /api/v1/agent/work
   claim <taskId>
   submit <taskId> <file.md>`);
     process.exit(0);
@@ -70,7 +70,18 @@ async function main() {
     return;
   }
   if (cmd === "work") {
-    // Runtime starter: claim first open task, print prompt package for local model
+    // Ready-set Agent Runtime: POST /agent/work
+    const projectSlug = a; // optional
+    try {
+      const pack = await api("/agent/work", {
+        method: "POST",
+        body: JSON.stringify(projectSlug ? { projectSlug } : {}),
+      });
+      console.log(JSON.stringify(pack, null, 2));
+      return;
+    } catch (e) {
+      console.error("agent/work failed, falling back:", e.message || e);
+    }
     const data = await api("/tasks?status=OPEN");
     const tasks = Array.isArray(data) ? data : data.tasks || data.items || [];
     const task = tasks[0];

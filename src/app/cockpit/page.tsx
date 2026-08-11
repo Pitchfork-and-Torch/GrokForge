@@ -204,6 +204,8 @@ export default async function CockpitPage() {
                   projectId={p.id}
                   projectSlug={p.slug}
                   items={pendingItems}
+                  requireDualKey={p.requireDualKey}
+                  dualKeyTokenThreshold={p.dualKeyTokenThreshold}
                 />
                 <ReadySetPanel
                   projectSlug={p.slug}

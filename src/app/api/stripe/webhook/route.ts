@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { LedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
+import { computeMatch } from "@/lib/matching-funds";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -33,12 +34,87 @@ export async function POST(req: NextRequest) {
       amount_total: number | null;
       metadata?: Record<string, string>;
     };
+    const kind = session.metadata?.kind || "pot_donation";
     const projectId = session.metadata?.projectId;
     const potId = session.metadata?.potId;
     const donorId = session.metadata?.donorId;
     const message = session.metadata?.message;
     const amountCents = session.amount_total || 0;
 
+    if (!projectId || amountCents <= 0) {
+      return NextResponse.json({ received: true });
+    }
+
+    // Idempotency via stripe session id (match pool uses same unique field on donation
+    // when pot path; for match pool we use ledger meta / a synthetic donation pot if needed)
+    if (kind === "matching_pool") {
+      const existing = await prisma.ledgerEntry.findFirst({
+        where: {
+          projectId,
+          meta: { contains: session.id },
+        },
+      });
+      if (existing) {
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, slug: true, title: true, proposerId: true },
+      });
+      const donor = donorId
+        ? await prisma.user.findUnique({ where: { id: donorId } })
+        : null;
+      if (!project) {
+        return NextResponse.json({ received: true });
+      }
+
+      await prisma.$transaction([
+        prisma.project.update({
+          where: { id: projectId },
+          data: {
+            matchingEnabled: true,
+            matchingPoolCents: { increment: amountCents },
+            matchingRemainingCents: { increment: amountCents },
+          },
+        }),
+        prisma.ledgerEntry.create({
+          data: {
+            projectId,
+            kind: LedgerKind.CAPITAL,
+            amountCents,
+            summary: `${donor?.handle ? `@${donor.handle}` : "Donor"} funded matching pool +$${(amountCents / 100).toFixed(2)} via Stripe`,
+            actorHandle: donor?.handle,
+            meta: JSON.stringify({
+              matchingPoolFund: true,
+              stripeSessionId: session.id,
+            }),
+          },
+        }),
+        ...(donorId
+          ? [
+              prisma.user.update({
+                where: { id: donorId },
+                data: { reputation: { increment: 2 } },
+              }),
+            ]
+          : []),
+      ]);
+
+      const dollars = (amountCents / 100).toFixed(2);
+      if (project.proposerId && project.proposerId !== donorId) {
+        await notifyUser({
+          userId: project.proposerId,
+          type: "DONATION",
+          title: `Match pool funded on ${project.title}`,
+          body: `${donor?.handle ? `@${donor.handle}` : "A donor"} added $${dollars} to the match pool via Stripe`,
+          href: `/projects/${project.slug}`,
+        });
+      }
+      return NextResponse.json({ received: true, kind: "matching_pool" });
+    }
+
+    // Default: pot donation (+ matching burn)
     if (projectId && potId && amountCents > 0) {
       const existing = await prisma.donation.findUnique({
         where: { stripeSessionId: session.id },
@@ -47,15 +123,30 @@ export async function POST(req: NextRequest) {
         const pot = await prisma.fundPot.findUnique({ where: { id: potId } });
         const project = await prisma.project.findUnique({
           where: { id: projectId },
-          select: { id: true, slug: true, title: true, proposerId: true },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            proposerId: true,
+            matchingEnabled: true,
+            matchingRatioBps: true,
+            matchingRemainingCents: true,
+          },
         });
         const donor = donorId
           ? await prisma.user.findUnique({ where: { id: donorId } })
           : null;
 
         if (project) {
-          await prisma.$transaction([
-            prisma.donation.create({
+          const match = computeMatch({
+            donationCents: amountCents,
+            matchingEnabled: project.matchingEnabled,
+            matchingRatioBps: project.matchingRatioBps,
+            matchingRemainingCents: project.matchingRemainingCents,
+          });
+
+          await prisma.$transaction(async (tx) => {
+            await tx.donation.create({
               data: {
                 projectId,
                 potId,
@@ -67,12 +158,12 @@ export async function POST(req: NextRequest) {
                 message: message || null,
                 stripeSessionId: session.id,
               },
-            }),
-            prisma.fundPot.update({
+            });
+            await tx.fundPot.update({
               where: { id: potId },
               data: { balanceCents: { increment: amountCents } },
-            }),
-            prisma.ledgerEntry.create({
+            });
+            await tx.ledgerEntry.create({
               data: {
                 projectId,
                 kind: LedgerKind.CAPITAL,
@@ -80,24 +171,54 @@ export async function POST(req: NextRequest) {
                 summary: `${donor?.handle ? `@${donor.handle}` : "Donor"} funded ${pot?.label || "pot"} via Stripe`,
                 actorHandle: donor?.handle,
               },
-            }),
-            ...(donorId
-              ? [
-                  prisma.user.update({
-                    where: { id: donorId },
-                    data: { reputation: { increment: 2 } },
+            });
+            if (donorId) {
+              await tx.user.update({
+                where: { id: donorId },
+                data: { reputation: { increment: 2 } },
+              });
+            }
+            if (match.matchCents > 0) {
+              await tx.project.update({
+                where: { id: projectId },
+                data: {
+                  matchingRemainingCents: { decrement: match.matchCents },
+                },
+              });
+              await tx.fundPot.update({
+                where: { id: potId },
+                data: { balanceCents: { increment: match.matchCents } },
+              });
+              await tx.ledgerEntry.create({
+                data: {
+                  projectId,
+                  kind: LedgerKind.CAPITAL,
+                  amountCents: match.matchCents,
+                  summary: `Matching funds (${match.ratioLabel}): +$${(match.matchCents / 100).toFixed(2)} to ${pot?.label || "pot"} after Stripe gift`,
+                  actorHandle: "matching-pool",
+                  meta: JSON.stringify({
+                    matching: true,
+                    ratioBps: project.matchingRatioBps,
+                    donorId,
+                    baseDonationCents: amountCents,
+                    stripeSessionId: session.id,
                   }),
-                ]
-              : []),
-          ]);
+                },
+              });
+            }
+          });
 
           const dollars = (amountCents / 100).toFixed(2);
+          const matchNote =
+            match.matchCents > 0
+              ? ` (+$${(match.matchCents / 100).toFixed(2)} matched)`
+              : "";
           if (project.proposerId && project.proposerId !== donorId) {
             await notifyUser({
               userId: project.proposerId,
               type: "DONATION",
               title: `Stripe support on ${project.title}`,
-              body: `${donor?.handle ? `@${donor.handle}` : "A donor"} paid $${dollars} via Stripe to ${pot?.label || "a pot"}`,
+              body: `${donor?.handle ? `@${donor.handle}` : "A donor"} paid $${dollars} via Stripe to ${pot?.label || "a pot"}${matchNote}`,
               href: `/projects/${project.slug}`,
             });
           }
@@ -106,16 +227,18 @@ export async function POST(req: NextRequest) {
               userId: donorId,
               type: "DONATION_RECEIPT",
               title: `Receipt: $${dollars} to ${project.title}`,
-              body: `Stripe payment confirmed for ${pot?.label || "a pot"}. Thank you for funding greater-good work.`,
+              body: `Stripe payment confirmed for ${pot?.label || "a pot"}${matchNote}. Thank you for funding greater-good work.`,
               href: `/projects/${project.slug}`,
             });
           }
           await notifyProjectWatchers({
             projectId: project.id,
-            excludeUserIds: [donorId, project.proposerId].filter(Boolean) as string[],
+            excludeUserIds: [donorId, project.proposerId].filter(
+              Boolean
+            ) as string[],
             type: "WATCH_DONATION",
             title: `Watched: ${project.title}`,
-            body: `${donor?.handle ? `@${donor.handle}` : "A donor"} paid $${dollars} via Stripe to ${pot?.label || "a pot"}`,
+            body: `${donor?.handle ? `@${donor.handle}` : "A donor"} paid $${dollars} via Stripe to ${pot?.label || "a pot"}${matchNote}`,
             href: `/projects/${project.slug}`,
           });
         }

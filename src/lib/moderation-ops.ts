@@ -48,6 +48,7 @@ export async function moderateContributionForUser(
     include: {
       task: { include: { project: true } },
       user: { select: { id: true, handle: true } },
+      reviews: { select: { id: true, reviewerId: true, score: true } },
     },
   });
   if (!contribution) return { error: "Not found" };
@@ -64,6 +65,33 @@ export async function moderateContributionForUser(
   const accepted = decision === "accept";
   const score = accepted ? 5 : 2;
   const role = isCreator ? "creator" : "founder";
+
+  // Hard dual-key gate for large leaves when project requires it
+  if (accepted) {
+    const proj = contribution.task.project as {
+      requireDualKey?: boolean;
+      dualKeyTokenThreshold?: number;
+    };
+    const requireDual = !!proj.requireDualKey;
+    const threshold = proj.dualKeyTokenThreshold ?? 50_000;
+    const large =
+      (contribution.task.estimatedTokens || 0) >= threshold || threshold <= 0;
+    if (requireDual && large) {
+      // Peer reviews from someone other than author (creator accept review later doesn't count)
+      const peerCount = contribution.reviews.filter(
+        (r) => r.reviewerId !== contribution.userId
+      ).length;
+      const force =
+        opts?.founderOverride &&
+        isFounder &&
+        String(notes || "").toLowerCase().includes("force dual");
+      if (peerCount < 1 && !force) {
+        return {
+          error: `Dual-key required: need ≥1 peer review before accept on leaves ≥${threshold} tokens (has ${peerCount}). Founder may pass notes containing "force dual".`,
+        };
+      }
+    }
+  }
 
   await prisma.contribution.update({
     where: { id: contributionId },

@@ -129,6 +129,8 @@ export default async function ProjectCockpitPage({
           projectId={project.id}
           projectSlug={project.slug}
           items={pendingItems}
+          requireDualKey={project.requireDualKey}
+          dualKeyTokenThreshold={project.dualKeyTokenThreshold}
         />
         <div className="space-y-4">
           <ReadySetPanel projectSlug={project.slug} tasks={project.tasks} />
@@ -147,6 +149,9 @@ export default async function ProjectCockpitPage({
         matchingRatioBps={project.matchingRatioBps}
         matchingPoolCents={project.matchingPoolCents}
         matchingRemainingCents={project.matchingRemainingCents}
+        requireDualKey={project.requireDualKey}
+        dualKeyTokenThreshold={project.dualKeyTokenThreshold}
+        stripeConfigured={Boolean(process.env.STRIPE_SECRET_KEY?.trim())}
       />
 
       <ProjectEditHistory

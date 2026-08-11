@@ -1242,13 +1242,15 @@ export async function demoDonateAction(formData: FormData) {
   };
 }
 
-/** Creator/founder: toggle matching + set ratio. */
+/** Creator/founder: toggle matching + set ratio (+ optional dual-key). */
 export async function setMatchingFundsAction(formData: FormData) {
   try {
     const user = await requireUser();
     const projectId = String(formData.get("projectId") || "");
     const enabled = String(formData.get("enabled") || "") === "1";
     const ratioBps = Number(formData.get("ratioBps") || 10000);
+    const dualRaw = formData.get("requireDualKey");
+    const thresholdRaw = formData.get("dualKeyTokenThreshold");
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: { id: true, slug: true, proposerId: true },
@@ -1259,24 +1261,49 @@ export async function setMatchingFundsAction(formData: FormData) {
       return { error: "Only creator or founder can configure matching" };
     }
     const { clampRatioBps } = await import("@/lib/matching-funds");
+    const data: {
+      matchingEnabled: boolean;
+      matchingRatioBps: number;
+      requireDualKey?: boolean;
+      dualKeyTokenThreshold?: number;
+    } = {
+      matchingEnabled: enabled,
+      matchingRatioBps: clampRatioBps(ratioBps),
+    };
+    if (dualRaw !== null && dualRaw !== undefined && String(dualRaw) !== "") {
+      data.requireDualKey = String(dualRaw) === "1";
+    }
+    if (thresholdRaw !== null && thresholdRaw !== undefined && String(thresholdRaw) !== "") {
+      const t = Math.max(0, Math.min(10_000_000, Number(thresholdRaw) || 50000));
+      data.dualKeyTokenThreshold = t;
+    }
     await prisma.project.update({
       where: { id: projectId },
-      data: {
-        matchingEnabled: enabled,
-        matchingRatioBps: clampRatioBps(ratioBps),
-      },
+      data,
     });
     await prisma.ledgerEntry.create({
       data: {
         projectId,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} set matching funds ${enabled ? "ON" : "OFF"} (${clampRatioBps(ratioBps)} bps)`,
+        summary: `@${user.handle || user.name} set matching funds ${enabled ? "ON" : "OFF"} (${clampRatioBps(ratioBps)} bps)${
+          data.requireDualKey != null
+            ? `; dual-key ${data.requireDualKey ? "ON" : "OFF"}`
+            : ""
+        }`,
         actorHandle: user.handle,
-        meta: JSON.stringify({ matchingConfig: true, enabled, ratioBps: clampRatioBps(ratioBps) }),
+        meta: JSON.stringify({
+          matchingConfig: true,
+          enabled,
+          ratioBps: clampRatioBps(ratioBps),
+          requireDualKey: data.requireDualKey,
+          dualKeyTokenThreshold: data.dualKeyTokenThreshold,
+        }),
       },
     });
     revalidatePath(`/projects/${project.slug}`);
+    revalidatePath(`/projects/${project.slug}/cockpit`);
+    revalidatePath("/cockpit");
     return { ok: true as const };
   } catch (e) {
     return {
@@ -1286,9 +1313,8 @@ export async function setMatchingFundsAction(formData: FormData) {
 }
 
 /**
- * Any signed-in user: add USD to matching pool on any live project
- * (ledger transparent; no Stripe yet - intent + public capital receipt).
- * Ratio/toggle stay creator/founder-only via setMatchingFundsAction.
+ * Any signed-in user: fund matching pool on any live project.
+ * Stripe Checkout when configured; otherwise transparent demo ledger credit.
  */
 export async function fundMatchingPoolAction(formData: FormData) {
   try {
@@ -1302,7 +1328,7 @@ export async function fundMatchingPoolAction(formData: FormData) {
     const amountCents = Math.round(amountUsd * 100);
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, slug: true, status: true },
+      select: { id: true, slug: true, status: true, title: true },
     });
     if (!project) return { error: "Project not found" };
     if (project.status === "ARCHIVED") {
@@ -1317,6 +1343,40 @@ export async function fundMatchingPoolAction(formData: FormData) {
       return { error: `Rate limit: try again in ${rl.retryAfterSec}s` };
     }
 
+    // Real money path
+    if (process.env.STRIPE_SECRET_KEY) {
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: amountCents,
+              product_data: {
+                name: `GrokForge match pool: ${project.title}`,
+                description:
+                  "Matching funds budget - amplifies community compute/pot gifts (labor stays primary)",
+              },
+            },
+          },
+        ],
+        success_url: `${origin}/projects/${project.slug}?donated=1&match=1`,
+        cancel_url: `${origin}/projects/${project.slug}?canceled=1`,
+        metadata: {
+          kind: "matching_pool",
+          projectId,
+          donorId: user.id,
+        },
+      });
+      if (session.url) redirect(session.url);
+      return { error: "Stripe session missing URL" };
+    }
+
+    // Demo ledger path
     await prisma.project.update({
       where: { id: projectId },
       data: {
@@ -1331,17 +1391,21 @@ export async function fundMatchingPoolAction(formData: FormData) {
         projectId,
         kind: LedgerKind.CAPITAL,
         amountCents,
-        summary: `@${who} funded matching pool +$${amountUsd.toFixed(2)}`,
+        summary: `@${who} funded matching pool +$${amountUsd.toFixed(2)} (demo ledger)`,
         actorHandle: user.handle,
-        meta: JSON.stringify({ matchingPoolFund: true }),
+        meta: JSON.stringify({ matchingPoolFund: true, demo: true }),
       },
     });
     revalidatePath(`/projects/${project.slug}`);
+    revalidatePath(`/projects/${project.slug}/cockpit`);
+    revalidatePath("/cockpit");
     revalidatePath("/dashboard");
     revalidatePath("/leaderboard");
     revalidatePath("/activity");
     return { ok: true as const };
   } catch (e) {
+    // redirect() throws NEXT_REDIRECT - rethrow
+    if (e && typeof e === "object" && "digest" in e) throw e;
     return {
       error: e instanceof Error ? e.message.slice(0, 300) : "Fund match pool failed",
     };

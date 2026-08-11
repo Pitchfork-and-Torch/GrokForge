@@ -183,6 +183,10 @@ model Project {
   matchingPoolCents      Int     @default(0)
   // Remaining match budget (cents)
   matchingRemainingCents Int     @default(0)
+  // Hard dual-key: accept on large leaves needs >=1 peer review (Forger+)
+  requireDualKey           Boolean @default(false)
+  // Estimated-token threshold for dual-key when requireDualKey is true
+  dualKeyTokenThreshold    Int     @default(50000)
   proposerId       String
   proposer         User            @relation("ProposedProjects", fields: [proposerId], references: [id])
   tasks            Task[]

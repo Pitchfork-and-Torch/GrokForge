@@ -792,6 +792,9 @@ export default async function ProjectDetailPage({
               matchingRatioBps={project.matchingRatioBps}
               matchingPoolCents={project.matchingPoolCents}
               matchingRemainingCents={project.matchingRemainingCents}
+              requireDualKey={project.requireDualKey}
+              dualKeyTokenThreshold={project.dualKeyTokenThreshold}
+              stripeConfigured={Boolean(process.env.STRIPE_SECRET_KEY?.trim())}
             />
           </Card>
 

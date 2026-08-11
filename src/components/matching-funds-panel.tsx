@@ -20,17 +20,21 @@ export function MatchingFundsPanel({
   matchingRatioBps,
   matchingPoolCents,
   matchingRemainingCents,
+  requireDualKey = false,
+  dualKeyTokenThreshold = 50000,
+  stripeConfigured = false,
 }: {
   projectId: string;
   projectSlug: string;
-  /** Creator or founder: configure ratio / toggle */
   canEdit: boolean;
-  /** Any signed-in user can fund the pool on this project */
   signedIn: boolean;
   matchingEnabled: boolean;
   matchingRatioBps: number;
   matchingPoolCents: number;
   matchingRemainingCents: number;
+  requireDualKey?: boolean;
+  dualKeyTokenThreshold?: number;
+  stripeConfigured?: boolean;
 }) {
   const router = useRouter();
   const used = Math.max(0, matchingPoolCents - matchingRemainingCents);
@@ -40,28 +44,29 @@ export function MatchingFundsPanel({
       : 0;
   const [enabled, setEnabled] = useState(matchingEnabled);
   const [ratioBps, setRatioBps] = useState(matchingRatioBps);
+  const [dualKey, setDualKey] = useState(requireDualKey);
+  const [threshold, setThreshold] = useState(dualKeyTokenThreshold);
   const [fundUsd, setFundUsd] = useState(50);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const preview = useMemo(() => {
-    const d = 1000; // $10 sample
-    const ideal = Math.floor((d * ratioBps) / 10000);
-    return ideal;
+    const d = 1000;
+    return Math.floor((d * ratioBps) / 10000);
   }, [ratioBps]);
 
-  // Always show panel so visitors can fund any project from the page
   return (
     <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-amber-100">Matching funds</h3>
           <p className="mt-1 text-xs text-stone-400">
-            Fund a transparent match pool on this project. Community donations then
-            get extra capital from this budget at {ratioLabel(matchingRatioBps)}.
-            Match spends are public ledger events. Anyone signed in can fund the
-            pool; only the creator or founder configures the ratio.
+            Fund a match pool that amplifies community gifts to compute/API pots at{" "}
+            {ratioLabel(matchingRatioBps)}. Labor stays primary.{" "}
+            {stripeConfigured
+              ? "Stripe Checkout is live for real payments."
+              : "Demo ledger mode until Stripe is configured."}
           </p>
         </div>
         {matchingEnabled && matchingRemainingCents > 0 ? (
@@ -74,6 +79,13 @@ export function MatchingFundsPanel({
           </span>
         )}
       </div>
+
+      {requireDualKey && (
+        <p className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2.5 py-1.5 text-[11px] text-sky-100/90">
+          Dual-key ON: accepts on leaves ≥{dualKeyTokenThreshold.toLocaleString()} tokens need
+          ≥1 peer review (Forger+).
+        </p>
+      )}
 
       {matchingPoolCents > 0 && (
         <div className="space-y-1">
@@ -92,7 +104,6 @@ export function MatchingFundsPanel({
         </div>
       )}
 
-      {/* Fund pool: any signed-in user, any project */}
       <div className="space-y-2 border-t border-white/5 pt-3">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-200/80">
           Fund match pool
@@ -122,16 +133,24 @@ export function MatchingFundsPanel({
                 fd.set("projectId", projectId);
                 fd.set("amountUsd", String(fundUsd));
                 start(async () => {
-                  const res = await fundMatchingPoolAction(fd);
-                  if (res?.error) setError(res.error);
-                  else {
-                    setOk(`Added $${fundUsd.toFixed(2)} to the match pool.`);
-                    router.refresh();
+                  try {
+                    const res = await fundMatchingPoolAction(fd);
+                    if (res?.error) setError(res.error);
+                    else if (res?.ok) {
+                      setOk(`Added $${fundUsd.toFixed(2)} to the match pool.`);
+                      router.refresh();
+                    }
+                  } catch {
+                    // Stripe redirect throws
                   }
                 });
               }}
             >
-              {pending ? "Funding…" : "Fund pool"}
+              {pending
+                ? "Working…"
+                : stripeConfigured
+                  ? "Pay with Stripe"
+                  : "Fund pool (demo)"}
             </Button>
           </div>
         ) : (
@@ -142,7 +161,7 @@ export function MatchingFundsPanel({
             >
               Sign in
             </Link>{" "}
-            to fund the matching pool on this project.
+            to fund the matching pool.
           </p>
         )}
       </div>
@@ -161,8 +180,17 @@ export function MatchingFundsPanel({
             />
             Enable matching on this project
           </label>
+          <label className="flex items-center gap-2 text-xs text-stone-300">
+            <input
+              type="checkbox"
+              checked={dualKey}
+              onChange={(e) => setDualKey(e.target.checked)}
+              className="rounded border-white/20"
+            />
+            Require dual-key accept (peer review before accept on large leaves)
+          </label>
           <div>
-            <Label htmlFor="ratioBps">Match ratio (basis points, 10000 = 1:1)</Label>
+            <Label htmlFor="ratioBps">Match ratio (bps, 10000 = 1:1)</Label>
             <Input
               id="ratioBps"
               type="number"
@@ -174,9 +202,20 @@ export function MatchingFundsPanel({
               className="mt-1"
             />
             <p className="mt-1 text-[11px] text-stone-600">
-              Example: $10 community gift triggers ~{usd(preview)} match at{" "}
-              {ratioLabel(ratioBps)}.
+              Example: $10 gift triggers ~{usd(preview)} match at {ratioLabel(ratioBps)}.
             </p>
+          </div>
+          <div>
+            <Label htmlFor="dualThresh">Dual-key token threshold</Label>
+            <Input
+              id="dualThresh"
+              type="number"
+              min={0}
+              step={1000}
+              value={threshold}
+              onChange={(e) => setThreshold(Number(e.target.value) || 0)}
+              className="mt-1"
+            />
           </div>
           <Button
             type="button"
@@ -189,17 +228,19 @@ export function MatchingFundsPanel({
               fd.set("projectId", projectId);
               fd.set("enabled", enabled ? "1" : "0");
               fd.set("ratioBps", String(ratioBps));
+              fd.set("requireDualKey", dualKey ? "1" : "0");
+              fd.set("dualKeyTokenThreshold", String(threshold));
               start(async () => {
                 const res = await setMatchingFundsAction(fd);
                 if (res?.error) setError(res.error);
                 else {
-                  setOk("Match settings saved.");
+                  setOk("Settings saved.");
                   router.refresh();
                 }
               });
             }}
           >
-            {pending ? "Saving…" : "Save match settings"}
+            {pending ? "Saving…" : "Save match + dual-key settings"}
           </Button>
         </div>
       )}
