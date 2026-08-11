@@ -373,7 +373,17 @@ export default async function ProjectDetailPage({
             {thumbCount} thumbs-up
           </Badge>
         </div>
-        <h1 className="text-3xl font-bold text-white sm:text-4xl">{project.title}</h1>
+        <div className="flex flex-wrap items-start gap-3">
+          <h1 className="text-3xl font-bold text-white sm:text-4xl">{project.title}</h1>
+          {isCreator && project.status !== "ARCHIVED" && (
+            <a
+              href="#edit-project"
+              className="mt-1.5 inline-flex shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-stone-200 hover:border-amber-400/40 hover:bg-amber-500/10 hover:text-amber-100"
+            >
+              Edit name &amp; description
+            </a>
+          )}
+        </div>
         {showComplete && (
           <ProjectCompletedBanner
             completed={taskProgress.completed}
@@ -473,16 +483,19 @@ export default async function ProjectDetailPage({
           </p>
         )}
         {isCreator && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
-            <EditProjectForm
-              projectId={project.id}
-              title={project.title}
-              description={project.description}
-              impactSummary={project.impactSummary}
-              license={project.license}
-              bannerUrl={project.bannerUrl}
-            />
-            <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
+            {project.status !== "ARCHIVED" && (
+              <EditProjectForm
+                projectId={project.id}
+                title={project.title}
+                description={project.description}
+                impactSummary={project.impactSummary}
+                license={project.license}
+                bannerUrl={project.bannerUrl}
+                status={project.status}
+              />
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
               <BannerCreatorControls
                 projectId={project.id}
                 hasBanner={!!project.bannerUrl}

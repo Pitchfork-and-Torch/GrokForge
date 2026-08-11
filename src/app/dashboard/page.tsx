@@ -613,16 +613,24 @@ export default async function DashboardPage() {
                     {progress.completed}/{progress.total} tasks done · {p._count.comments}{" "}
                     comments
                   </div>
-                  {sealReady && (
-                    <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {p.status !== "ARCHIVED" && (
+                      <Link
+                        href={`/projects/${p.slug}#edit-project`}
+                        className="inline-flex rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-stone-200 hover:border-amber-400/40 hover:bg-amber-500/10 hover:text-amber-100"
+                      >
+                        Edit name &amp; description
+                      </Link>
+                    )}
+                    {sealReady && (
                       <Link
                         href={`/projects/${p.slug}/seal`}
                         className="inline-flex rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-100 hover:bg-amber-500/25"
                       >
                         Seal &amp; Ship
                       </Link>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <div className="mt-2">
                     <ProjectCreatorActions
                       projectId={p.id}

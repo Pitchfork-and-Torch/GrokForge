@@ -417,6 +417,11 @@ const editProjectSchema = z.object({
   license: z.string().min(2).max(40),
 });
 
+/**
+ * Creator-only edit of public project name (title) + description after publish.
+ * Allowed for ACTIVE / FUNDED / COMPLETED / DRAFT. Blocked only when ARCHIVED.
+ * Slug is never changed (stable public URL).
+ */
 export async function updateProjectAction(formData: FormData) {
   const user = await requireUser();
   const rl = await rateLimitAsync(`edit-project:${user.id}`, {
@@ -427,13 +432,17 @@ export async function updateProjectAction(formData: FormData) {
 
   const parsed = editProjectSchema.safeParse({
     projectId: String(formData.get("projectId") || ""),
-    title: String(formData.get("title") || ""),
-    description: String(formData.get("description") || ""),
-    impactSummary: String(formData.get("impactSummary") || ""),
-    license: String(formData.get("license") || "MIT"),
+    title: String(formData.get("title") || "").trim(),
+    description: String(formData.get("description") || "").trim(),
+    impactSummary: String(formData.get("impactSummary") || "").trim(),
+    license: String(formData.get("license") || "MIT").trim(),
   });
   if (!parsed.success) {
-    return { error: parsed.error.flatten().formErrors.join("; ") || "Invalid fields" };
+    return {
+      error:
+        parsed.error.flatten().formErrors.join("; ") ||
+        "Invalid fields (title 5-120, description 40-8000)",
+    };
   }
 
   const project = await prisma.project.findUnique({
@@ -441,7 +450,7 @@ export async function updateProjectAction(formData: FormData) {
   });
   if (!project) return { error: "Project not found" };
   if (project.proposerId !== user.id) {
-    return { error: "Only the creator can edit this proposal" };
+    return { error: "Only the project creator can edit the name and description" };
   }
   if (project.status === "ARCHIVED") {
     return { error: "Restore the project before editing" };
@@ -469,6 +478,9 @@ export async function updateProjectAction(formData: FormData) {
     bannerPatch = { bannerUrl: stored.url, bannerSource: stored.source };
   }
 
+  const titleChanged = project.title !== parsed.data.title;
+  const descChanged = project.description !== parsed.data.description;
+
   await prisma.project.update({
     where: { id: project.id },
     data: {
@@ -480,25 +492,50 @@ export async function updateProjectAction(formData: FormData) {
       ...bannerPatch,
     },
   });
+
+  // Keep master-goal task title in sync when creator renames the project
+  if (titleChanged) {
+    const root = await prisma.task.findFirst({
+      where: { projectId: project.id, parentId: null },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, title: true },
+    });
+    if (root && /^Master goal:/i.test(root.title)) {
+      await prisma.task.update({
+        where: { id: root.id },
+        data: { title: `Master goal: ${parsed.data.title}` },
+      });
+    }
+  }
+
+  const who = user.handle || user.name || "creator";
+  let summary = `@${who} updated project name/description`;
+  if (titleChanged && descChanged) {
+    summary = `@${who} updated project name and description`;
+  } else if (titleChanged) {
+    summary = `@${who} renamed project to "${parsed.data.title.slice(0, 80)}"`;
+  } else if (descChanged) {
+    summary = `@${who} updated project description`;
+  }
+  if (bannerFile) summary += " + banner";
+  if (clearBanner) summary += " (banner removed)";
+
   await prisma.ledgerEntry.create({
     data: {
       projectId: project.id,
       kind: LedgerKind.ADJUSTMENT,
       amountCents: 0,
-      summary: bannerFile
-        ? `@${user.handle || user.name} updated project details + banner`
-        : clearBanner
-          ? `@${user.handle || user.name} updated project details (banner removed)`
-          : `@${user.handle || user.name} updated project details`,
+      summary,
       actorHandle: user.handle,
     },
   });
 
   revalidatePath(`/projects/${project.slug}`);
+  revalidatePath(`/u/${user.handle || ""}`);
   revalidatePath("/projects");
   revalidatePath("/dashboard");
   revalidatePath("/");
-  return { ok: true };
+  return { ok: true as const };
 }
 
 export async function submitContributionAction(formData: FormData) {
