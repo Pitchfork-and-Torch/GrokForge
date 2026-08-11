@@ -20,7 +20,7 @@ export function GoodFirstStrip({ items }: { items: GoodFirstItem[] }) {
         <div>
           <h2 className="text-lg font-semibold text-white">Good first leaves</h2>
           <p className="text-sm text-stone-500">
-            Small claimable tasks - start here, then climb the leaderboard.
+            Small claimable leaves - a good place to join a community project.
           </p>
         </div>
         <Link
