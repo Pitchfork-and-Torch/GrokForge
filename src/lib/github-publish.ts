@@ -173,7 +173,8 @@ export async function publishPackageToGitHub(
         has_issues: true,
         has_projects: false,
         has_wiki: false,
-        auto_init: false,
+        // auto_init so the repo is not empty (Git Data API rejects blobs on empty repos)
+        auto_init: true,
       }),
     });
     if (!createdRes.ok) {
@@ -192,7 +193,7 @@ export async function publishPackageToGitHub(
           has_issues: true,
           has_projects: false,
           has_wiki: false,
-          auto_init: false,
+          auto_init: true,
         }),
       });
       if (!userCreate.ok) {
@@ -241,6 +242,113 @@ export async function publishPackageToGitHub(
   );
 }
 
+/**
+ * GitHub rejects POST /git/blobs on completely empty repos ("Git Repository is empty").
+ * Contents API can create the first commit; auto_init also helps for new repos.
+ */
+async function ensureRepoHasGitData(
+  token: string,
+  owner: string,
+  repo: string
+): Promise<{ ok: true } | { ok: false; error: string; status?: number }> {
+  const hasMain = await ghJson<{ object: { sha: string } }>(
+    token,
+    `/repos/${owner}/${repo}/git/ref/heads/main`
+  );
+  if (hasMain.ok) return { ok: true };
+  const hasMaster = await ghJson<{ object: { sha: string } }>(
+    token,
+    `/repos/${owner}/${repo}/git/ref/heads/master`
+  );
+  if (hasMaster.ok) return { ok: true };
+
+  // Bootstrap first commit via Contents API (works when Git Data API does not)
+  const boot = await ghJson<{ content?: { sha?: string } }>(
+    token,
+    `/repos/${owner}/${repo}/contents/README.md`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        message: "chore: bootstrap empty repo for GrokForge ship",
+        content: Buffer.from(
+          `# ${repo}\n\nBootstrapped by GrokForge Ship to GitHub. Package commit follows.\n`,
+          "utf8"
+        ).toString("base64"),
+      }),
+    }
+  );
+  if (!boot.ok) {
+    // Race: another process initialized, or file already exists
+    if (boot.status === 422 || boot.status === 409) {
+      await sleep(800);
+      return { ok: true };
+    }
+    return {
+      ok: false,
+      error: `Bootstrap empty repo: ${boot.message}`,
+      status: boot.status,
+    };
+  }
+
+  // GitHub is eventually consistent after create/bootstrap
+  for (let i = 0; i < 6; i++) {
+    await sleep(400 + i * 200);
+    const again = await ghJson<{ object: { sha: string } }>(
+      token,
+      `/repos/${owner}/${repo}/git/ref/heads/main`
+    );
+    if (again.ok) return { ok: true };
+    const m = await ghJson<{ object: { sha: string } }>(
+      token,
+      `/repos/${owner}/${repo}/git/ref/heads/master`
+    );
+    if (m.ok) return { ok: true };
+  }
+  return { ok: true };
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function createBlobWithRetry(
+  token: string,
+  owner: string,
+  repo: string,
+  content: string,
+  path: string
+): Promise<
+  | { ok: true; sha: string }
+  | { ok: false; message: string; status?: number }
+> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const blob = await ghJson<{ sha: string }>(
+      token,
+      `/repos/${owner}/${repo}/git/blobs`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          content: Buffer.from(content, "utf8").toString("base64"),
+          encoding: "base64",
+        }),
+      }
+    );
+    if (blob.ok) return { ok: true, sha: blob.data.sha };
+    const empty =
+      /git repository is empty/i.test(blob.message) || blob.status === 409;
+    if (empty && attempt < 2) {
+      const boot = await ensureRepoHasGitData(token, owner, repo);
+      if (!boot.ok) {
+        return { ok: false, message: boot.error, status: boot.status };
+      }
+      await sleep(500 * (attempt + 1));
+      continue;
+    }
+    return { ok: false, message: blob.message, status: blob.status };
+  }
+  return { ok: false, message: `Blob ${path}: retries exhausted` };
+}
+
 async function commitTreeAndMeta(
   token: string,
   owner: string,
@@ -249,6 +357,15 @@ async function commitTreeAndMeta(
   created: boolean,
   repoMeta: { html_url: string; clone_url: string; full_name: string }
 ): Promise<PublishRepoResult> {
+  // New or previously empty repos must have at least one commit before blobs
+  if (created) {
+    await sleep(600);
+  }
+  const ready = await ensureRepoHasGitData(token, owner, repo);
+  if (!ready.ok) {
+    return { error: ready.error, status: ready.status };
+  }
+
   // Create blobs
   const treeItems: {
     path: string;
@@ -260,25 +377,24 @@ async function commitTreeAndMeta(
   for (const f of input.files) {
     const path = f.path.replace(/\\/g, "/").replace(/^\//, "");
     if (!path || path.includes("..")) continue;
-    const blob = await ghJson<{ sha: string }>(
+    const blob = await createBlobWithRetry(
       token,
-      `/repos/${owner}/${repo}/git/blobs`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          content: Buffer.from(f.content, "utf8").toString("base64"),
-          encoding: "base64",
-        }),
-      }
+      owner,
+      repo,
+      f.content,
+      path
     );
     if (!blob.ok) {
-      return { error: `Blob ${path}: ${blob.message}`, status: blob.status };
+      return {
+        error: `Blob ${path}: ${blob.message}`,
+        status: blob.status,
+      };
     }
     treeItems.push({
       path,
       mode: "100644",
       type: "blob",
-      sha: blob.data.sha,
+      sha: blob.sha,
     });
   }
 
