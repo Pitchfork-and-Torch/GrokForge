@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   assessDeliverableQuality,
   isAgentSubmission,
+  scoreDeliverableStrength,
+  STRONG_WORKER_AUTO_ACCEPT_STRENGTH,
 } from "@/lib/deliverable-quality";
 
 describe("deliverable quality", () => {
@@ -44,6 +46,27 @@ MIT
       taskTitle: "Author LEGAL-RAILS pack",
     });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.agent).toBe(true);
+    if (r.ok) {
+      expect(r.agent).toBe(true);
+      expect(r.strength).toBeGreaterThanOrEqual(
+        STRONG_WORKER_AUTO_ACCEPT_STRENGTH
+      );
+    }
+  });
+
+  it("scores strength for strong-worker gate", () => {
+    expect(scoreDeliverableStrength({ body: "short" })).toBeLessThan(30);
+    const rich = `## A
+${"word ".repeat(80)}
+## B
+- item one
+- item two
+## Sources
+provenance note
+## License
+MIT
+`;
+    const s = scoreDeliverableStrength({ body: rich, sources: "https://x" });
+    expect(s).toBeGreaterThanOrEqual(50);
   });
 });

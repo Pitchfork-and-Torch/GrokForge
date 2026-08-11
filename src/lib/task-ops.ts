@@ -6,6 +6,7 @@ import { LedgerKind, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
+// revalidatePath already imported for task surfaces + Network Gravity pages
 
 type Actor = {
   id: string;
@@ -209,7 +210,13 @@ export async function submitContributionForUser(
     contentType?: string;
   }
 ): Promise<
-  | { ok: true; contributionId: string; receiptPath: string }
+  | {
+      ok: true;
+      contributionId: string;
+      receiptPath: string;
+      autoAccepted?: true;
+      qualityStrength?: number;
+    }
   | { error: string }
 > {
   const rl = await rateLimitAsync(`submit:${user.id}`, {
@@ -288,6 +295,42 @@ export async function submitContributionForUser(
     claimId = anyActive?.id ?? null;
   }
 
+  // Strong-worker quality auto-accept (Network Gravity): Anvil+ + high strength
+  // skips review queue for non-dual-key leaves so ready-set unlocks immediately.
+  let autoAccept = false;
+  let autoAcceptReason: string | null = null;
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { reputation: true },
+    });
+    const { canQualityAutoAccept } = await import("@/lib/reputation-tiers");
+    const {
+      STRONG_WORKER_AUTO_ACCEPT_STRENGTH,
+    } = await import("@/lib/deliverable-quality");
+    const proj = task.project as {
+      requireDualKey?: boolean;
+      dualKeyTokenThreshold?: number;
+    };
+    const requireDual = !!proj.requireDualKey;
+    const threshold = proj.dualKeyTokenThreshold ?? 50_000;
+    const large =
+      (task.estimatedTokens || 0) >= threshold || threshold <= 0;
+    const dualBlocks = requireDual && large;
+    if (
+      quality.ok &&
+      quality.agent &&
+      quality.strength >= STRONG_WORKER_AUTO_ACCEPT_STRENGTH &&
+      canQualityAutoAccept(dbUser?.reputation ?? 0) &&
+      !dualBlocks
+    ) {
+      autoAccept = true;
+      autoAcceptReason = `strong_worker strength=${quality.strength}`;
+    }
+  } catch (e) {
+    console.warn("[submit] strong-worker check", e);
+  }
+
   const contribution = await prisma.contribution.create({
     data: {
       taskId: task.id,
@@ -296,7 +339,8 @@ export async function submitContributionForUser(
       body,
       sources: sources || null,
       contentType,
-      status: "PENDING",
+      status: autoAccept ? "ACCEPTED" : "PENDING",
+      score: autoAccept ? 5 : null,
     },
   });
 
@@ -309,7 +353,9 @@ export async function submitContributionForUser(
 
   await prisma.task.update({
     where: { id: task.id },
-    data: { status: TaskStatus.SUBMITTED },
+    data: {
+      status: autoAccept ? TaskStatus.ACCEPTED : TaskStatus.SUBMITTED,
+    },
   });
 
   await prisma.artifact.create({
@@ -327,49 +373,84 @@ export async function submitContributionForUser(
       projectId: task.projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: quality.agent
-        ? `@${actorLabel(user)} submitted agent work on "${task.title}"`
-        : `@${actorLabel(user)} submitted work on "${task.title}"`,
+      summary: autoAccept
+        ? `@${actorLabel(user)} strong-worker auto-accepted "${task.title}" (quality)`
+        : quality.agent
+          ? `@${actorLabel(user)} submitted agent work on "${task.title}"`
+          : `@${actorLabel(user)} submitted work on "${task.title}"`,
       actorHandle: user.handle,
       meta: JSON.stringify({
         contributionId: contribution.id,
         agent: quality.agent,
         qualityReasons: quality.reasons,
+        qualityStrength: quality.strength,
+        strongWorkerAutoAccept: autoAccept,
+        autoAcceptReason,
       }),
     },
   });
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { reputation: { increment: 1 } },
+    data: { reputation: { increment: autoAccept ? 6 : 1 } },
   });
 
   try {
     if (task.project.proposerId !== user.id) {
       await notifyUser({
         userId: task.project.proposerId,
-        type: "SUBMISSION",
-        title: `New submission on ${task.project.title}`,
-        body: `@${actorLabel(user)} submitted work on "${task.title}"`,
+        type: autoAccept ? "ACCEPTED" : "SUBMISSION",
+        title: autoAccept
+          ? `Strong-worker accept: ${task.project.title}`
+          : `New submission on ${task.project.title}`,
+        body: autoAccept
+          ? `@${actorLabel(user)} quality auto-accepted on "${task.title}" (strength ${quality.strength})`
+          : `@${actorLabel(user)} submitted work on "${task.title}"`,
         href: `/c/${contribution.id}`,
       });
     }
     await notifyProjectWatchers({
       projectId: task.projectId,
       excludeUserIds: [user.id, task.project.proposerId],
-      type: "WATCH_SUBMISSION",
+      type: autoAccept ? "WATCH_REVIEW" : "WATCH_SUBMISSION",
       title: `Watched: ${task.project.title}`,
-      body: `@${actorLabel(user)} submitted work on "${task.title}"`,
+      body: autoAccept
+        ? `@${actorLabel(user)} strong-worker accepted "${task.title}"`
+        : `@${actorLabel(user)} submitted work on "${task.title}"`,
       href: `/c/${contribution.id}`,
     });
   } catch (notifyErr) {
     console.error("[submit] notify non-fatal", notifyErr);
   }
 
+  if (autoAccept) {
+    try {
+      const { syncProjectCompletionStatus } = await import(
+        "@/lib/project-completion"
+      );
+      await syncProjectCompletionStatus(task.projectId, {
+        actorHandle: user.handle,
+      });
+    } catch (e) {
+      console.warn("[submit] completion sync", e);
+    }
+    try {
+      const { emitLeafReadyIfAny } = await import("@/lib/moderation-ops");
+      await emitLeafReadyIfAny(task.projectId, task.project.slug);
+    } catch (e) {
+      console.warn("[submit] leaf-ready", e);
+    }
+  }
+
   revalidateTaskSurfaces(task.project.slug, contribution.id);
+  revalidatePath("/tasks");
+  revalidatePath("/forge");
   return {
     ok: true,
     contributionId: contribution.id,
     receiptPath: `/c/${contribution.id}`,
+    ...(autoAccept
+      ? { autoAccepted: true as const, qualityStrength: quality.strength }
+      : {}),
   };
 }

@@ -178,7 +178,8 @@ export async function moderateContributionForUser(
   return { ok: true, accepted };
 }
 
-async function emitLeafReadyIfAny(projectId: string, projectSlug: string) {
+/** Unblock ready-set + workers after accepts (peer or creator). */
+export async function emitLeafReadyIfAny(projectId: string, projectSlug: string) {
   const { readyOpenLeaves } = await import("@/lib/task-dag");
   const { fireAgentRuntimeWebhook } = await import("@/lib/agent-workers");
   const project = await prisma.project.findUnique({

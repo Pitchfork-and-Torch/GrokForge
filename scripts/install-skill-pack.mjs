@@ -51,6 +51,11 @@ for (const f of data.files) {
   console.log("wrote", abs);
 }
 
+const site = base.replace(/\/$/, "");
+const nextLeaf = `${site}/projects/${encodeURIComponent(slug)}#ready-set`;
+const readyBoard = `${site}/tasks?ready=1`;
+const workerHint = `node scripts/local-agent-worker.mjs ${slug}`;
+
 console.log(
   JSON.stringify(
     {
@@ -59,8 +64,20 @@ console.log(
       destRoot,
       written,
       installHint: data.installHint,
+      // Kit gravity: install → first leaf
+      nextSteps: {
+        claimFirstLeaf: nextLeaf,
+        readySetBoard: readyBoard,
+        runWorker: workerHint,
+        note: "After install, claim a ready leaf or run the local worker with a GrokForge PAT (never SuperGrok keys).",
+      },
     },
     null,
     2
   )
 );
+console.log("");
+console.log("[kit-gravity] Next: open ready-set and claim a leaf");
+console.log("  ", nextLeaf);
+console.log("  ", readyBoard);
+console.log("  ", workerHint);

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { projectTweetIntent } from "@/components/share-project-button";
+import {
+  projectTweetIntent,
+  secondBuilderInviteIntent,
+} from "@/components/share-project-button";
 
 describe("projectTweetIntent", () => {
   it("builds a tweet intent with title, url, and hashtags", () => {
@@ -26,5 +29,20 @@ describe("projectTweetIntent", () => {
     });
     const text = decodeURIComponent(href.split("text=")[1] || "");
     expect(text).toContain("Featured on GrokForge: Pinned good");
+  });
+
+  it("builds second-builder invite intent", () => {
+    const href = secondBuilderInviteIntent({
+      title: "PulseNet",
+      slug: "pulsenet",
+      proposerHandle: "SuddenlyJon",
+      openLeaves: 3,
+      pendingReviews: 2,
+    });
+    const text = decodeURIComponent(href.split("text=")[1] || "");
+    expect(text).toContain("Need a second builder");
+    expect(text).toContain("PulseNet");
+    expect(text).toContain("?invite=1");
+    expect(text).toContain("3 open leaves");
   });
 });

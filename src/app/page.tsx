@@ -22,6 +22,8 @@ import { ProjectCompletedBadge } from "@/components/project-completed-badge";
 import { ShipSourceLinks } from "@/components/ship-source-links";
 import { ShareProjectButton } from "@/components/share-project-button";
 import { GoodFirstStrip } from "@/components/good-first-strip";
+import { NetworkTrustStrip } from "@/components/network-trust-strip";
+import { getNetworkTrustSnapshot } from "@/lib/network-trust";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,7 @@ export default async function HomePage() {
   const signedIn = !!session?.user?.id;
   const isFounder = isFounderHandle(session?.user?.handle);
 
-  const [projects, anvilMeta, goodFirstLeaves] = await Promise.all([
+  const [projects, anvilMeta, goodFirstLeaves, networkTrust] = await Promise.all([
     prisma.project.findMany({
       where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
       include: {
@@ -75,6 +77,7 @@ export default async function HomePage() {
         project: { select: { slug: true, title: true } },
       },
     }),
+    getNetworkTrustSnapshot().catch(() => null),
   ]);
 
   const homeMyThumbs = new Set<string>();
@@ -148,6 +151,7 @@ export default async function HomePage() {
 
       {/* Top of site: network pulse sits above the hero so it is never under the pin */}
       <LiveForgeBar stats={live} />
+      {networkTrust && <NetworkTrustStrip trust={networkTrust} />}
 
       {anvilMeta && (
         <Card className="border-amber-500/30 bg-gradient-to-r from-amber-950/40 to-black/40">

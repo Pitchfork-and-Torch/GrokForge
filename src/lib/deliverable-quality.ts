@@ -12,8 +12,42 @@ export type QualityInput = {
 };
 
 export type QualityResult =
-  | { ok: true; agent: boolean; reasons: string[] }
-  | { ok: false; agent: boolean; error: string; reasons: string[] };
+  | { ok: true; agent: boolean; reasons: string[]; strength: number }
+  | {
+      ok: false;
+      agent: boolean;
+      error: string;
+      reasons: string[];
+      strength: number;
+    };
+
+/**
+ * 0-100 strength for ranking / strong-worker auto-accept.
+ * Higher = denser structure, length, provenance signals.
+ */
+export function scoreDeliverableStrength(input: QualityInput): number {
+  const body = (input.body || "").trim();
+  if (body.length < 20) return 0;
+  let s = 20;
+  s += Math.min(30, Math.floor(body.length / 40));
+  const headings = (body.match(/^#{1,3}\s+\S+/gm) || []).length;
+  s += Math.min(20, headings * 5);
+  const bullets = (body.match(/^[\s]*[-*]\s+\S+/gm) || []).length;
+  s += Math.min(10, bullets);
+  if (/\b(mit|apache|cc-by|cc0|bsd|mpl|license)\b/i.test(body)) s += 8;
+  if (/^#+\s*sources/im.test(body) || /provenance/i.test(body)) s += 7;
+  if ((input.sources || "").trim().length >= 8) s += 5;
+  const uniqueWords = new Set(
+    body
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2)
+  );
+  if (uniqueWords.size >= 40) s += 10;
+  else if (uniqueWords.size >= 20) s += 5;
+  return Math.max(0, Math.min(100, s));
+}
 
 const STUB_MARKERS = [
   /partial stub for (ci\/)?worker plumbing/i,
@@ -48,6 +82,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
   const sources = (input.sources || "").trim();
   const agent = isAgentSubmission(input);
   const reasons: string[] = [];
+  const strength = scoreDeliverableStrength(input);
 
   if (body.length < 20) {
     return {
@@ -55,6 +90,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
       agent,
       error: "Submission needs at least 20 characters.",
       reasons: ["too_short"],
+      strength: 0,
     };
   }
 
@@ -66,6 +102,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
         error:
           "Rejected as plumbing stub. Produce a real deliverable that meets acceptance criteria (no offline-stub boilerplate).",
         reasons: ["stub_marker"],
+        strength: 0,
       };
     }
   }
@@ -84,6 +121,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
       agent,
       error: "Submission looks like low-signal filler. Expand with concrete content.",
       reasons: ["low_lexical_diversity"],
+      strength: Math.min(strength, 15),
     };
   }
 
@@ -95,6 +133,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
         error:
           "Agent submits need ≥280 characters of real content (structured markdown).",
         reasons: ["agent_too_short"],
+        strength: Math.min(strength, 25),
       };
     }
 
@@ -106,6 +145,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
         error:
           "Agent submits need at least two markdown headings (## ...) for structure.",
         reasons: ["agent_no_structure"],
+        strength: Math.min(strength, 30),
       };
     }
 
@@ -126,6 +166,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
           error:
             "Agent submits need a license note or Sources/provenance section (or fill the sources field).",
           reasons: [...reasons, "agent_missing_provenance"],
+          strength: Math.min(strength, 40),
         };
       }
     }
@@ -141,6 +182,7 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
           agent,
           error: "Agent body is mostly the task title. Expand the deliverable.",
           reasons: ["agent_title_only"],
+          strength: Math.min(strength, 20),
         };
       }
     }
@@ -151,8 +193,11 @@ export function assessDeliverableQuality(input: QualityInput): QualityResult {
     }
   }
 
-  return { ok: true, agent, reasons };
+  return { ok: true, agent, reasons, strength };
 }
+
+/** Threshold for Anvil+ strong-worker auto-accept (Network Gravity). */
+export const STRONG_WORKER_AUTO_ACCEPT_STRENGTH = 70;
 
 /** Tag for contentType / sources when worker submits */
 export function agentContentType(model?: string): string {

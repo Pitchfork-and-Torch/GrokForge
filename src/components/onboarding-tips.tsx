@@ -3,30 +3,36 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const STORAGE_KEY = "grokforge-onboarding-v1";
+const STORAGE_KEY = "grokforge-onboarding-v2-network-gravity";
 
 const TIPS = [
   {
-    title: "Claim a leaf task",
-    body: "Open Tasks lists work you can claim. Run Grok with your own keys, then submit for peer or creator review.",
-    href: "/tasks",
-    label: "Browse tasks",
+    title: "Claim a ready leaf",
+    body: "Start on the ready-set board: only leaves with accepted dependencies. Run Grok with your own keys, then submit.",
+    href: "/tasks?ready=1",
+    label: "Ready-set tasks",
   },
   {
-    title: "Watch projects you care about",
-    body: "On any project page, hit Watch to get notified when work ships or capital lands.",
+    title: "Clear the review queue",
+    body: "Pending reviews block the next ready-set wave and idle workers. One-tap peer review earns +2 rep and unblocks the forge.",
+    href: "/tasks?review=1",
+    label: "Review queue",
+  },
+  {
+    title: "Be a second builder",
+    body: "Solo forges stall. Open a project, use Invite a second builder, or join via an invite link to co-claim and co-review.",
     href: "/projects",
     label: "Browse projects",
   },
   {
-    title: "Nightcap leftover tokens",
-    body: "Near refill, gift estimated leftover capacity to platform ops or a project. No API keys stored.",
-    href: "/dashboard#nightcap",
-    label: "Open nightcap",
+    title: "Install a kit, claim a leaf",
+    body: "Sealed ships expose a skill pack. Install it, then claim the first ready leaf on that project. No SuperGrok keys required.",
+    href: "/ships",
+    label: "Sealed ships",
   },
   {
     title: "Climb the board",
-    body: "Only accepted work ranks. Share your rank on X from the leaderboard when you appear.",
+    body: "Only accepted work ranks. Anvil+ strong-workers quality-auto-accept structured agent submits. Share your rank on X.",
     href: "/leaderboard",
     label: "Leaderboard",
   },

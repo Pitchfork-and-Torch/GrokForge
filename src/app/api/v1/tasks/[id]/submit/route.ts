@@ -46,12 +46,18 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
 
   const base = publicBaseUrl(req);
+  const auto = "autoAccepted" in res && res.autoAccepted;
   return jsonOk({
     ok: true,
     contributionId: res.contributionId,
     receiptPath: res.receiptPath,
     receiptUrl: `${base}${res.receiptPath}`,
-    status: "PENDING",
-    message: "Submitted for peer review. Public receipt on the ledger.",
+    status: auto ? "ACCEPTED" : "PENDING",
+    autoAccepted: !!auto,
+    qualityStrength:
+      "qualityStrength" in res ? res.qualityStrength ?? null : null,
+    message: auto
+      ? "Strong-worker quality auto-accept. Ready-set may unlock next leaves."
+      : "Submitted for peer review. Public receipt on the ledger.",
   });
 }

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Badge, Card, Button } from "@/components/ui";
 import { AgentsOnlinePanel } from "@/components/agents-online-panel";
 import { AgentActivityFeed } from "@/components/agent-activity-feed";
+import { NetworkTrustStrip } from "@/components/network-trust-strip";
 import { prisma } from "@/lib/prisma";
+import { getNetworkTrustSnapshot } from "@/lib/network-trust";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,7 @@ export const dynamic = "force-dynamic";
  * Public forge control / operator map - honest links to APIs and surfaces.
  */
 export default async function ForgeControlPage() {
+  const networkTrust = await getNetworkTrustSnapshot().catch(() => null);
   let health: {
     ok?: boolean;
     metrics?: Record<string, number | null>;
@@ -91,6 +94,8 @@ export default async function ForgeControlPage() {
         )}
       </div>
 
+      {networkTrust && <NetworkTrustStrip trust={networkTrust} />}
+
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
         {[
           ["Active projects", m.activeProjects],
@@ -99,11 +104,13 @@ export default async function ForgeControlPage() {
           ["Pending reviews", m.pendingReviews],
           ["Sealed packages", m.sealedPackages],
           ["Builders", m.builders],
+          ["Strong workers live", networkTrust?.strongWorkersOnline ?? null],
+          ["Stale pending (>24h)", networkTrust?.stalePending ?? null],
         ].map(([k, v]) => (
           <Card key={String(k)}>
             <p className="text-[11px] uppercase tracking-wide text-stone-500">{k}</p>
             <p className="text-2xl font-bold text-white">
-              {v == null ? "—" : String(v)}
+              {v == null ? "-" : String(v)}
             </p>
           </Card>
         ))}

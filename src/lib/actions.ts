@@ -980,6 +980,12 @@ export async function reviewContributionAction(
       amountCents: 0,
       summary: `@${user.handle} reviewed contribution (${avg}/5) -> ${accepted ? "accepted" : "rejected"}`,
       actorHandle: user.handle,
+      meta: JSON.stringify({
+        contributionId,
+        peerReview: true,
+        avg,
+        accepted,
+      }),
     },
   });
 
@@ -1017,9 +1023,25 @@ export async function reviewContributionAction(
     href: `/c/${contribution.id}`,
   });
 
+  // Network Gravity: peer accepts must unlock ready-set + worker webhooks
+  if (accepted) {
+    try {
+      const { emitLeafReadyIfAny } = await import("@/lib/moderation-ops");
+      await emitLeafReadyIfAny(
+        contribution.task.projectId,
+        contribution.task.project.slug
+      );
+    } catch (e) {
+      console.warn("[reviewContributionAction] leaf-ready", e);
+    }
+  }
+
   revalidatePath(`/projects/${contribution.task.project.slug}`);
   revalidatePath("/dashboard");
   revalidatePath("/leaderboard");
+  revalidatePath("/tasks");
+  revalidatePath("/forge");
+  revalidatePath("/");
   revalidatePath(`/c/${contribution.id}`);
   return { ok: true };
 }

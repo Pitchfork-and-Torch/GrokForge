@@ -45,6 +45,15 @@ export default async function OpenTasksPage({
   const tag = sp.tag?.trim();
 
   if (reviewMode) {
+    const { isFounderHandle } = await import("@/lib/identity");
+    const me = session?.user?.id
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { id: true, handle: true },
+        })
+      : null;
+    const founder = isFounderHandle(me?.handle);
+
     const pending = await prisma.contribution.findMany({
       where: {
         status: "PENDING",
@@ -72,12 +81,15 @@ export default async function OpenTasksPage({
         task: {
           select: {
             title: true,
-            project: { select: { slug: true, title: true } },
+            project: {
+              select: { slug: true, title: true, proposerId: true },
+            },
           },
         },
       },
     });
 
+    const staleBefore = Date.now() - 24 * 60 * 60 * 1000;
     const items = pending.map((c) => ({
       id: c.id,
       taskTitle: c.task.title,
@@ -86,13 +98,21 @@ export default async function OpenTasksPage({
       authorHandle: c.user.handle,
       createdAt:
         c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+      createdAtIso: c.createdAt.toISOString(),
       agent: isAgentSubmission({
         sources: c.sources,
         contentType: c.contentType,
       }),
       bodyPreview: c.body.slice(0, 480) + (c.body.length > 480 ? "…" : ""),
       peerReviewCount: c.reviews.length,
+      canCreatorModerate: !!(
+        me &&
+        (founder || c.task.project.proposerId === me.id)
+      ),
     }));
+    const staleCount = items.filter(
+      (i) => new Date(i.createdAtIso).getTime() < staleBefore
+    ).length;
 
     return (
       <div className="space-y-6">
@@ -100,7 +120,9 @@ export default async function OpenTasksPage({
           <h1 className="text-3xl font-bold text-white">Review queue</h1>
           <p className="mt-1 text-stone-400">
             Peer-review pending submissions (+2 rep). Average ≥3 accepts; below 3
-            reopens the leaf. Agent submits are tagged for extra scrutiny.
+            reopens the leaf. Accepts unlock ready-set leaves for workers. Agent
+            submits are tagged; Anvil+ strong-workers quality-auto-accept
+            structured agent work on non-dual-key leaves.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
@@ -125,6 +147,9 @@ export default async function OpenTasksPage({
         </div>
         <p className="text-xs text-stone-500">
           {items.length} pending · oldest first
+          {staleCount > 0
+            ? ` · ${staleCount} older than 24h (priority for velocity)`
+            : ""}
         </p>
         <ReviewQueueList items={items} signedIn={signedIn} />
       </div>

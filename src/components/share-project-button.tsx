@@ -1,5 +1,36 @@
 "use client";
 
+/** Second-builder invite intent (Network Gravity). */
+export function secondBuilderInviteIntent(opts: {
+  title: string;
+  slug: string;
+  siteUrl?: string;
+  proposerHandle?: string | null;
+  pendingReviews?: number;
+  openLeaves?: number;
+}): string {
+  const base = (opts.siteUrl || "https://grokforge.app").replace(/\/$/, "");
+  const path = `${base}/projects/${opts.slug.replace(/^\//, "")}?invite=1`;
+  const handle = opts.proposerHandle?.replace(/^@/, "") || null;
+  const bits: string[] = [];
+  if ((opts.openLeaves || 0) > 0) bits.push(`${opts.openLeaves} open leaves`);
+  if ((opts.pendingReviews || 0) > 0)
+    bits.push(`${opts.pendingReviews} need review`);
+  const lines = [
+    `Need a second builder on GrokForge: ${opts.title}`,
+    "",
+    bits.length
+      ? bits.join(" · ")
+      : "Claim a ready leaf or peer-review a pending submit",
+    handle ? `with @${handle}` : null,
+    "",
+    path,
+    "",
+    "#GrokForge #BuildInPublic #xAI",
+  ].filter((x) => x != null) as string[];
+  return `https://x.com/intent/tweet?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
 /** Build a ready-to-post X intent URL for a GrokForge project. */
 export function projectTweetIntent(opts: {
   title: string;

@@ -48,6 +48,19 @@ export async function GET() {
       },
     });
 
+    let stalePending = 0;
+    let strongWorkersOnline = 0;
+    let workersOnline = 0;
+    try {
+      const { getNetworkTrustSnapshot } = await import("@/lib/network-trust");
+      const trust = await getNetworkTrustSnapshot();
+      stalePending = trust.stalePending;
+      strongWorkersOnline = trust.strongWorkersOnline;
+      workersOnline = trust.workersOnline;
+    } catch {
+      /* non-fatal */
+    }
+
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
@@ -58,7 +71,10 @@ export async function GET() {
         acceptedLast7d: accepted7d,
         sealedPackages: seals,
         pendingReviews: pending,
+        stalePendingReviews: stalePending,
         builders,
+        workersOnline,
+        strongWorkersOnline,
         fillRateHint:
           openLeaves > 0
             ? Number((accepted7d / Math.max(openLeaves, 1)).toFixed(3))
@@ -68,6 +84,8 @@ export async function GET() {
         shipToGitHub: githubPublishConfigured(),
         publishOrg: getPublishOrg(),
         fundingGoalDefaultUsd: 0,
+        networkGravity: true,
+        strongWorkerAutoAccept: true,
       },
     });
   } catch (e) {

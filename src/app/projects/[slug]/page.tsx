@@ -25,6 +25,10 @@ import { DonateBanner } from "@/components/donate-banner";
 import { WatchProjectButton } from "@/components/watch-project-button";
 import { ProjectThumbButton } from "@/components/project-thumb-button";
 import { ShareProjectButton } from "@/components/share-project-button";
+import {
+  InviteBuilderCard,
+  InviteLandingBanner,
+} from "@/components/invite-builder-card";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { fetchLeaderboard } from "@/lib/leaderboard-data";
 import { expireStaleClaims } from "@/lib/expire-claims";
@@ -191,10 +195,16 @@ export default async function ProjectDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ donated?: string; canceled?: string; banner?: string }>;
+  searchParams: Promise<{
+    donated?: string;
+    canceled?: string;
+    banner?: string;
+    invite?: string;
+  }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
+  const inviteMode = sp.invite === "1" || sp.invite === "true";
   const session = await auth();
   try {
     await expireStaleClaims({ limit: 15, notify: true });
@@ -353,12 +363,22 @@ export default async function ProjectDetailPage({
     user: c.user,
   }));
 
+  const openLeafCount = project.tasks.filter(
+    (t) => t.parentId && t.status === "OPEN"
+  ).length;
+
   return (
     <div className="space-y-8">
       <DonateBanner
         donated={sp.donated === "1"}
         canceled={sp.canceled === "1"}
       />
+      {inviteMode && (
+        <InviteLandingBanner
+          title={project.title}
+          signedIn={!!session?.user?.id}
+        />
+      )}
       <ProjectBannerHero url={project.bannerUrl} title={project.title} />
       {isCreator && (
         <BannerAutoGenerate
@@ -460,6 +480,15 @@ export default async function ProjectDetailPage({
             category={project.category}
             proposerHandle={project.proposer.handle}
             featured={isFeatured}
+          />
+          <InviteBuilderCard
+            title={project.title}
+            slug={project.slug}
+            siteUrl={site}
+            proposerHandle={project.proposer.handle}
+            pendingReviews={pendingForCreator.length}
+            openLeaves={openLeafCount}
+            compact
           />
           <CopyLinkButton url={`${site}/projects/${project.slug}`} />
           <FounderPinButton
@@ -581,7 +610,17 @@ export default async function ProjectDetailPage({
                 )}
               </div>
             </div>
-            <div className="mb-4 space-y-4">
+            <div id="ready-set" className="mb-4 scroll-mt-24 space-y-4">
+              {(isCreator || isFounder) && (
+                <InviteBuilderCard
+                  title={project.title}
+                  slug={project.slug}
+                  siteUrl={site}
+                  proposerHandle={project.proposer.handle}
+                  pendingReviews={pendingForCreator.length}
+                  openLeaves={openLeafCount}
+                />
+              )}
               <ReadySetPanel
                 projectSlug={project.slug}
                 tasks={project.tasks.map((t) => ({

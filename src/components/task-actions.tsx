@@ -188,44 +188,95 @@ export function ReviewForm({ contributionId }: { contributionId: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [notes, setNotes] = useState("");
+
+  const run = (score: number, quickNote?: string) => {
+    start(async () => {
+      try {
+        const res = await reviewContributionAction(
+          contributionId,
+          score,
+          quickNote || notes
+        );
+        if (res?.error) {
+          setError(res.error);
+          return;
+        }
+        setError(null);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Review failed");
+      }
+    });
+  };
 
   return (
-    <form
-      className="flex flex-wrap items-end gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const form = e.currentTarget;
-        const fd = new FormData(form);
-        const score = Number(fd.get("score"));
-        const notes = String(fd.get("notes") || "");
-        start(async () => {
-          try {
-            const res = await reviewContributionAction(contributionId, score, notes);
-            if (res?.error) {
-              setError(res.error);
-              return;
-            }
-            setError(null);
-            router.refresh();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : "Review failed");
-          }
-        });
-      }}
-    >
-      <div>
-        <Label>Score 1-5</Label>
-        <Input name="score" type="number" min={1} max={5} defaultValue={4} className="w-20" />
+    <div className="space-y-2">
+      {/* Network Gravity: one-tap review velocity */}
+      <div className="flex flex-wrap gap-1.5">
+        <Button
+          type="button"
+          disabled={pending}
+          className="!px-2.5 !py-1 text-xs"
+          onClick={() => run(5, "Quick accept: solid deliverable")}
+        >
+          {pending ? "..." : "Ship it (5)"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending}
+          className="!px-2.5 !py-1 text-xs"
+          onClick={() => run(4, "Quick accept: good enough")}
+        >
+          Good (4)
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={pending}
+          className="!px-2.5 !py-1 text-xs"
+          onClick={() => run(2, "Needs more work")}
+        >
+          Needs work (2)
+        </Button>
       </div>
-      <div className="min-w-[180px] flex-1">
-        <Label>Notes</Label>
-        <Input name="notes" placeholder="Optional review notes" />
-      </div>
-      <Button type="submit" variant="secondary" disabled={pending}>
-        Peer review
-      </Button>
-      {error && <p className="w-full text-xs text-rose-400">{error}</p>}
-    </form>
+      <form
+        className="flex flex-wrap items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const fd = new FormData(form);
+          const score = Number(fd.get("score"));
+          run(score, String(fd.get("notes") || ""));
+        }}
+      >
+        <div>
+          <Label>Score 1-5</Label>
+          <Input
+            name="score"
+            type="number"
+            min={1}
+            max={5}
+            defaultValue={4}
+            className="w-20"
+          />
+        </div>
+        <div className="min-w-[180px] flex-1">
+          <Label>Notes</Label>
+          <Input
+            name="notes"
+            placeholder="Optional review notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+        <Button type="submit" variant="secondary" disabled={pending}>
+          Peer review
+        </Button>
+        {error && <p className="w-full text-xs text-rose-400">{error}</p>}
+      </form>
+    </div>
   );
 }
 

@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 2026-08-10 - Network Gravity wave
+
+- **Review velocity**: one-tap Ship it (5) / Good (4) / Needs work (2); age + stale badges; creator moderate on review queue; peer accepts fire leaf-ready webhooks (unblocks ready-set + workers)
+- **Second-builder onboarding**: invite link `?invite=1`, Invite on X, landing banner; creator Invite card; onboarding tips v2
+- **Strong-worker tier**: Anvil+ (400 rep) quality-auto-accept structured agent submits (strength ≥70) on non-dual-key leaves; +6 rep; ledger meta
+- **Kit gravity**: skill-pack UI + installer print next claim URL (`#ready-set`); claim-first-leaf CTA after install
+- **Public trust strip**: home + forge network trust (pending, stale, accepted 7d, claimable, builders, sealed, workers/strong-workers); forge-health metrics extended
+
 ## 2026-08-10 - Ship Velocity wave
 
 - **Creator GitHub publish**: project creators (not only founder) can Ship to GitHub for sealed packages; API aligned

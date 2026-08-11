@@ -1,28 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button, Card } from "@/components/ui";
 
 /**
  * Human-friendly skill pack install (not a raw JSON wall).
- * Download file + copy CLI command for Grok Build / local agents.
+ * Kit gravity: install → claim first ready leaf (Network Gravity).
  */
 export function SkillPackInstall({
   slug,
   title,
   skillPackApiUrl,
   compact = false,
+  firstLeafHref,
 }: {
   slug: string;
   title: string;
   /** Base API URL without query, e.g. https://grokforge.app/api/projects/foo/skill-pack */
   skillPackApiUrl: string;
   compact?: boolean;
+  /** Optional deep link to first ready leaf after install */
+  firstLeafHref?: string | null;
 }) {
   const [copied, setCopied] = useState<"cmd" | "url" | null>(null);
   const downloadUrl = `${skillPackApiUrl}${skillPackApiUrl.includes("?") ? "&" : "?"}download=1`;
   const mdUrl = `${skillPackApiUrl}${skillPackApiUrl.includes("?") ? "&" : "?"}format=md`;
   const cmd = `node scripts/install-skill-pack.mjs ${slug}`;
+  const readyHref = firstLeafHref || `/projects/${slug}#ready-set`;
+  const claimBoard = `/tasks?ready=1`;
 
   function copy(text: string, kind: "cmd" | "url") {
     void navigator.clipboard?.writeText(text).then(() => {
@@ -47,6 +53,11 @@ export function SkillPackInstall({
         >
           {copied === "cmd" ? "Copied command" : "Copy install command"}
         </Button>
+        <Link href={readyHref}>
+          <Button type="button" variant="ghost" className="!text-xs">
+            Claim first leaf
+          </Button>
+        </Link>
       </div>
     );
   }
@@ -85,6 +96,33 @@ export function SkillPackInstall({
         >
           {copied === "cmd" ? "Copied" : "Copy install command"}
         </Button>
+      </div>
+
+      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
+          Kit gravity · next step
+        </p>
+        <p className="mt-1 text-xs text-stone-300">
+          After install: claim a ready leaf (deps already accepted). Worker:
+          cycle the project with your GrokForge PAT.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link href={readyHref}>
+            <Button type="button" className="!text-xs">
+              Claim first leaf
+            </Button>
+          </Link>
+          <Link href={claimBoard}>
+            <Button type="button" variant="ghost" className="!text-xs">
+              Ready-set board
+            </Button>
+          </Link>
+          <Link href={`/projects/${slug}`}>
+            <Button type="button" variant="ghost" className="!text-xs">
+              Open project
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-1">

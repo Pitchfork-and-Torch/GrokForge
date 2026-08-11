@@ -250,6 +250,7 @@ export default async function ShipPage({
         slug={slug}
         title={project.title}
         skillPackApiUrl={skillPackUrl}
+        firstLeafHref={`/projects/${slug}#ready-set`}
       />
 
       <PublishGitHubButton
