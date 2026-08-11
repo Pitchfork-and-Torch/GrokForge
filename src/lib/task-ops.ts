@@ -250,6 +250,18 @@ export async function submitContributionForUser(
     },
   });
   if (!task) return { error: "Task not found" };
+
+  const { assessDeliverableQuality } = await import("@/lib/deliverable-quality");
+  const quality = assessDeliverableQuality({
+    body,
+    sources,
+    contentType,
+    taskTitle: task.title,
+    acceptanceCriteria: task.acceptanceCriteria,
+  });
+  if (!quality.ok) {
+    return { error: quality.error };
+  }
   if (!["CLAIMED", "OPEN", "SUBMITTED"].includes(task.status)) {
     return {
       error: `Task status is ${task.status} and is not accepting new submissions.`,
@@ -315,9 +327,15 @@ export async function submitContributionForUser(
       projectId: task.projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: `@${actorLabel(user)} submitted work on "${task.title}"`,
+      summary: quality.agent
+        ? `@${actorLabel(user)} submitted agent work on "${task.title}"`
+        : `@${actorLabel(user)} submitted work on "${task.title}"`,
       actorHandle: user.handle,
-      meta: JSON.stringify({ contributionId: contribution.id }),
+      meta: JSON.stringify({
+        contributionId: contribution.id,
+        agent: quality.agent,
+        qualityReasons: quality.reasons,
+      }),
     },
   });
 

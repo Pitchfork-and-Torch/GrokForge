@@ -9,6 +9,7 @@ import { CopyLinkButton } from "@/components/copy-link-button";
 import { isFounderHandle } from "@/lib/identity";
 import { ContributionReviewPanel } from "@/components/contribution-review-panel";
 import { ContentBody } from "@/components/content-body";
+import { isAgentSubmission } from "@/lib/deliverable-quality";
 import { tierForReputation } from "@/lib/reputation-tiers";
 
 export const dynamic = "force-dynamic";
@@ -143,6 +144,14 @@ export default async function ContributionReceiptPage({
           </Link>
           {isFounderHandle(handle) && <FounderBadge />}
           <Badge className="border-white/10 bg-white/5 text-stone-300">{c.status}</Badge>
+          {isAgentSubmission({
+            sources: c.sources,
+            contentType: c.contentType,
+          }) && (
+            <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-100">
+              agent
+            </Badge>
+          )}
           {c.score != null && <Badge>{c.score}/5 peer score</Badge>}
         </div>
         <p className="text-xs uppercase tracking-widest text-stone-500">

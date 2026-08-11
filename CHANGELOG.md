@@ -1,5 +1,14 @@
 ﻿# Changelog
 
+## 2026-08-10 - Quality + Multi-Builder Forge
+
+- **Deliverable quality gate**: reject offline/plumbing stubs and thin agent bodies on submit; agent path needs structure + license/provenance
+- **Review queue** at `/tasks?review=1` with one-tap peer review (+2 rep); agent submits tagged
+- **Agent tags**: contentType `agent/markdown;model=...`, receipt badge, ledger meta
+- **Good first strip** on home; ready/good-first/review chips on tasks + forge
+- **Forge activity feed**: recent labor/milestone ledger events with agent flags
+- **Worker**: stronger prompts, quality-passing scaffold fallback, release claim on submit reject
+
 ## 2026-08-10 - Agent Runtime wave + founder project order
 
 - **Founder project order**: curated `displayOrder` on projects; default Discover/home sort is founder order; Up/Down + Save panel on `/projects` for founder only

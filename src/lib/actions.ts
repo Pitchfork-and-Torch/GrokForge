@@ -919,6 +919,12 @@ export async function reviewContributionAction(
     },
   });
 
+  // Review flywheel: small rep for honest peer reviews
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { reputation: { increment: 2 } },
+  });
+
   // Notify contributor of the review (after we know accept/reject below - light ping now)
   if (contribution.userId !== user.id) {
     await notifyUser({

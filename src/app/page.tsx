@@ -21,6 +21,7 @@ import { ProjectThumbButton } from "@/components/project-thumb-button";
 import { ProjectCompletedBadge } from "@/components/project-completed-badge";
 import { ShipSourceLinks } from "@/components/ship-source-links";
 import { ShareProjectButton } from "@/components/share-project-button";
+import { GoodFirstStrip } from "@/components/good-first-strip";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function HomePage() {
   const signedIn = !!session?.user?.id;
   const isFounder = isFounderHandle(session?.user?.handle);
 
-  const [projects, anvilMeta] = await Promise.all([
+  const [projects, anvilMeta, goodFirstLeaves] = await Promise.all([
     prisma.project.findMany({
       where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
       include: {
@@ -55,6 +56,23 @@ export default async function HomePage() {
         status: true,
         createdAt: true,
         tasks: { select: { id: true, status: true, parentId: true } },
+      },
+    }),
+    prisma.task.findMany({
+      where: {
+        status: "OPEN",
+        goodFirst: true,
+        parentId: { not: null },
+        project: { status: { in: ["ACTIVE", "FUNDED"] } },
+        claims: { none: { active: true } },
+      },
+      orderBy: [{ estimatedTokens: "asc" }, { createdAt: "desc" }],
+      take: 6,
+      select: {
+        id: true,
+        title: true,
+        estimatedTokens: true,
+        project: { select: { slug: true, title: true } },
       },
     }),
   ]);
@@ -363,6 +381,16 @@ export default async function HomePage() {
           ))}
         </ol>
       </section>
+
+      <GoodFirstStrip
+        items={goodFirstLeaves.map((t) => ({
+          id: t.id,
+          title: t.title,
+          projectSlug: t.project.slug,
+          projectTitle: t.project.title,
+          estimatedTokens: t.estimatedTokens,
+        }))}
+      />
 
       <section>
         <div className="mb-4 flex items-end justify-between gap-4">

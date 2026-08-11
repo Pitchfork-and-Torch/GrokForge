@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Badge, Card, Button } from "@/components/ui";
 import { AgentsOnlinePanel } from "@/components/agents-online-panel";
+import { AgentActivityFeed } from "@/components/agent-activity-feed";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,50 @@ export default async function ForgeControlPage() {
   }
 
   const m = health?.metrics || {};
+
+  let activityRows: {
+    id: string;
+    summary: string;
+    projectSlug: string | null;
+    projectTitle: string | null;
+    actorHandle: string | null;
+    createdAt: string;
+    agent: boolean;
+  }[] = [];
+  try {
+    const rows = await prisma.ledgerEntry.findMany({
+      where: {
+        kind: { in: ["LABOR", "MILESTONE"] },
+        project: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 18,
+      include: {
+        project: { select: { slug: true, title: true } },
+      },
+    });
+    activityRows = rows.map((r) => {
+      let agent = false;
+      try {
+        const meta = r.meta ? JSON.parse(r.meta) : {};
+        agent = !!meta.agent || /agent work/i.test(r.summary);
+      } catch {
+        agent = /agent work/i.test(r.summary);
+      }
+      return {
+        id: r.id,
+        summary: r.summary,
+        projectSlug: r.project?.slug ?? null,
+        projectTitle: r.project?.title ?? null,
+        actorHandle: r.actorHandle,
+        createdAt:
+          r.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+        agent,
+      };
+    });
+  } catch {
+    activityRows = [];
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -63,6 +109,30 @@ export default async function ForgeControlPage() {
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Link
+          href="/tasks?review=1"
+          className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 font-medium text-sky-100"
+        >
+          Review queue
+        </Link>
+        <Link
+          href="/tasks?goodFirst=1&ready=1"
+          className="rounded-full border border-white/10 px-3 py-1.5 text-stone-300 hover:border-amber-500/40"
+        >
+          Good first leaves
+        </Link>
+        <Link
+          href="/tasks?ready=1"
+          className="rounded-full border border-white/10 px-3 py-1.5 text-stone-300 hover:border-amber-500/40"
+        >
+          Ready-set claims
+        </Link>
+      </div>
+
+      <AgentsOnlinePanel />
+      <AgentActivityFeed rows={activityRows} />
+
       <Card className="space-y-3">
         <h2 className="text-lg font-semibold text-white">Human surfaces</h2>
         <ul className="space-y-2 text-sm text-stone-300">
@@ -79,6 +149,10 @@ export default async function ForgeControlPage() {
             ·{" "}
             <Link className="text-amber-300 hover:underline" href="/tasks?goodFirst=1">
               Good first
+            </Link>{" "}
+            ·{" "}
+            <Link className="text-amber-300 hover:underline" href="/tasks?review=1">
+              Review
             </Link>
           </li>
           <li>

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { ProjectCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
 import { EmptyState } from "@/components/empty-state";
 import { CATEGORY_LABELS, formatTokens } from "@/lib/utils";
 import { expireStaleClaims } from "@/lib/expire-claims";
+import { ReviewQueueList } from "@/components/review-queue-list";
+import { isAgentSubmission } from "@/lib/deliverable-quality";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,7 @@ export default async function OpenTasksPage({
     goodFirst?: string;
     tag?: string;
     ready?: string;
+    review?: string;
   }>;
 }) {
   // Keep claimable board honest even between cron ticks
@@ -26,7 +30,10 @@ export default async function OpenTasksPage({
     // non-fatal
   }
 
+  const session = await auth();
+  const signedIn = !!session?.user?.id;
   const sp = await searchParams;
+  const reviewMode = sp.review === "1" || sp.review === "true";
   const category =
     sp.category && Object.values(ProjectCategory).includes(sp.category as ProjectCategory)
       ? (sp.category as ProjectCategory)
@@ -35,6 +42,93 @@ export default async function OpenTasksPage({
   const goodFirstOnly = sp.goodFirst === "1" || sp.goodFirst === "true";
   const readyOnly = sp.ready === "1" || sp.ready === "true";
   const tag = sp.tag?.trim();
+
+  if (reviewMode) {
+    const pending = await prisma.contribution.findMany({
+      where: {
+        status: "PENDING",
+        ...(session?.user?.id ? { userId: { not: session.user.id } } : {}),
+        task: {
+          project: {
+            status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] },
+            ...(category ? { category } : {}),
+          },
+          ...(q
+            ? {
+                OR: [
+                  { title: { contains: q, mode: "insensitive" } },
+                  { project: { title: { contains: q, mode: "insensitive" } } },
+                ],
+              }
+            : {}),
+        },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 40,
+      include: {
+        user: { select: { handle: true } },
+        reviews: { select: { id: true } },
+        task: {
+          select: {
+            title: true,
+            project: { select: { slug: true, title: true } },
+          },
+        },
+      },
+    });
+
+    const items = pending.map((c) => ({
+      id: c.id,
+      taskTitle: c.task.title,
+      projectSlug: c.task.project.slug,
+      projectTitle: c.task.project.title,
+      authorHandle: c.user.handle,
+      createdAt:
+        c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+      agent: isAgentSubmission({
+        sources: c.sources,
+        contentType: c.contentType,
+      }),
+      bodyPreview: c.body.slice(0, 480) + (c.body.length > 480 ? "…" : ""),
+      peerReviewCount: c.reviews.length,
+    }));
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Review queue</h1>
+          <p className="mt-1 text-stone-400">
+            Peer-review pending submissions (+2 rep). Average ≥3 accepts; below 3
+            reopens the leaf. Agent submits are tagged for extra scrutiny.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <Link
+            href="/tasks?review=1"
+            className="rounded-full border border-amber-500/50 bg-amber-500/15 px-3 py-1 font-medium text-amber-200"
+          >
+            Review queue
+          </Link>
+          <Link
+            href="/tasks?ready=1"
+            className="rounded-full border border-white/10 px-3 py-1 text-stone-400 hover:border-amber-500/30"
+          >
+            Ready-set claims
+          </Link>
+          <Link
+            href="/tasks?goodFirst=1&ready=1"
+            className="rounded-full border border-white/10 px-3 py-1 text-stone-400 hover:border-amber-500/30"
+          >
+            Good first
+          </Link>
+        </div>
+        <p className="text-xs text-stone-500">
+          {items.length} pending · oldest first
+        </p>
+        <ReviewQueueList items={items} signedIn={signedIn} />
+      </div>
+    );
+  }
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -106,6 +200,27 @@ export default async function OpenTasksPage({
         <p className="mt-1 text-stone-400">
           Claim hierarchical leaf work across live projects. Run with your own Grok, submit, earn rep.
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Link
+          href="/tasks?ready=1"
+          className="rounded-full border border-white/10 px-3 py-1 text-stone-400 hover:border-amber-500/30"
+        >
+          Ready-set
+        </Link>
+        <Link
+          href="/tasks?goodFirst=1&ready=1"
+          className="rounded-full border border-white/10 px-3 py-1 text-stone-400 hover:border-amber-500/30"
+        >
+          Good first
+        </Link>
+        <Link
+          href="/tasks?review=1"
+          className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 font-medium text-sky-100"
+        >
+          Review queue
+        </Link>
       </div>
 
       <form className="flex flex-wrap gap-2">

@@ -171,18 +171,24 @@ export async function peerReviewContributionAction(formData: FormData) {
         notes: notes || null,
       },
     });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { reputation: { increment: 2 } },
+    });
     await prisma.ledgerEntry.create({
       data: {
         projectId: c.task.projectId,
         kind: LedgerKind.LABOR,
         amountCents: 0,
-        summary: `@${user.handle || user.name} peer-reviewed submission on "${c.task.title}" (${score}/5)`,
+        summary: `@${user.handle || user.name} peer-reviewed submission on "${c.task.title}" (${score}/5) (+2 rep)`,
         actorHandle: user.handle,
         meta: JSON.stringify({ peerReview: true, contributionId, score }),
       },
     });
     revalidatePath(`/c/${contributionId}`);
     revalidatePath(`/projects/${c.task.project.slug}`);
+    revalidatePath("/tasks");
+    revalidatePath("/dashboard");
     return { ok: true as const };
   } catch (e) {
     return {
