@@ -1227,23 +1227,38 @@ export async function setMatchingFundsAction(formData: FormData) {
   }
 }
 
-/** Creator/founder: add USD to matching pool (ledger transparent; no Stripe yet). */
+/**
+ * Any signed-in user: add USD to matching pool on any live project
+ * (ledger transparent; no Stripe yet - intent + public capital receipt).
+ * Ratio/toggle stay creator/founder-only via setMatchingFundsAction.
+ */
 export async function fundMatchingPoolAction(formData: FormData) {
   try {
     const user = await requireUser();
     const projectId = String(formData.get("projectId") || "");
     const amountUsd = Number(formData.get("amountUsd") || 0);
-    if (amountUsd < 1) return { error: "Amount must be at least $1" };
+    if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+      return { error: "Amount must be at least $1" };
+    }
+    if (amountUsd > 100_000) return { error: "Amount too large (max $100,000)" };
     const amountCents = Math.round(amountUsd * 100);
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { id: true, slug: true, proposerId: true },
+      select: { id: true, slug: true, status: true },
     });
     if (!project) return { error: "Project not found" };
-    const { isFounderHandle } = await import("@/lib/identity");
-    if (project.proposerId !== user.id && !isFounderHandle(user.handle)) {
-      return { error: "Only creator or founder can fund the match pool" };
+    if (project.status === "ARCHIVED") {
+      return { error: "Cannot fund matching pool on an archived project" };
     }
+
+    const rl = await rateLimitAsync(`fund-match:${user.id}`, {
+      limit: 40,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rl.ok) {
+      return { error: `Rate limit: try again in ${rl.retryAfterSec}s` };
+    }
+
     await prisma.project.update({
       where: { id: projectId },
       data: {
@@ -1252,12 +1267,13 @@ export async function fundMatchingPoolAction(formData: FormData) {
         matchingRemainingCents: { increment: amountCents },
       },
     });
+    const who = user.handle || user.name || "supporter";
     await prisma.ledgerEntry.create({
       data: {
         projectId,
         kind: LedgerKind.CAPITAL,
         amountCents,
-        summary: `@${user.handle || user.name} funded matching pool +$${amountUsd.toFixed(2)}`,
+        summary: `@${who} funded matching pool +$${amountUsd.toFixed(2)}`,
         actorHandle: user.handle,
         meta: JSON.stringify({ matchingPoolFund: true }),
       },
@@ -1265,6 +1281,7 @@ export async function fundMatchingPoolAction(formData: FormData) {
     revalidatePath(`/projects/${project.slug}`);
     revalidatePath("/dashboard");
     revalidatePath("/leaderboard");
+    revalidatePath("/activity");
     return { ok: true as const };
   } catch (e) {
     return {

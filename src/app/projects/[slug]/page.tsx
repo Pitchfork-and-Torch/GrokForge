@@ -724,7 +724,9 @@ export default async function ProjectDetailPage({
             )}
             <MatchingFundsPanel
               projectId={project.id}
+              projectSlug={project.slug}
               canEdit={isCreator || isFounder}
+              signedIn={Boolean(session?.user?.id)}
               matchingEnabled={project.matchingEnabled}
               matchingRatioBps={project.matchingRatioBps}
               matchingPoolCents={project.matchingPoolCents}
