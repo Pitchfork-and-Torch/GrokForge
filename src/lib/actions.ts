@@ -2104,8 +2104,9 @@ export async function toggleProjectThumbAction(projectId: string) {
 }
 
 /**
- * User-reported leftover token capacity gift (Nightcap).
- * Never stores API keys - estimate only, public ledger transparency.
+ * Nightcap gift: credits a REAL on-platform capacity pool (public tally).
+ * Never stores SuperGrok / xAI API keys - units are builder-reported capacity
+ * that become spendable/visible balances on GrokForge.
  */
 export async function nightcapGiftAction(formData: FormData) {
   const user = await requireUser();
@@ -2117,11 +2118,11 @@ export async function nightcapGiftAction(formData: FormData) {
 
   const estimatedTokens = Math.floor(Number(formData.get("estimatedTokens") || 0));
   if (!Number.isFinite(estimatedTokens) || estimatedTokens < 100 || estimatedTokens > 5_000_000) {
-    return { error: "Estimate tokens between 100 and 5,000,000" };
+    return { error: "Gift between 100 and 5,000,000 capacity tokens" };
   }
   const note = String(formData.get("note") || "").slice(0, 500);
   const targetRaw = String(formData.get("target") || "PLATFORM");
-  let target = "PLATFORM";
+  let target: "PLATFORM" | "PROJECT" = "PLATFORM";
   let projectId: string | null = null;
   let projectSlug: string | null = null;
   let projectTitle: string | null = null;
@@ -2141,6 +2142,15 @@ export async function nightcapGiftAction(formData: FormData) {
     projectTitle = project.title;
   }
 
+  const { creditNightcapPool, getNightcapPublicTally } = await import(
+    "@/lib/nightcap-pool"
+  );
+  const credited = await creditNightcapPool({
+    tokens: estimatedTokens,
+    target,
+    projectId,
+  });
+
   await prisma.nightcapGift.create({
     data: {
       userId: user.id,
@@ -2148,22 +2158,26 @@ export async function nightcapGiftAction(formData: FormData) {
       estimatedTokens,
       note: note || null,
       target,
+      creditedToPool: true,
     },
   });
 
   await prisma.ledgerEntry.create({
     data: {
       projectId: projectId || (await platformLedgerProjectId()),
-      kind: LedgerKind.LABOR,
+      kind: LedgerKind.CAPITAL,
       amountCents: 0,
-      summary: `@${user.handle || user.name} nightcap-gifted ~${estimatedTokens.toLocaleString()} tokens to ${
-        projectTitle || "platform ops"
-      }`,
+      summary: `@${user.handle || user.name} nightcap-gifted ${estimatedTokens.toLocaleString()} capacity tokens to ${
+        projectTitle || "platform nightcap pool"
+      } (pool credited)`,
       actorHandle: user.handle,
       meta: JSON.stringify({
         kind: "nightcap",
         estimatedTokens,
         target,
+        poolCredited: true,
+        platformAvailable: credited.platformAvailable,
+        projectAvailable: credited.projectAvailable ?? null,
       }),
     },
   });
@@ -2174,12 +2188,23 @@ export async function nightcapGiftAction(formData: FormData) {
     data: { reputation: { increment: 1 } },
   });
 
+  const tally = await getNightcapPublicTally();
+
   if (projectSlug) revalidatePath(`/projects/${projectSlug}`);
   revalidatePath("/dashboard");
   revalidatePath("/activity");
   revalidatePath("/leaderboard");
   revalidatePath("/");
-  return { ok: true, estimatedTokens };
+  revalidatePath("/forge");
+  return {
+    ok: true,
+    estimatedTokens,
+    pool: {
+      platformAvailable: tally.platformAvailable,
+      networkAvailable: tally.networkAvailable,
+      projectAvailable: credited.projectAvailable ?? null,
+    },
+  };
 }
 
 /** Prefer civic toolkit as ledger anchor for platform gifts; else any active project. */

@@ -1,5 +1,12 @@
 ﻿# Changelog
 
+## 2026-08-10 - Nightcap real pool + public live tally
+
+- Nightcap gifts **credit real on-platform balances** (SiteStats + Project pools) - not ledger-only notes
+- Public **GET /api/nightcap** + Live Forge / home / dashboard tally (poll ~20-30s)
+- Honest copy: capacity units, never SuperGrok keys; network available = platform + project pools
+- Backfill reconcile from historical gifts when pool was empty
+
 ## 2026-08-10 - Discover: newest first + completed panel
 
 - **/projects** default sort is **newest first** (founder curated still available)

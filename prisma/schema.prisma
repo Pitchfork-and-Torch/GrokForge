@@ -186,6 +186,9 @@ model Project {
   matchingPoolCents      Int     @default(0)
   // Remaining match budget (cents)
   matchingRemainingCents Int     @default(0)
+  // Nightcap capacity pool for this project (real on-platform balance)
+  nightcapAvailable   Int @default(0)
+  nightcapTotalGifted Int @default(0)
   // Hard dual-key: accept on large leaves needs >=1 peer review (Forger+)
   requireDualKey           Boolean @default(false)
   // Estimated-token threshold for dual-key when requireDualKey is true
@@ -312,10 +315,15 @@ model SiteStats {
   xBuilders         Int      @default(0)
   // Founder-pinned project shown in home hero (right column)
   featuredProjectId String?
+  // Nightcap capacity pool (on-platform real balance - not SuperGrok API keys)
+  // Available = gifted in - allocated out. Public live tally.
+  nightcapAvailable   Int @default(0)
+  nightcapTotalGifted Int @default(0)
+  nightcapTotalSpent  Int @default(0)
   updatedAt         DateTime @updatedAt
 }
 
-// User-reported leftover token capacity gifts (never real API keys)
+// Nightcap gifts: real increments to platform/project pools (never stores API keys)
 model NightcapGift {
   id             String   @id @default(cuid())
   userId         String
@@ -325,10 +333,13 @@ model NightcapGift {
   estimatedTokens Int
   note           String?  @db.Text
   target         String   @default("PLATFORM") // PLATFORM | PROJECT
+  // Pool rows credited at gift time (audit)
+  creditedToPool Boolean  @default(true)
   createdAt      DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([projectId])
+  @@index([createdAt])
 }
 
 // User bookmarks / follows a project for dashboard + future alerts
