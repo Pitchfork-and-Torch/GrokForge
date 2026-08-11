@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 2026-08-10 - Readable project images + clean nav
+
+- **Full-size project banners**: no more `object-cover` crop; hero shows the whole image, click for full size
+- **Contribution / receipt images**: URL and markdown image bodies render as real images (readable, not clipped)
+- **Description images**: project descriptions surface embedded markdown/bare image URLs at full size + linkify
+- **Nav declutter**: primary bar is Projects / Tasks / Leaders / Propose / Dash + **More** menu (Ships, Activity, Rankings, Quests, Cockpit, Forge, About, Status); fixed height, no wrap stacking
+- **Dashboard Local agent worker** card with copy-paste runbook for `scripts/local-agent-worker.mjs`
+
 ## 2026-08-10 - Ships gallery, matching funds, Agent OpenAPI, AkiraForge GitHub
 
 - **Sealed ships gallery** at `/ships` with package + GitHub links

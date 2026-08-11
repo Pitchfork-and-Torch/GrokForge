@@ -43,6 +43,7 @@ import {
   BannerCreatorControls,
   ProjectBannerHero,
 } from "@/components/project-banner";
+import { ProjectDescription } from "@/components/project-description";
 import {
   CATEGORY_LABELS,
   FUND_TYPE_LABELS,
@@ -424,7 +425,7 @@ export default async function ProjectDetailPage({
             <ViewShipPackageLink slug={project.slug} />
           </div>
         )}
-        <p className="max-w-3xl text-stone-400 whitespace-pre-wrap">{project.description}</p>
+        <ProjectDescription text={project.description} />
         <p className="text-sm text-stone-500">
           Proposed by{" "}
           <Link className="text-amber-400 hover:underline" href={`/u/${project.proposer.handle}`}>

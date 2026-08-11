@@ -20,6 +20,7 @@ import { BadgeRow } from "@/components/badge-row";
 import { BadgeUnlockToast } from "@/components/badge-unlock-toast";
 import { WeeklyChallenges } from "@/components/weekly-challenges";
 import { AgentTokensCard } from "@/components/agent-tokens-card";
+import { LocalWorkerCard } from "@/components/local-worker-card";
 import { fetchUserBadges } from "@/lib/badges-data";
 import { fetchWeeklyChallenges } from "@/lib/challenges-data";
 
@@ -302,6 +303,8 @@ export default async function DashboardPage() {
           .filter((p) => p.status === "ACTIVE" || p.status === "FUNDED")
           .map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
       />
+
+      <LocalWorkerCard />
 
       <AgentTokensCard
         isFounder={founder}
