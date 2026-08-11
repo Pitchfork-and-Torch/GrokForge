@@ -186,16 +186,11 @@ export default async function HomePage() {
               {" · No user API keys"}
             </Badge>
             <h1 className="mt-4 max-w-2xl text-[1.75rem] font-bold leading-tight tracking-tight text-white sm:text-4xl sm:leading-tight md:text-5xl">
-              Sign in with X{" "}
-              <span className="text-stone-500 font-semibold">|</span> Build
-              Together
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium leading-snug text-stone-400 sm:text-base md:text-lg">
-              multi-agent work for the{" "}
-              <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-                greater good
+              <span className="block">Sign in with X</span>
+              <span className="mt-1 block bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent sm:mt-1.5">
+                Start Building
               </span>
-            </p>
+            </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-stone-400 sm:mt-4 sm:text-base sm:text-lg">
               GrokForge is GoFundMe + task marketplace + open collab hub for Grok users. Propose
               projects, fund compute, claim nested tasks, climb the leaderboard.
