@@ -47,7 +47,7 @@ async function compressForUpload(file: File): Promise<File> {
   }
 }
 
-/** Display a project banner (hero). */
+/** Display a project banner (hero) - full image, no crop, readable. */
 export function ProjectBannerHero({
   url,
   title,
@@ -57,14 +57,27 @@ export function ProjectBannerHero({
 }) {
   if (!url) return null;
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/50 shadow-[0_0_40px_rgba(245,158,11,0.08)]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        alt={`Banner for ${title}`}
-        className="aspect-[16/9] w-full object-cover sm:aspect-[2.4/1]"
-      />
-    </div>
+    <figure className="overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-[0_0_40px_rgba(245,158,11,0.08)]">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
+        title="Open full-size image"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={`Banner for ${title}`}
+          className="gf-project-hero-img mx-auto block h-auto w-full max-w-full object-contain"
+          loading="eager"
+          decoding="async"
+        />
+      </a>
+      <figcaption className="border-t border-white/5 px-3 py-1.5 text-center text-[11px] text-stone-500">
+        Click image for full size
+      </figcaption>
+    </figure>
   );
 }
 

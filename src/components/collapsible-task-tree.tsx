@@ -10,6 +10,7 @@ import {
   SubmitForm,
   CreatorModerationBar,
 } from "@/components/task-actions";
+import { ContentBody } from "@/components/content-body";
 import { formatTokens } from "@/lib/utils";
 
 export type TaskTreeNode = {
@@ -249,9 +250,14 @@ function TaskCard({
                   </Link>
                   <span className="text-stone-600">{c.createdAtLabel}</span>
                 </div>
-                <pre className="prose-invert-lite mt-2 max-h-64 overflow-auto text-xs">
-                  {c.body}
-                </pre>
+                <div className="mt-2">
+                  <ContentBody
+                    body={c.body}
+                    contentType={c.contentType}
+                    className="text-xs"
+                    maxHeightClass="max-h-[min(80vh,48rem)]"
+                  />
+                </div>
                 {c.sources && (
                   <p className="mt-2 text-xs text-stone-500">Sources: {c.sources}</p>
                 )}

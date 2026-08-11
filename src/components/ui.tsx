@@ -8,6 +8,7 @@ import React, {
 import { XFollowPill } from "@/components/x-follow-pill";
 import { FounderBadge } from "@/components/founder-badge";
 import { MobileNav } from "@/components/mobile-nav";
+import { NavMore } from "@/components/nav-more";
 import {
   NotificationBell,
   type BellItem,
@@ -163,16 +164,15 @@ export function SiteHeader({
   unreadCount?: number;
 }) {
   const link =
-    "rounded-full px-2.5 py-1.5 text-sm text-stone-300 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 sm:px-3";
+    "whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm text-stone-300 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 sm:px-3";
   return (
     <header className="sticky top-0 z-40 border-b border-amber-900/40 bg-[#050505] sm:border-amber-900/30 sm:bg-black/75 sm:backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-          {/* Follow pill is easy to crowd the logo on narrow phones */}
-          <span className="hidden sm:inline-flex">
+      <div className="mx-auto flex h-14 max-w-6xl flex-nowrap items-center justify-between gap-2 px-3 sm:h-14 sm:gap-3 sm:px-4">
+        <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2.5">
+          <span className="hidden lg:inline-flex">
             <XFollowPill />
           </span>
-          <span className="hidden h-5 w-px shrink-0 bg-white/15 sm:block" aria-hidden />
+          <span className="hidden h-5 w-px shrink-0 bg-white/15 lg:block" aria-hidden />
           <Link
             href="/"
             className="group flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
@@ -184,49 +184,33 @@ export function SiteHeader({
               <div className="truncate text-sm font-bold tracking-tight text-white group-hover:text-amber-300">
                 GrokForge
               </div>
-              <div className="hidden text-[10px] uppercase tracking-[0.2em] text-stone-500 sm:block">
+              <div className="hidden text-[10px] uppercase tracking-[0.2em] text-stone-500 xl:block">
                 greater-good agents · Ctrl+K
               </div>
             </div>
           </Link>
         </div>
+        {/* Primary only: one row, no wrap, overflow goes into More */}
         <nav
-          className="hidden items-center justify-end gap-0.5 sm:flex sm:gap-1"
+          className="hidden min-w-0 flex-1 flex-nowrap items-center justify-end gap-0.5 sm:flex sm:gap-0.5 md:gap-1"
           aria-label="Main"
         >
           <Link className={link} href="/projects">
             Projects
           </Link>
-          <Link className={cn(link, "hidden md:inline")} href="/ships">
-            Ships
-          </Link>
           <Link className={link} href="/tasks">
             Tasks
           </Link>
-          <Link className={cn(link, "hidden lg:inline")} href="/activity">
-            Activity
-          </Link>
-          <Link className={link} href="/leaderboard">
+          <Link className={cn(link, "hidden md:inline")} href="/leaderboard">
             Leaders
-          </Link>
-          <Link className={cn(link, "hidden lg:inline")} href="/rankings">
-            Rank
           </Link>
           <Link className={link} href="/projects/new">
             Propose
           </Link>
-          <Link className={cn(link, "hidden lg:inline")} href="/cockpit">
-            Cockpit
-          </Link>
-          <Link className={cn(link, "hidden xl:inline")} href="/forge">
-            Forge
-          </Link>
-          <Link className={link} href="/dashboard">
+          <Link className={cn(link, "hidden lg:inline")} href="/dashboard">
             Dash
           </Link>
-          <Link className={cn(link, "hidden md:inline")} href="/about">
-            About
-          </Link>
+          <NavMore linkClassName={link} />
           {user && (
             <NotificationBell
               initialUnread={unreadCount}
@@ -235,32 +219,33 @@ export function SiteHeader({
           )}
           {user ? (
             <Link
-              className="ml-1 inline-flex max-w-[14rem] items-center gap-1.5 truncate rounded-full border border-amber-900/40 bg-white/5 px-2.5 py-1.5 text-xs text-amber-200 hover:border-amber-500/40 sm:max-w-none sm:px-3 sm:text-sm"
+              className="ml-1 inline-flex max-w-[9rem] shrink-0 items-center gap-1.5 truncate rounded-full border border-amber-900/40 bg-white/5 px-2.5 py-1.5 text-xs text-amber-200 hover:border-amber-500/40 md:max-w-[12rem] sm:text-sm"
               href="/dashboard"
               title={`@${user.handle || "you"} · ${user.reputation ?? 0} rep`}
             >
               <span className="truncate">@{user.handle || "you"}</span>
               {isFounderHandle(user.handle) && (
-                <FounderBadge className="hidden sm:inline-flex scale-90" />
+                <FounderBadge className="hidden lg:inline-flex scale-90" />
               )}
-              <span className="hidden sm:inline text-stone-500">
+              <span className="hidden xl:inline text-stone-500">
                 · {user.reputation ?? 0} rep
               </span>
             </Link>
           ) : (
             <Link
-              className="ml-1.5 inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-500 px-3.5 py-1.5 text-sm font-bold tracking-tight text-black shadow-[0_0_24px_rgba(245,158,11,0.45)] transition hover:bg-amber-400 hover:shadow-[0_0_32px_rgba(245,158,11,0.65)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200 sm:px-4 sm:py-2"
+              className="ml-1.5 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-300/40 bg-amber-500 px-3 py-1.5 text-sm font-bold tracking-tight text-black shadow-[0_0_24px_rgba(245,158,11,0.45)] transition hover:bg-amber-400 hover:shadow-[0_0_32px_rgba(245,158,11,0.65)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200 sm:px-4"
               href="/login"
               aria-label="Sign in with X"
             >
               <span aria-hidden className="text-[13px] font-black leading-none">
                 &#120143;
               </span>
-              <span className="whitespace-nowrap">Sign in with X</span>
+              <span className="hidden sm:inline">Sign in with X</span>
+              <span className="sm:hidden">Sign in</span>
             </Link>
           )}
         </nav>
-        <div className="flex items-center gap-1.5 sm:hidden">
+        <div className="flex shrink-0 items-center gap-1.5 sm:hidden">
           {user && (
             <NotificationBell
               initialUnread={unreadCount}

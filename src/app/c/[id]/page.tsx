@@ -8,6 +8,7 @@ import { FounderBadge } from "@/components/founder-badge";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { isFounderHandle } from "@/lib/identity";
 import { ContributionReviewPanel } from "@/components/contribution-review-panel";
+import { ContentBody } from "@/components/content-body";
 import { tierForReputation } from "@/lib/reputation-tiers";
 
 export const dynamic = "force-dynamic";
@@ -150,9 +151,11 @@ export default async function ContributionReceiptPage({
           {c.task.estimatedTokens > 0 &&
             ` · ~${c.task.estimatedTokens.toLocaleString()} est. tokens`}
         </p>
-        <pre className="prose-invert-lite max-h-96 overflow-auto rounded-xl border border-white/10 bg-black/40 p-4 text-sm">
-          {c.body}
-        </pre>
+        <ContentBody
+          body={c.body}
+          contentType={c.contentType}
+          maxHeightClass="max-h-[min(90vh,56rem)]"
+        />
         {c.sources && (
           <p className="text-xs text-stone-500">Sources: {c.sources}</p>
         )}
