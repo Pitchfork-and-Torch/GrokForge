@@ -23,6 +23,16 @@ export default function Error({
         <p className="text-sm text-stone-400">
           A temporary fault hit this page. Retry, or return home. Your funds and tasks are safe in Neon.
         </p>
+        {error?.digest && (
+          <p className="font-mono text-[10px] text-stone-600">
+            digest {error.digest}
+          </p>
+        )}
+        {process.env.NODE_ENV === "development" && error?.message && (
+          <p className="break-words text-left text-[11px] text-rose-300/90">
+            {error.message.slice(0, 400)}
+          </p>
+        )}
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           <Button type="button" onClick={() => reset()}>
             Try again

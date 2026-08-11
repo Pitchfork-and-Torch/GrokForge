@@ -33,93 +33,119 @@ export default async function HomePage() {
   const signedIn = !!session?.user?.id;
   const isFounder = isFounderHandle(session?.user?.handle);
 
+  // Soft-fail each query so one bad Prisma path cannot blank the whole home page
+  // (e.g. mid-deploy schema lag after feature removals).
   const [projects, anvilMeta, goodFirstLeaves, networkTrust, peerableHome, myAwaitingHome] =
     await Promise.all([
-    prisma.project.findMany({
-      where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
-      include: {
-        proposer: { select: { handle: true, reputation: true } },
-        fundPots: true,
-        tasks: { select: { id: true, status: true, parentId: true } },
-        artifacts: {
-          where: { source: "package" },
-          select: { id: true },
-          take: 1,
-        },
-        _count: { select: { tasks: true, donations: true, thumbs: true } },
-      },
-      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
-      take: 8,
-    }),
-    prisma.project.findUnique({
-      where: { slug: "anvil-infinity" },
-      select: {
-        title: true,
-        slug: true,
-        description: true,
-        status: true,
-        createdAt: true,
-        tasks: { select: { id: true, status: true, parentId: true } },
-      },
-    }),
-    prisma.task.findMany({
-      where: {
-        status: "OPEN",
-        goodFirst: true,
-        parentId: { not: null },
-        project: { status: { in: ["ACTIVE", "FUNDED"] } },
-        claims: { none: { active: true } },
-      },
-      orderBy: [{ estimatedTokens: "asc" }, { createdAt: "desc" }],
-      take: 6,
-      select: {
-        id: true,
-        title: true,
-        estimatedTokens: true,
-        project: { select: { slug: true, title: true } },
-      },
-    }),
-    getNetworkTrustSnapshot().catch(() => null),
-    prisma.contribution
-      .findMany({
-        where: {
-          status: "PENDING",
-          ...(session?.user?.id ? { userId: { not: session.user.id } } : {}),
-          task: {
-            project: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+      prisma.project
+        .findMany({
+          where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+          include: {
+            proposer: { select: { handle: true, reputation: true } },
+            fundPots: true,
+            tasks: { select: { id: true, status: true, parentId: true } },
+            artifacts: {
+              where: { source: "package" },
+              select: { id: true },
+              take: 1,
+            },
+            _count: { select: { tasks: true, donations: true, thumbs: true } },
           },
-        },
-        orderBy: { createdAt: "asc" },
-        take: 6,
-        include: {
-          user: { select: { handle: true } },
-          task: {
-            select: {
-              title: true,
-              project: { select: { slug: true, title: true } },
+          orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+          take: 8,
+        })
+        .catch((e) => {
+          console.error("[home] projects", e);
+          return [];
+        }),
+      prisma.project
+        .findUnique({
+          where: { slug: "anvil-infinity" },
+          select: {
+            title: true,
+            slug: true,
+            description: true,
+            status: true,
+            createdAt: true,
+            tasks: { select: { id: true, status: true, parentId: true } },
+          },
+        })
+        .catch((e) => {
+          console.error("[home] anvilMeta", e);
+          return null;
+        }),
+      prisma.task
+        .findMany({
+          where: {
+            status: "OPEN",
+            goodFirst: true,
+            parentId: { not: null },
+            project: { status: { in: ["ACTIVE", "FUNDED"] } },
+            claims: { none: { active: true } },
+          },
+          orderBy: [{ estimatedTokens: "asc" }, { createdAt: "desc" }],
+          take: 6,
+          select: {
+            id: true,
+            title: true,
+            estimatedTokens: true,
+            project: { select: { slug: true, title: true } },
+          },
+        })
+        .catch((e) => {
+          console.error("[home] goodFirst", e);
+          return [];
+        }),
+      getNetworkTrustSnapshot().catch((e) => {
+        console.error("[home] networkTrust", e);
+        return null;
+      }),
+      prisma.contribution
+        .findMany({
+          where: {
+            status: "PENDING",
+            ...(session?.user?.id ? { userId: { not: session.user.id } } : {}),
+            task: {
+              project: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
             },
           },
-        },
-      })
-      .catch(() => [] as never[]),
-    session?.user?.id
-      ? prisma.contribution
-          .findMany({
-            where: { status: "PENDING", userId: session.user.id },
-            orderBy: { createdAt: "asc" },
-            take: 6,
-            include: {
-              task: {
-                select: {
-                  title: true,
-                  project: { select: { slug: true } },
-                },
+          orderBy: { createdAt: "asc" },
+          take: 6,
+          include: {
+            user: { select: { handle: true } },
+            task: {
+              select: {
+                title: true,
+                project: { select: { slug: true, title: true } },
               },
             },
-          })
-          .catch(() => [] as never[])
-      : Promise.resolve([] as never[]),
-  ]);
+          },
+        })
+        .catch((e) => {
+          console.error("[home] peerable", e);
+          return [];
+        }),
+      session?.user?.id
+        ? prisma.contribution
+            .findMany({
+              where: { status: "PENDING", userId: session.user.id },
+              orderBy: { createdAt: "asc" },
+              take: 6,
+              include: {
+                task: {
+                  select: {
+                    title: true,
+                    project: { select: { slug: true } },
+                  },
+                },
+              },
+            })
+            .catch((e) => {
+              console.error("[home] awaiting", e);
+              return [];
+            })
+        : Promise.resolve([]),
+    ]);
 
   const homeMyThumbs = new Set<string>();
   if (session?.user?.id) {
@@ -168,14 +194,16 @@ export default async function HomePage() {
     }
   }
 
-  const badgeMap = await fetchBadgesForUsers(leaders.map((r) => r.userId));
+  const badgeMap = await fetchBadgesForUsers(leaders.map((r) => r.userId)).catch(
+    () => new Map()
+  );
   const myBadges =
     signedIn && session?.user?.id
-      ? await fetchUserBadges(session.user.id)
+      ? await fetchUserBadges(session.user.id).catch(() => [])
       : [];
   const challenges =
     signedIn && session?.user?.id
-      ? await fetchWeeklyChallenges(session.user.id)
+      ? await fetchWeeklyChallenges(session.user.id).catch(() => [])
       : [];
 
   return (
