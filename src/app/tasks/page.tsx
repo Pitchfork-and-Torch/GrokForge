@@ -54,10 +54,11 @@ export default async function OpenTasksPage({
       : null;
     const founder = isFounderHandle(me?.handle);
 
+    // Count matches public trust strip: all PENDING on live projects.
+    // Own submits are listed but cannot self-peer-review (creator moderate OK).
     const pending = await prisma.contribution.findMany({
       where: {
         status: "PENDING",
-        ...(session?.user?.id ? { userId: { not: session.user.id } } : {}),
         task: {
           project: {
             status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] },
@@ -76,7 +77,7 @@ export default async function OpenTasksPage({
       orderBy: { createdAt: "asc" },
       take: 40,
       include: {
-        user: { select: { handle: true } },
+        user: { select: { handle: true, id: true } },
         reviews: { select: { id: true } },
         task: {
           select: {
@@ -90,39 +91,47 @@ export default async function OpenTasksPage({
     });
 
     const staleBefore = Date.now() - 24 * 60 * 60 * 1000;
-    const items = pending.map((c) => ({
-      id: c.id,
-      taskTitle: c.task.title,
-      projectSlug: c.task.project.slug,
-      projectTitle: c.task.project.title,
-      authorHandle: c.user.handle,
-      createdAt:
-        c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
-      createdAtIso: c.createdAt.toISOString(),
-      agent: isAgentSubmission({
-        sources: c.sources,
-        contentType: c.contentType,
-      }),
-      bodyPreview: c.body.slice(0, 480) + (c.body.length > 480 ? "…" : ""),
-      peerReviewCount: c.reviews.length,
-      canCreatorModerate: !!(
+    const items = pending.map((c) => {
+      const isOwn = !!(me && c.userId === me.id);
+      const canCreatorModerate = !!(
         me &&
         (founder || c.task.project.proposerId === me.id)
-      ),
-    }));
+      );
+      return {
+        id: c.id,
+        taskTitle: c.task.title,
+        projectSlug: c.task.project.slug,
+        projectTitle: c.task.project.title,
+        authorHandle: c.user.handle,
+        createdAt:
+          c.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+        createdAtIso: c.createdAt.toISOString(),
+        agent: isAgentSubmission({
+          sources: c.sources,
+          contentType: c.contentType,
+        }),
+        bodyPreview: c.body.slice(0, 480) + (c.body.length > 480 ? "…" : ""),
+        peerReviewCount: c.reviews.length,
+        canCreatorModerate,
+        isOwn,
+        canPeerReview: !isOwn,
+      };
+    });
     const staleCount = items.filter(
       (i) => new Date(i.createdAtIso).getTime() < staleBefore
     ).length;
+    const ownCount = items.filter((i) => i.isOwn).length;
+    const peerCount = items.filter((i) => i.canPeerReview).length;
 
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-white">Review queue</h1>
           <p className="mt-1 text-stone-400">
-            Peer-review pending submissions (+2 rep). Average ≥3 accepts; below 3
-            reopens the leaf. Accepts unlock ready-set leaves for workers. Agent
-            submits are tagged; Anvil+ strong-workers quality-auto-accept
-            structured agent work on non-dual-key leaves.
+            Peer-review others&apos; submissions (+2 rep). Average ≥3 accepts;
+            below 3 reopens the leaf. You cannot peer-review your own work -
+            project creators (or founder) can still accept or request changes.
+            Accepts unlock ready-set for workers.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
@@ -146,11 +155,24 @@ export default async function OpenTasksPage({
           </Link>
         </div>
         <p className="text-xs text-stone-500">
-          {items.length} pending · oldest first
-          {staleCount > 0
-            ? ` · ${staleCount} older than 24h (priority for velocity)`
+          {items.length} pending (matches network trust)
+          {peerCount > 0 ? ` · ${peerCount} need peer review` : ""}
+          {ownCount > 0
+            ? ` · ${ownCount} yours (invite a second builder or creator-accept)`
             : ""}
+          {staleCount > 0
+            ? ` · ${staleCount} older than 24h`
+            : ""}{" "}
+          · oldest first
         </p>
+        {ownCount > 0 && peerCount === 0 && (
+          <p className="rounded-xl border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-100">
+            All pending work is yours. Peer review is blocked for self-submits -
+            use <strong>Accept submission</strong> as project creator, or invite
+            a second builder to peer-review. That is why the queue looked empty
+            before.
+          </p>
+        )}
         <ReviewQueueList items={items} signedIn={signedIn} />
       </div>
     );

@@ -21,6 +21,10 @@ export type ReviewQueueItem = {
   peerReviewCount: number;
   /** Viewer can creator-accept this item */
   canCreatorModerate?: boolean;
+  /** Submission is by the signed-in viewer (no self peer-review) */
+  isOwn?: boolean;
+  /** Show peer review form */
+  canPeerReview?: boolean;
 };
 
 function ageLabel(iso?: string): { text: string; stale: boolean } | null {
@@ -67,6 +71,11 @@ export function ReviewQueueList({
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap gap-1.5">
+                    {item.isOwn && (
+                      <Badge className="border-violet-500/40 bg-violet-500/10 text-violet-100">
+                        yours
+                      </Badge>
+                    )}
                     {item.agent && (
                       <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-100">
                         agent
@@ -120,11 +129,22 @@ export function ReviewQueueList({
               </pre>
               {signedIn ? (
                 <div className="space-y-3 border-t border-white/10 pt-3">
-                  <p className="text-[11px] text-stone-500">
-                    One-tap scores · average ≥3 accepts · +2 rep per review ·
-                    accepts unlock ready-set for workers
-                  </p>
-                  <ReviewForm contributionId={item.id} />
+                  {item.canPeerReview !== false && !item.isOwn ? (
+                    <>
+                      <p className="text-[11px] text-stone-500">
+                        One-tap scores · average ≥3 accepts · +2 rep per review ·
+                        accepts unlock ready-set for workers
+                      </p>
+                      <ReviewForm contributionId={item.id} />
+                    </>
+                  ) : item.isOwn ? (
+                    <p className="text-xs text-stone-400">
+                      This is your submission - you cannot peer-review it.
+                      {item.canCreatorModerate
+                        ? " As project creator you can accept or request changes below (or invite a second builder)."
+                        : " Waiting for a peer reviewer or the project creator."}
+                    </p>
+                  ) : null}
                   {item.canCreatorModerate && (
                     <CreatorModerationBar contributionId={item.id} />
                   )}
