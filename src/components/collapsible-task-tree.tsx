@@ -113,10 +113,34 @@ function TaskCard({
   const claimedBy = claimLabel(task);
   const pendingCount = task.contributions.filter((c) => c.status === "PENDING").length;
   const acceptedCount = task.contributions.filter((c) => c.status === "ACCEPTED").length;
+  const isLeaf = !task.children || task.children.length === 0;
+  const childAccepted =
+    task.children?.filter((c) => c.status === "ACCEPTED").length ?? 0;
+  const childTotal = task.children?.length ?? 0;
   const childDone =
-    task.children && task.children.length > 0
-      ? `${task.children.filter((c) => c.status === "ACCEPTED").length}/${task.children.length} child tasks done`
-      : null;
+    childTotal > 0 ? `${childAccepted}/${childTotal} child tasks done` : null;
+  // Parents are containers - never "unclaimed" claimable leaves
+  const allChildrenDone = childTotal > 0 && childAccepted === childTotal;
+  const displayStatus =
+    !isLeaf && task.status === "OPEN" && allChildrenDone
+      ? "ACCEPTED"
+      : !isLeaf && task.status === "OPEN"
+        ? "PARENT"
+        : task.status;
+  const humanLabel =
+    displayStatus === "ACCEPTED" || allChildrenDone
+      ? "Done"
+      : displayStatus === "PARENT"
+        ? "Epic / parent"
+        : displayStatus === "CLAIMED"
+          ? "In progress"
+          : displayStatus === "SUBMITTED"
+            ? "Awaiting review"
+            : displayStatus === "OPEN" && isLeaf
+              ? "Unclaimed"
+              : displayStatus === "OPEN"
+                ? "Epic / parent"
+                : displayStatus;
 
   return (
     <div
@@ -125,7 +149,7 @@ function TaskCard({
     >
       <Card
         className={`mb-3 space-y-0 overflow-hidden p-0 ${
-          task.status === "ACCEPTED"
+          displayStatus === "ACCEPTED" || allChildrenDone
             ? "border-emerald-500/20"
             : task.status === "CLAIMED"
               ? "border-amber-500/25"
@@ -139,33 +163,40 @@ function TaskCard({
           aria-expanded={expanded}
         >
           <span
-            className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${statusDot(task.status)}`}
+            className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${statusDot(
+              displayStatus === "PARENT" ? "OPEN" : displayStatus === "ACCEPTED" || allChildrenDone ? "ACCEPTED" : task.status
+            )}`}
             aria-hidden
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold text-white sm:text-base">{task.title}</h3>
-              <Badge className={statusTone(task.status)}>{task.status}</Badge>
-              {task.status === "ACCEPTED" && (
-                <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-300">
-                  Done
-                </span>
-              )}
-              {task.status === "CLAIMED" && (
-                <span className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
-                  In progress
-                </span>
-              )}
-              {task.status === "SUBMITTED" && (
-                <span className="text-[10px] font-bold uppercase tracking-wide text-sky-200">
-                  Awaiting review
-                </span>
-              )}
-              {task.status === "OPEN" && (
-                <span className="text-[10px] font-bold uppercase tracking-wide text-stone-500">
-                  Unclaimed
-                </span>
-              )}
+              <Badge
+                className={statusTone(
+                  displayStatus === "PARENT"
+                    ? "OPEN"
+                    : allChildrenDone
+                      ? "ACCEPTED"
+                      : task.status
+                )}
+              >
+                {displayStatus === "PARENT" ? "PARENT" : allChildrenDone ? "ACCEPTED" : task.status}
+              </Badge>
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wide ${
+                  humanLabel === "Done"
+                    ? "text-emerald-300"
+                    : humanLabel === "In progress"
+                      ? "text-amber-200"
+                      : humanLabel === "Awaiting review"
+                        ? "text-sky-200"
+                        : humanLabel === "Epic / parent"
+                          ? "text-stone-400"
+                          : "text-stone-500"
+                }`}
+              >
+                {humanLabel}
+              </span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-stone-500">
               <span>~{formatTokens(task.estimatedTokens)} tokens</span>
