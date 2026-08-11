@@ -215,6 +215,9 @@ export function SiteHeader({
           <Link className={link} href="/projects/new">
             Propose
           </Link>
+          <Link className={cn(link, "hidden lg:inline")} href="/cockpit">
+            Cockpit
+          </Link>
           <Link className={link} href="/dashboard">
             Dash
           </Link>

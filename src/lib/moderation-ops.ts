@@ -17,6 +17,8 @@ type Actor = {
 
 function revalidateModSurfaces(slug: string, contributionId: string) {
   revalidatePath(`/projects/${slug}`);
+  revalidatePath(`/projects/${slug}/cockpit`);
+  revalidatePath("/cockpit");
   revalidatePath("/dashboard");
   revalidatePath("/leaderboard");
   revalidatePath("/");

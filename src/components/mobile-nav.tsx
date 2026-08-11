@@ -17,6 +17,8 @@ type UserChip = {
 const links = [
   { href: "/projects", label: "Projects" },
   { href: "/tasks", label: "Open tasks" },
+  { href: "/cockpit", label: "Cockpit" },
+  { href: "/quests", label: "Quests" },
   { href: "/activity", label: "Activity" },
   { href: "/leaderboard", label: "Leaders" },
   { href: "/rankings", label: "Rankings" },

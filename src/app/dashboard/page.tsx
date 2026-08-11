@@ -266,11 +266,14 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/cockpit">
+            <Button>Creator cockpit</Button>
+          </Link>
           <Link href="/tasks">
             <Button variant="secondary">Open tasks</Button>
           </Link>
           <Link href="/projects/new">
-            <Button>New project</Button>
+            <Button variant="secondary">New project</Button>
           </Link>
           <form
             action={async () => {

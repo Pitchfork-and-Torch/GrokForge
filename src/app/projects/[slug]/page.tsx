@@ -52,6 +52,7 @@ import {
 } from "@/lib/utils";
 import { ProjectEditHistory } from "@/components/project-edit-history";
 import { AddLeafForm } from "@/components/add-leaf-form";
+import { ReadySetPanel } from "@/components/ready-set-panel";
 import { formatProjectCreatedAt } from "@/lib/edit-history";
 
 export const dynamic = "force-dynamic";
@@ -555,11 +556,35 @@ export default async function ProjectDetailPage({
           <section>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-semibold text-white">Task hierarchy</h2>
-              {isCreator && project.status !== "ARCHIVED" && (
-                <AddLeafForm projectId={project.id} />
-              )}
+              <div className="flex flex-wrap gap-2">
+                {(isCreator || isFounder) && (
+                  <Link
+                    href={`/projects/${project.slug}/cockpit`}
+                    className="inline-flex rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-100 hover:bg-amber-500/25"
+                  >
+                    Cockpit
+                  </Link>
+                )}
+                {isCreator && project.status !== "ARCHIVED" && (
+                  <AddLeafForm projectId={project.id} />
+                )}
+              </div>
             </div>
-            <div className="mb-4">
+            <div className="mb-4 space-y-4">
+              <ReadySetPanel
+                projectSlug={project.slug}
+                tasks={project.tasks.map((t) => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                  parentId: t.parentId,
+                  sortOrder: t.sortOrder,
+                  estimatedTokens: t.estimatedTokens,
+                  goodFirst: t.goodFirst,
+                  tags: t.tags,
+                  dependsOnJson: t.dependsOnJson,
+                }))}
+              />
               <ProjectEditHistory
                 createdAtIso={project.createdAt.toISOString()}
                 createdAtLabel={formatProjectCreatedAt(project.createdAt).absolute}

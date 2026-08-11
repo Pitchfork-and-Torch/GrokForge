@@ -11,7 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function OpenTasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; q?: string; goodFirst?: string; tag?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    q?: string;
+    goodFirst?: string;
+    tag?: string;
+    ready?: string;
+  }>;
 }) {
   // Keep claimable board honest even between cron ticks
   try {
@@ -27,6 +33,7 @@ export default async function OpenTasksPage({
       : undefined;
   const q = sp.q?.trim();
   const goodFirstOnly = sp.goodFirst === "1" || sp.goodFirst === "true";
+  const readyOnly = sp.ready === "1" || sp.ready === "true";
   const tag = sp.tag?.trim();
 
   const tasks = await prisma.task.findMany({
@@ -59,6 +66,16 @@ export default async function OpenTasksPage({
           title: true,
           category: true,
           license: true,
+          tasks: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              parentId: true,
+              sortOrder: true,
+              dependsOnJson: true,
+            },
+          },
         },
       },
       claims: { where: { active: true }, select: { id: true } },
@@ -69,8 +86,18 @@ export default async function OpenTasksPage({
     take: 80,
   });
 
-  // Only truly open (no active claim)
-  const open = tasks.filter((t) => t.claims.length === 0);
+  const { readyOpenLeaves } = await import("@/lib/task-dag");
+
+  // Only truly open (no active claim); optional ready-set filter
+  let open = tasks.filter((t) => t.claims.length === 0);
+  if (readyOnly) {
+    open = open.filter((t) => {
+      const readyIds = new Set(
+        readyOpenLeaves(t.project.tasks).map((r) => r.id)
+      );
+      return readyIds.has(t.id);
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -108,6 +135,15 @@ export default async function OpenTasksPage({
             defaultChecked={goodFirstOnly}
           />
           Good first leaf
+        </label>
+        <label className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-xs text-stone-300">
+          <input
+            type="checkbox"
+            name="ready"
+            value="1"
+            defaultChecked={readyOnly}
+          />
+          Ready-set only
         </label>
         <input
           name="tag"
