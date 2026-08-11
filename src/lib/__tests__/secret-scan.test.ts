@@ -8,13 +8,17 @@ describe("secret-scan", () => {
   });
 
   it("blocks ghp tokens", () => {
-    const r = scanForSecrets("token ghp_abcdefghijklmnopqrstuvwxyz0123456789");
+    // Synthetic pattern for tests only (not a live credential)
+    const fake = "ghp_" + "x".repeat(36);
+    const r = scanForSecrets(`token ${fake}`);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.hits.some((h) => h.includes("GitHub"))).toBe(true);
   });
 
   it("blocks sk- keys", () => {
-    const r = scanForSecrets("openai sk-abcdefghijklmnopqrstuvwxyz012345");
+    const fake = "sk-" + "y".repeat(32);
+    const r = scanForSecrets(`openai ${fake}`);
     expect(r.ok).toBe(false);
   });
 });
+
