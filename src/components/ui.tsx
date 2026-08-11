@@ -218,6 +218,9 @@ export function SiteHeader({
           <Link className={cn(link, "hidden lg:inline")} href="/cockpit">
             Cockpit
           </Link>
+          <Link className={cn(link, "hidden xl:inline")} href="/forge">
+            Forge
+          </Link>
           <Link className={link} href="/dashboard">
             Dash
           </Link>

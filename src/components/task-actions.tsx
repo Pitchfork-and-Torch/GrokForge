@@ -349,7 +349,7 @@ export function CreatorAcceptButton({ contributionId }: { contributionId: string
   );
 }
 
-/** Accept every pending submission on a project (creator only). */
+/** Accept every pending submission on a project (creator only; dual-key skips reported). */
 export function CreatorBulkAcceptButton({
   projectId,
   count,
@@ -359,6 +359,7 @@ export function CreatorBulkAcceptButton({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   if (count < 2) return null;
@@ -372,13 +373,22 @@ export function CreatorBulkAcceptButton({
         onClick={() =>
           start(async () => {
             try {
+              setOk(null);
               const { creatorBulkAcceptPendingAction } = await import(
                 "@/lib/actions"
               );
               const res = await creatorBulkAcceptPendingAction(projectId);
-              if (res?.error) setError(res.error);
-              else {
+              if (res?.error) {
+                setError(res.error);
+                setOk(null);
+              } else {
                 setError(null);
+                const skipped = res.skipped ?? 0;
+                setOk(
+                  skipped > 0
+                    ? `Accepted ${res.accepted}; skipped ${skipped} (dual-key/gates)`
+                    : `Accepted ${res.accepted}`
+                );
                 router.refresh();
               }
             } catch (err) {
@@ -390,6 +400,7 @@ export function CreatorBulkAcceptButton({
         {pending ? "Accepting..." : `Accept all ${count} pending`}
       </Button>
       {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
+      {ok && <p className="mt-1 text-xs text-emerald-400">{ok}</p>}
     </div>
   );
 }

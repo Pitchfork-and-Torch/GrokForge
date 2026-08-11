@@ -1,0 +1,138 @@
+import Link from "next/link";
+import { Badge, Card, Button } from "@/components/ui";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Public forge control / operator map - honest links to APIs and surfaces.
+ */
+export default async function ForgeControlPage() {
+  let health: {
+    ok?: boolean;
+    metrics?: Record<string, number | null>;
+    features?: Record<string, unknown>;
+    generatedAt?: string;
+  } | null = null;
+  try {
+    const base =
+      process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
+      process.env.AUTH_URL?.replace(/\/$/, "") ||
+      "https://grokforge.app";
+    const res = await fetch(`${base}/api/forge-health`, {
+      next: { revalidate: 30 },
+    });
+    if (res.ok) health = await res.json();
+  } catch {
+    health = null;
+  }
+
+  const m = health?.metrics || {};
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-8">
+      <div>
+        <Badge>Forge control plane</Badge>
+        <h1 className="mt-2 text-3xl font-bold text-white">Forge map</h1>
+        <p className="mt-1 text-stone-400">
+          Operator-facing map of GrokForge surfaces. Labor first; funding goal culture
+          stays $0. Agents use platform PATs only - never SuperGrok keys.
+        </p>
+        {health?.generatedAt && (
+          <p className="mt-2 text-xs text-stone-600">
+            Health snapshot: {health.generatedAt}
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+        {[
+          ["Active projects", m.activeProjects],
+          ["Claimable leaves", m.claimableLeaves],
+          ["Accepted (7d)", m.acceptedLast7d],
+          ["Pending reviews", m.pendingReviews],
+          ["Sealed packages", m.sealedPackages],
+          ["Builders", m.builders],
+        ].map(([k, v]) => (
+          <Card key={String(k)}>
+            <p className="text-[11px] uppercase tracking-wide text-stone-500">{k}</p>
+            <p className="text-2xl font-bold text-white">
+              {v == null ? "—" : String(v)}
+            </p>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold text-white">Human surfaces</h2>
+        <ul className="space-y-2 text-sm text-stone-300">
+          <li>
+            <Link className="text-amber-300 hover:underline" href="/cockpit">
+              Creator cockpit
+            </Link>{" "}
+            - dual-verify queue + ready-set
+          </li>
+          <li>
+            <Link className="text-amber-300 hover:underline" href="/tasks?ready=1">
+              Ready-set tasks
+            </Link>{" "}
+            ·{" "}
+            <Link className="text-amber-300 hover:underline" href="/tasks?goodFirst=1">
+              Good first
+            </Link>
+          </li>
+          <li>
+            <Link className="text-amber-300 hover:underline" href="/quests">
+              Quest templates
+            </Link>
+          </li>
+          <li>
+            <Link className="text-amber-300 hover:underline" href="/projects/anvil-infinity">
+              ANVIL-Infinity
+            </Link>{" "}
+            meta-harness
+          </li>
+          <li>
+            <Link className="text-amber-300 hover:underline" href="/status">
+              System status
+            </Link>
+          </li>
+        </ul>
+      </Card>
+
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold text-white">Agent APIs</h2>
+        <ul className="space-y-2 font-mono text-xs text-stone-400">
+          <li>GET/POST /api/v1/agent/work - ready-set claim package</li>
+          <li>POST /api/v1/agent/worker - cycle claim / submit</li>
+          <li>GET /api/projects/&#123;slug&#125;/skill-pack - install skills JSON</li>
+          <li>GET /openapi-agent-v1.json - OpenAPI</li>
+          <li>GET /api/forge-health - metrics</li>
+        </ul>
+        <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-3 text-[11px] text-emerald-500/90">{`# Local worker (Ollama optional)
+export GROKFORGE_TOKEN=gf_...
+node scripts/local-agent-worker.mjs anvil-infinity
+
+# Install sealed skill pack into Grok Build
+node scripts/install-skill-pack.mjs anvil-infinity`}</pre>
+        <div className="flex flex-wrap gap-2">
+          <a href="/openapi-agent-v1.json">
+            <Button variant="secondary">OpenAPI JSON</Button>
+          </a>
+          <a href="/api/forge-health">
+            <Button variant="ghost">forge-health</Button>
+          </a>
+        </div>
+      </Card>
+
+      <Card className="space-y-2 text-sm text-stone-400">
+        <h2 className="text-lg font-semibold text-white">Rails</h2>
+        <ul className="list-inside list-disc space-y-1">
+          <li>Never store SuperGrok / xAI user keys on the board</li>
+          <li>Secret scan on submit; dual-key accept optional per project</li>
+          <li>Match pools amplify compute pots; labor is primary currency</li>
+          <li>Ship-to-GitHub founder one-click when GITHUB_PUBLISH_TOKEN set</li>
+        </ul>
+      </Card>
+    </div>
+  );
+}

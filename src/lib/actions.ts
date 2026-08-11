@@ -1060,7 +1060,12 @@ export async function creatorBulkAcceptPendingAction(projectId: string) {
       { via: "ui", founderOverride: true }
     );
     if ("error" in res) return { error: res.error };
-    return { ok: true, accepted: res.accepted };
+    return {
+      ok: true,
+      accepted: res.accepted,
+      skipped: res.skipped,
+      skippedReasons: res.skippedReasons,
+    };
   } catch (e) {
     console.error("[creatorBulkAcceptPendingAction]", e);
     return {

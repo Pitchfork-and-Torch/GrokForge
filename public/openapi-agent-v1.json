@@ -305,6 +305,78 @@
           "503": { "description": "GITHUB_PUBLISH_TOKEN not configured" }
         }
       }
+    },
+    "/agent/work": {
+      "get": {
+        "summary": "Peek next ready-set OPEN leaf",
+        "operationId": "peekAgentWork",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Optional project slug"
+          }
+        ],
+        "responses": {
+          "200": { "description": "task or null" },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Claim next ready-set leaf (or taskId) and return prompt package",
+        "operationId": "claimAgentWork",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectSlug": { "type": "string" },
+                  "taskId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Claimed task package + submitHint" },
+          "404": { "description": "No ready leaves" }
+        }
+      }
+    },
+    "/agent/worker": {
+      "post": {
+        "summary": "Worker cycle: claim ready leaf or submit deliverable",
+        "operationId": "agentWorkerCycle",
+        "description": "Models run locally. Never send SuperGrok keys. submit needs contributions:write.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["action"],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["cycle", "claim", "submit"]
+                  },
+                  "projectSlug": { "type": "string" },
+                  "taskId": { "type": "string" },
+                  "body": { "type": "string" },
+                  "sources": { "type": "string" },
+                  "contentType": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Claim or submit result" },
+          "400": { "description": "Gate/error" },
+          "403": { "description": "Missing scope" }
+        }
+      }
     }
   }
 }

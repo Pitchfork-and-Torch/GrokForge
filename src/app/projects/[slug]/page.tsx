@@ -371,6 +371,16 @@ export default async function ProjectDetailPage({
           <Badge>{CATEGORY_LABELS[project.category]}</Badge>
           <Badge className="border-white/10 bg-white/5 text-stone-300">{project.license}</Badge>
           <Badge className="border-white/10 bg-white/5 text-stone-300">{project.status}</Badge>
+          {project.requireDualKey && (
+            <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-100">
+              dual-key ≥{(project.dualKeyTokenThreshold || 50000).toLocaleString()} tok
+            </Badge>
+          )}
+          {project.matchingEnabled && project.matchingRemainingCents > 0 && (
+            <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-200">
+              match live
+            </Badge>
+          )}
           {showComplete && <ProjectCompletedBadge size="md" />}
           {watchCount > 0 && (
             <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-200">
