@@ -16,7 +16,6 @@ export type ChallengeInput = {
   acceptedLast7: number;
   reviewsLast7: number;
   donationsLast7: number;
-  nightcapsLast7: number;
   commentsLast7: number;
 };
 
@@ -36,7 +35,7 @@ export function weeklyChallenges(input: ChallengeInput): Challenge[] {
       blurb: "Write 3 peer reviews this week",
       target: 3,
       progress: input.reviewsLast7,
-      href: "/projects",
+      href: "/tasks?review=1",
     },
     {
       id: "fund-1",
@@ -45,14 +44,6 @@ export function weeklyChallenges(input: ChallengeInput): Challenge[] {
       target: 1,
       progress: input.donationsLast7,
       href: "/projects",
-    },
-    {
-      id: "nightcap-1",
-      title: "Nightcap once",
-      blurb: "Gift leftover estimated tokens once",
-      target: 1,
-      progress: input.nightcapsLast7,
-      href: "/dashboard",
     },
     {
       id: "discuss-2",

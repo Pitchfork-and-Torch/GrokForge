@@ -5,7 +5,6 @@ import { Badge, Button, Card, ProgressBar } from "@/components/ui";
 import { LeaderboardPanel } from "@/components/leaderboard-panel";
 import { EmptyState } from "@/components/empty-state";
 import { LiveForgeBar } from "@/components/live-forge-bar";
-import { NightcapGift } from "@/components/nightcap-gift";
 import { WeeklyChallenges } from "@/components/weekly-challenges";
 import { BadgeUnlockToast } from "@/components/badge-unlock-toast";
 import { RecentActivity } from "@/components/recent-activity";
@@ -170,11 +169,6 @@ export default async function HomePage() {
   }
 
   const badgeMap = await fetchBadgesForUsers(leaders.map((r) => r.userId));
-  const nightcapProjects = projects.map((p) => ({
-    id: p.id,
-    title: p.title,
-    slug: p.slug,
-  }));
   const myBadges =
     signedIn && session?.user?.id
       ? await fetchUserBadges(session.user.id)
@@ -575,8 +569,6 @@ export default async function HomePage() {
       {signedIn && challenges.length > 0 && (
         <WeeklyChallenges challenges={challenges} />
       )}
-
-      <NightcapGift projects={nightcapProjects} signedIn={signedIn} />
 
       <section className="rounded-3xl border border-amber-500/25 bg-amber-500/5 p-6 sm:p-8">
         <h2 className="text-xl font-semibold text-white">Trust rails</h2>

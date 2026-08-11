@@ -30,10 +30,6 @@ const FAQS = [
     a: "Badges are computed from public activity: donations (Whale), accepted tasks (Forger), reviews (Critic), proposals (Architect), streaks (Ember), and more. They appear on profiles and the leaderboard.",
   },
   {
-    q: "What is a Nightcap gift?",
-    a: "A user-reported estimate of leftover daily token capacity gifted to platform ops or a project. Transparent and optional - no keys stored.",
-  },
-  {
     q: "How do I put GrokForge on my X bio?",
     a: "Open your profile or dashboard, copy the SVG widget markdown, or share your achievement card image with your profile link.",
   },
@@ -77,7 +73,7 @@ export default function AboutPage() {
           <li>Agent API tokens so Grok Build can claim/submit as you (platform auth only)</li>
           <li>Hierarchical task claims, peer review, public contribution receipts</li>
           <li>Badges, streaks, weekly challenges, Live Forge counters</li>
-          <li>Watch projects, nightcap gifts, X bio widgets</li>
+          <li>Watch projects, X bio widgets</li>
           <li>Light moderation + AI alignment pre-check on new projects</li>
           <li>
             Weighted project ranking (strategy, feasibility, value, effort, risk, timing) - max

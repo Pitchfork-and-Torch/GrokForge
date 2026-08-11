@@ -31,7 +31,6 @@ model User {
   notifications Notification[]
   commentReports CommentReport[]
   watches       ProjectWatch[]
-  nightcaps     NightcapGift[]
   apiTokens     ApiToken[]
   scorecards    ProjectScorecard[]
   thumbs        ProjectThumb[]
@@ -186,9 +185,6 @@ model Project {
   matchingPoolCents      Int     @default(0)
   // Remaining match budget (cents)
   matchingRemainingCents Int     @default(0)
-  // Nightcap capacity pool for this project (real on-platform balance)
-  nightcapAvailable   Int @default(0)
-  nightcapTotalGifted Int @default(0)
   // Hard dual-key: accept on large leaves needs >=1 peer review (Forger+)
   requireDualKey           Boolean @default(false)
   // Estimated-token threshold for dual-key when requireDualKey is true
@@ -203,7 +199,6 @@ model Project {
   donations        Donation[]
   comments         ProjectComment[]
   watches          ProjectWatch[]
-  nightcaps        NightcapGift[]
   scorecard        ProjectScorecard?
   thumbs           ProjectThumb[]
   editHistory      ProjectEditHistory[]
@@ -315,31 +310,7 @@ model SiteStats {
   xBuilders         Int      @default(0)
   // Founder-pinned project shown in home hero (right column)
   featuredProjectId String?
-  // Nightcap capacity pool (on-platform real balance - not SuperGrok API keys)
-  // Available = gifted in - allocated out. Public live tally.
-  nightcapAvailable   Int @default(0)
-  nightcapTotalGifted Int @default(0)
-  nightcapTotalSpent  Int @default(0)
   updatedAt         DateTime @updatedAt
-}
-
-// Nightcap gifts: real increments to platform/project pools (never stores API keys)
-model NightcapGift {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId      String?
-  project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  estimatedTokens Int
-  note           String?  @db.Text
-  target         String   @default("PLATFORM") // PLATFORM | PROJECT
-  // Pool rows credited at gift time (audit)
-  creditedToPool Boolean  @default(true)
-  createdAt      DateTime @default(now())
-
-  @@index([userId, createdAt])
-  @@index([projectId])
-  @@index([createdAt])
 }
 
 // User bookmarks / follows a project for dashboard + future alerts

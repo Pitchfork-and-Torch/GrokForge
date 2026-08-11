@@ -35,7 +35,6 @@ export type BadgeInput = {
   longestStreak: number;
   isFounder?: boolean;
   isPioneer?: boolean; // early user / early project
-  estimatedTokenGifts?: number;
 };
 
 const DEFS: Record<BadgeId, Omit<BadgeDef, "id">> = {
@@ -51,12 +50,12 @@ const DEFS: Record<BadgeId, Omit<BadgeDef, "id">> = {
   },
   bee: {
     label: "Bee",
-    blurb: "Contributed labor or nightcap token gifts to the hive",
+    blurb: "Contributed labor - at least one accepted task",
     tier: 1,
   },
   hive: {
     label: "Hive",
-    blurb: "5+ accepted tasks or large token overflow gifts",
+    blurb: "5+ accepted tasks on the labor ledger",
     tier: 2,
   },
   forger: {
@@ -125,9 +124,9 @@ export function computeBadges(input: BadgeInput): BadgeDef[] {
   if (input.acceptedCount >= 10) add("master_forger");
   else if (input.acceptedCount >= 1) add("forger");
 
-  if (input.acceptedCount >= 5 || (input.estimatedTokenGifts || 0) >= 50000) {
+  if (input.acceptedCount >= 5) {
     add("hive");
-  } else if (input.acceptedCount >= 1 || (input.estimatedTokenGifts || 0) >= 1000) {
+  } else if (input.acceptedCount >= 1) {
     add("bee");
   }
 
@@ -186,8 +185,8 @@ export function badgeCriteria(id: BadgeId): string {
   const map: Record<BadgeId, string> = {
     whale: "Donate $50+ total to project capital pots.",
     leviathan: "Donate $250+ total to greater-good pots.",
-    bee: "1+ accepted task or ~1k+ nightcap tokens gifted.",
-    hive: "5+ accepted tasks or ~50k+ nightcap tokens gifted.",
+    bee: "1+ accepted task on the labor ledger.",
+    hive: "5+ accepted tasks on the labor ledger.",
     forger: "Get 1 contribution accepted by peers or creator.",
     master_forger: "Get 10 contributions accepted.",
     critic: "Write 3+ peer reviews.",
@@ -260,14 +259,8 @@ export function badgeGallery(input: BadgeInput): BadgeProgress[] {
   );
   push(
     "bee",
-    `${input.acceptedCount} accepted · ${input.estimatedTokenGifts || 0} gift tok`,
-    Math.min(
-      100,
-      Math.max(
-        input.acceptedCount >= 1 ? 100 : 0,
-        Math.round(((input.estimatedTokenGifts || 0) / 1000) * 100)
-      )
-    )
+    `${input.acceptedCount} / 1 accepted`,
+    Math.min(100, input.acceptedCount >= 1 ? 100 : 0)
   );
   push(
     "hive",

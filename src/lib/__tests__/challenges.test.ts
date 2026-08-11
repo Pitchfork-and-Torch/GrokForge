@@ -7,10 +7,9 @@ describe("weeklyChallenges", () => {
       acceptedLast7: 1,
       reviewsLast7: 1,
       donationsLast7: 0,
-      nightcapsLast7: 1,
       commentsLast7: 2,
     });
-    expect(list.length).toBe(5);
+    expect(list.length).toBe(4);
     const ship = list.find((c) => c.id === "ship-1");
     expect(ship?.progress).toBe(1);
     expect(ship && ship.progress >= ship.target).toBe(true);

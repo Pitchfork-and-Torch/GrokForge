@@ -3,7 +3,7 @@ import { weeklyChallenges, type Challenge } from "@/lib/challenges";
 
 export async function fetchWeeklyChallenges(userId: string): Promise<Challenge[]> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [acceptedLast7, reviewsLast7, donationsLast7, nightcapsLast7, commentsLast7] =
+  const [acceptedLast7, reviewsLast7, donationsLast7, commentsLast7] =
     await Promise.all([
       prisma.contribution.count({
         where: {
@@ -18,9 +18,6 @@ export async function fetchWeeklyChallenges(userId: string): Promise<Challenge[]
       prisma.donation.count({
         where: { donorId: userId, createdAt: { gte: since } },
       }),
-      prisma.nightcapGift.count({
-        where: { userId, createdAt: { gte: since } },
-      }),
       prisma.projectComment.count({
         where: { userId, createdAt: { gte: since } },
       }),
@@ -30,7 +27,6 @@ export async function fetchWeeklyChallenges(userId: string): Promise<Challenge[]
     acceptedLast7,
     reviewsLast7,
     donationsLast7,
-    nightcapsLast7,
     commentsLast7,
   });
 }

@@ -1,11 +1,10 @@
 ﻿# Changelog
 
-## 2026-08-10 - Nightcap: remove fake token inventory display
+## 2026-08-10 - Remove Nightcap entirely
 
-- **Removed** Nightcap pool from Live Forge (was misleading: not spendable tokens)
-- Removed public live pool tally UI from home/dashboard
-- Nightcap is optional goodwill capacity **note** only (ledger + badges); copy says not spendable
-- `/api/nightcap` kept internal/ops only if needed - not marketed as inventory
+- Deleted Nightcap gift UI, actions, `/api/nightcap`, pool helpers, and Prisma `NightcapGift`
+- Bee/Hive badges are accepted-labor only; weekly challenge no longer includes nightcap
+- Not real spendable tokens - removed rather than misrepresent
 
 ## 2026-08-10 - Discover: newest first + completed panel
 

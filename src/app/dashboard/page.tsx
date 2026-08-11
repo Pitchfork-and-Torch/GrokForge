@@ -15,7 +15,6 @@ import { formatCents, projectTaskProgress } from "@/lib/utils";
 import { markNotificationsReadAction, updateProfileAction } from "@/lib/actions";
 import { isFounderHandle } from "@/lib/identity";
 import { computeStreak, streakBadgeLabel } from "@/lib/streaks";
-import { NightcapGift } from "@/components/nightcap-gift";
 import { BuilderWidgetCard } from "@/components/builder-widget-card";
 import { BadgeRow } from "@/components/badge-row";
 import { BadgeUnlockToast } from "@/components/badge-unlock-toast";
@@ -365,13 +364,6 @@ export default async function DashboardPage() {
       {user.handle && (
         <BuilderWidgetCard handle={user.handle} siteUrl="https://grokforge.app" />
       )}
-
-      <NightcapGift
-        signedIn
-        projects={user.projects
-          .filter((p) => p.status === "ACTIVE" || p.status === "FUNDED")
-          .map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
-      />
 
       <LocalWorkerCard />
       <WorkerWebhookCard initialUrl={user.workerWebhookUrl} />

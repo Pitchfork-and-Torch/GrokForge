@@ -22,7 +22,6 @@ async function loadBadgeInput(userId: string): Promise<BadgeInput | null> {
       },
       donations: { select: { amountCents: true } },
       reviews: { select: { id: true } },
-      nightcaps: { select: { estimatedTokens: true } },
     },
   });
   if (!user) return null;
@@ -30,7 +29,6 @@ async function loadBadgeInput(userId: string): Promise<BadgeInput | null> {
   const accepted = user.contributions.filter((c) => c.status === "ACCEPTED");
   const donationCents = user.donations.reduce((s, d) => s + d.amountCents, 0);
   const streak = computeStreak(user.contributions.map((c) => c.createdAt));
-  const tokenGifts = user.nightcaps.reduce((s, n) => s + n.estimatedTokens, 0);
   const earlyCutoff = new Date("2026-09-01T00:00:00Z");
   const isPioneer = user.createdAt < earlyCutoff;
 
@@ -43,7 +41,6 @@ async function loadBadgeInput(userId: string): Promise<BadgeInput | null> {
     longestStreak: streak.longest,
     isFounder: isFounderHandle(user.handle),
     isPioneer,
-    estimatedTokenGifts: tokenGifts,
   };
 }
 

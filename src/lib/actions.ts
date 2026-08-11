@@ -2103,87 +2103,6 @@ export async function toggleProjectThumbAction(projectId: string) {
   }
 }
 
-/**
- * Nightcap: optional goodwill note of leftover capacity.
- * NOT spendable tokens, NOT SuperGrok quota, NOT a Live Forge inventory.
- * Ledger + badges only.
- */
-export async function nightcapGiftAction(formData: FormData) {
-  const user = await requireUser();
-  const rl = await rateLimitAsync(`nightcap:${user.id}`, {
-    limit: 12,
-    windowMs: 24 * 60 * 60 * 1000,
-  });
-  if (!rl.ok) return { error: `Rate limit: try again in ${rl.retryAfterSec}s` };
-
-  const estimatedTokens = Math.floor(Number(formData.get("estimatedTokens") || 0));
-  if (!Number.isFinite(estimatedTokens) || estimatedTokens < 100 || estimatedTokens > 5_000_000) {
-    return { error: "Estimate between 100 and 5,000,000 (note only, not spendable)" };
-  }
-  const note = String(formData.get("note") || "").slice(0, 500);
-  const targetRaw = String(formData.get("target") || "PLATFORM");
-  let target = "PLATFORM";
-  let projectId: string | null = null;
-  let projectSlug: string | null = null;
-  let projectTitle: string | null = null;
-
-  if (targetRaw.startsWith("PROJECT:")) {
-    const id = targetRaw.slice("PROJECT:".length);
-    const project = await prisma.project.findUnique({
-      where: { id },
-      select: { id: true, slug: true, title: true, status: true },
-    });
-    if (!project || project.status === "ARCHIVED") {
-      return { error: "Project not available" };
-    }
-    target = "PROJECT";
-    projectId = project.id;
-    projectSlug = project.slug;
-    projectTitle = project.title;
-  }
-
-  await prisma.nightcapGift.create({
-    data: {
-      userId: user.id,
-      projectId,
-      estimatedTokens,
-      note: note || null,
-      target,
-      creditedToPool: false,
-    },
-  });
-
-  await prisma.ledgerEntry.create({
-    data: {
-      projectId: projectId || (await platformLedgerProjectId()),
-      kind: LedgerKind.LABOR,
-      amountCents: 0,
-      summary: `@${user.handle || user.name} nightcap note: ~${estimatedTokens.toLocaleString()} leftover capacity toward ${
-        projectTitle || "platform ops"
-      } (not spendable tokens)`,
-      actorHandle: user.handle,
-      meta: JSON.stringify({
-        kind: "nightcap",
-        estimatedTokens,
-        target,
-        spendable: false,
-      }),
-    },
-  });
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { reputation: { increment: 1 } },
-  });
-
-  if (projectSlug) revalidatePath(`/projects/${projectSlug}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/activity");
-  revalidatePath("/leaderboard");
-  revalidatePath("/");
-  return { ok: true, estimatedTokens };
-}
-
 /** Prefer civic toolkit as ledger anchor for platform gifts; else any active project. */
 async function platformLedgerProjectId(): Promise<string> {
   const preferred = await prisma.project.findFirst({
@@ -2196,7 +2115,7 @@ async function platformLedgerProjectId(): Promise<string> {
     select: { id: true },
     orderBy: { createdAt: "asc" },
   });
-  if (!any) throw new Error("No project available for platform nightcap ledger");
+  if (!any) throw new Error("No project available for platform ledger anchor");
   return any.id;
 }
 
