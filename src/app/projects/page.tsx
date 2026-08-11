@@ -195,7 +195,8 @@ export default async function ProjectsPage({
         </div>
       </div>
 
-      {isFounder && (
+      {/* Founder-only: never mount for regular users (no markup in their HTML). */}
+      {isFounder ? (
         <ProjectOrderAdmin
           projects={projects.map((p) => ({
             id: p.id,
@@ -205,7 +206,7 @@ export default async function ProjectsPage({
             displayOrder: p.displayOrder,
           }))}
         />
-      )}
+      ) : null}
 
       <form className="flex flex-wrap gap-2">
         <input
