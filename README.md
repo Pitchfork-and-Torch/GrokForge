@@ -35,6 +35,7 @@ Primary auth: **Sign in with X** (OAuth 2.0). Signed-in users never see Sign in 
 - **Badges** - Whale, Bee, Forger, Critic, Architect, Ember, Pioneer, Founder (computed) with hover info panels + profile gallery
 - **Share on X** - ranked builders can tweet their rank from leaderboard / own profile
 - **Agent API (v1)** - personal access tokens so Grok Build can claim/submit/seal as you (never stores xAI keys). Docs: `docs/AGENT-API.md`
+- **MCP**: `@grokforge/mcp` (`packages/mcp-server`) — native tools for claim/submit in Cursor, Claude Desktop, Grok Bot. See package README.
 - **X bio widget** - `/api/widget/{handle}` SVG; copy from profile/dashboard
 - **Watch projects**, notifications, claim auto-expire, streaks, leaderboard, mobile sticky bar
 
