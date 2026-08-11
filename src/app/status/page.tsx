@@ -7,6 +7,7 @@ import {
   getPublishOrg,
   githubPublishConfigured,
 } from "@/lib/github-publish";
+import { stripePricesConfigured } from "@/lib/stripe-prices";
 
 export const dynamic = "force-dynamic";
 
@@ -81,8 +82,20 @@ export default async function StatusPage() {
       ok: githubPublishConfigured(),
     },
     { k: "Sealed ships gallery", v: "/ships", ok: true },
-    { k: "Matching funds", v: "pool + ratio bps", ok: true },
+    { k: "Matching funds", v: "pool + ratio bps + Stripe", ok: true },
+    {
+      k: "Stripe pot prices",
+      v: Object.entries(stripePricesConfigured())
+        .filter(([, on]) => on)
+        .map(([k]) => k)
+        .join(", ") || "dynamic price_data",
+      ok: true,
+    },
+    { k: "Agent work API", v: "/api/v1/agent/work + /worker", ok: true },
+    { k: "Skill pack install", v: "/api/projects/{slug}/skill-pack", ok: true },
     { k: "Agent OpenAPI", v: "/openapi-agent-v1.json", ok: true },
+    { k: "Dual-key accept", v: "per-project threshold", ok: true },
+    { k: "Creator cockpit", v: "/cockpit", ok: true },
     { k: "Milestone dual verify", v: "human + agent", ok: true },
     { k: "Task matching", v: "affinity scorer", ok: true },
     { k: "Demo auth", v: features.demoAuthEnabled ? "ON (dev)" : "off", ok: !features.demoAuthEnabled },

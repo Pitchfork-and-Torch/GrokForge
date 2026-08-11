@@ -152,6 +152,7 @@ export default async function ShipPage({
     .slice(0, 16)
     .replace("T", " ");
   const downloadUrl = `${site}/api/projects/${slug}/package`;
+  const skillPackUrl = `${site}/api/projects/${slug}/skill-pack`;
   const shipUrl = `${site}/projects/${slug}/ship`;
   const citation = `${project.title} (${primary.version || "v1.0.0"}). Sealed on GrokForge. ${shipUrl}`;
 
@@ -206,6 +207,12 @@ export default async function ShipPage({
               Download GitHub-ready ZIP
             </Button>
           </a>
+          <a href={skillPackUrl}>
+            <Button variant="secondary">Install skill pack (JSON)</Button>
+          </a>
+          <a href={`${skillPackUrl}?format=md`}>
+            <Button variant="ghost">SKILL.md only</Button>
+          </a>
           {githubArt?.url ? (
             <a href={githubArt.url} target="_blank" rel="noopener noreferrer">
               <Button variant="secondary" className="!border-emerald-500/40 !text-emerald-100">
@@ -221,8 +228,9 @@ export default async function ShipPage({
         </div>
         <p className="text-[11px] text-stone-600">
           ZIP includes README, LICENSE, CONTRIBUTORS, NOTICE, GITHUB.md, and hierarchical{" "}
-          <code className="text-stone-500">tasks/</code> deliverables. Ready for a public repo
-          under {getPublishOrg()} or your own account.
+          <code className="text-stone-500">tasks/</code> deliverables. Skill pack JSON writes under{" "}
+          <code className="text-stone-500">~/.grok/skills/&lt;slug&gt;/</code> for Grok Build agents.
+          Ready for a public repo under {getPublishOrg()} or your own account.
         </p>
       </div>
 

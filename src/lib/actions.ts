@@ -1093,31 +1093,36 @@ export async function demoDonateAction(formData: FormData) {
   if (!pot) return { error: "Fund pot not found" };
 
   // If Stripe is configured, create a Checkout Session (client should redirect).
-  // Otherwise record a transparent demo donation immediately.
+  // Prefer dedicated Price IDs per pot type when env is set (see stripe-prices.ts).
   if (process.env.STRIPE_SECRET_KEY) {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const { buildCheckoutLineItem } = await import("@/lib/stripe-prices");
+    const lineItem = buildCheckoutLineItem({
+      potType: pot.type,
+      amountCents,
+      productName: `GrokForge: ${project.title} (${pot.label})`,
+      productDescription:
+        message ||
+        (pot.type === "API_CREDITS"
+          ? "API / token credits for builders"
+          : pot.type === "SUPERGROK_SPONSOR"
+            ? "SuperGrok capacity sponsorship"
+            : pot.type === "COMPUTE"
+              ? "Shared community compute pool"
+              : "Greater-good project fund"),
+    });
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: amountCents,
-            product_data: {
-              name: `GrokForge: ${project.title} (${pot.label})`,
-              description: message || "Greater-good project fund",
-            },
-          },
-        },
-      ],
+      line_items: [lineItem],
       success_url: `${origin}/projects/${project.slug}?donated=1`,
       cancel_url: `${origin}/projects/${project.slug}?canceled=1`,
       metadata: {
+        kind: "pot_donation",
         projectId,
         potId,
+        potType: pot.type,
         donorId: user.id,
         message: message.slice(0, 400),
       },
@@ -1348,22 +1353,17 @@ export async function fundMatchingPoolAction(formData: FormData) {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const { buildCheckoutLineItem } = await import("@/lib/stripe-prices");
+      const lineItem = buildCheckoutLineItem({
+        potType: "MATCHING_POOL",
+        amountCents,
+        productName: `GrokForge match pool: ${project.title}`,
+        productDescription:
+          "Matching funds budget - amplifies community compute/pot gifts (labor stays primary)",
+      });
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency: "usd",
-              unit_amount: amountCents,
-              product_data: {
-                name: `GrokForge match pool: ${project.title}`,
-                description:
-                  "Matching funds budget - amplifies community compute/pot gifts (labor stays primary)",
-              },
-            },
-          },
-        ],
+        line_items: [lineItem],
         success_url: `${origin}/projects/${project.slug}?donated=1&match=1`,
         cancel_url: `${origin}/projects/${project.slug}?canceled=1`,
         metadata: {

@@ -48,9 +48,12 @@ async function main() {
     console.log(`Usage:
   me
   list
-  work [projectSlug]   # ready-set claim via /api/v1/agent/work
+  work [projectSlug]     # ready-set claim via /api/v1/agent/work
+  worker [projectSlug]   # claim via /api/v1/agent/worker (cycle)
+  worker-submit <taskId> <file.md>
   claim <taskId>
-  submit <taskId> <file.md>`);
+  submit <taskId> <file.md>
+  skill-pack <slug>      # print install JSON from /api/projects/:slug/skill-pack`);
     process.exit(0);
   }
   if (cmd === "me") {
@@ -102,6 +105,45 @@ async function main() {
         2
       )
     );
+    return;
+  }
+  if (cmd === "worker") {
+    const projectSlug = a;
+    const pack = await api("/agent/worker", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "cycle",
+        ...(projectSlug ? { projectSlug } : {}),
+      }),
+    });
+    console.log(JSON.stringify(pack, null, 2));
+    return;
+  }
+  if (cmd === "worker-submit") {
+    if (!a || !b) throw new Error("worker-submit needs taskId and file");
+    const fs = await import("node:fs");
+    const body = fs.readFileSync(b, "utf8");
+    console.log(
+      JSON.stringify(
+        await api("/agent/worker", {
+          method: "POST",
+          body: JSON.stringify({ action: "submit", taskId: a, body }),
+        }),
+        null,
+        2
+      )
+    );
+    return;
+  }
+  if (cmd === "skill-pack") {
+    if (!a) throw new Error("skill-pack needs project slug");
+    const base = API.replace(/\/api\/v1$/, "");
+    const res = await fetch(`${base}/api/projects/${a}/skill-pack`, {
+      headers: TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {},
+    });
+    const text = await res.text();
+    console.log(text);
+    if (!res.ok) process.exit(1);
     return;
   }
   if (cmd === "claim") {

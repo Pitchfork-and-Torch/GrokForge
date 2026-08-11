@@ -173,7 +173,10 @@ export async function bulkAcceptPendingForUser(
   user: Actor,
   projectId: string,
   opts?: { via?: "ui" | "api"; founderOverride?: boolean }
-): Promise<{ ok: true; accepted: number } | { error: string }> {
+): Promise<
+  | { ok: true; accepted: number; skipped: number; skippedReasons: string[] }
+  | { error: string }
+> {
   const rl = await rateLimitAsync(`bulk-accept:${user.id}`, {
     limit: 20,
     windowMs: 60 * 60 * 1000,
@@ -182,7 +185,14 @@ export async function bulkAcceptPendingForUser(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true, slug: true, title: true, proposerId: true },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      proposerId: true,
+      requireDualKey: true,
+      dualKeyTokenThreshold: true,
+    },
   });
   if (!project) return { error: "Project not found" };
 
@@ -198,8 +208,9 @@ export async function bulkAcceptPendingForUser(
       task: { projectId },
     },
     include: {
-      task: { select: { id: true, title: true } },
+      task: { select: { id: true, title: true, estimatedTokens: true } },
       user: { select: { id: true, handle: true } },
+      reviews: { select: { reviewerId: true } },
     },
     take: 50,
   });
@@ -207,41 +218,38 @@ export async function bulkAcceptPendingForUser(
 
   const role = isCreator ? "creator" : "founder";
   let accepted = 0;
+  let skipped = 0;
+  const skippedReasons: string[] = [];
+  const acceptedIds: string[] = [];
+
+  // Route each item through the same dual-key gate as single accept
   for (const contribution of pending) {
-    await prisma.contribution.update({
-      where: { id: contribution.id },
-      data: { status: "ACCEPTED", score: 5 },
-    });
-    await prisma.task.update({
-      where: { id: contribution.taskId },
-      data: { status: TaskStatus.ACCEPTED },
-    });
-    await prisma.user.update({
-      where: { id: contribution.userId },
-      data: { reputation: { increment: 5 } },
-    });
-    if (contribution.userId !== user.id) {
-      try {
-        await prisma.contributionReview.create({
-          data: {
-            contributionId: contribution.id,
-            reviewerId: user.id,
-            score: 5,
-            notes: `${role} bulk accept`,
-          },
-        });
-      } catch {
-        /* non-fatal */
-      }
-      await notifyUser({
-        userId: contribution.userId,
-        type: "ACCEPTED",
-        title: `Accepted: ${contribution.task.title}`,
-        body: `${role === "founder" ? "Founder" : "Project creator"} accepted your submission (+5 rep)`,
-        href: `/c/${contribution.id}`,
-      });
+    const res = await moderateContributionForUser(
+      user,
+      contribution.id,
+      "accept",
+      `${role} bulk accept`,
+      opts
+    );
+    if ("error" in res) {
+      skipped += 1;
+      skippedReasons.push(
+        `${contribution.task.title}: ${res.error}`.slice(0, 200)
+      );
+      continue;
     }
-    accepted += 1;
+    if (res.accepted) {
+      accepted += 1;
+      acceptedIds.push(contribution.id);
+    } else {
+      skipped += 1;
+    }
+  }
+
+  if (accepted === 0 && skipped > 0) {
+    return {
+      error: `Bulk accept: 0 accepted, ${skipped} skipped (dual-key or other gates). ${skippedReasons[0] || ""}`,
+    };
   }
 
   await prisma.ledgerEntry.create({
@@ -249,13 +257,15 @@ export async function bulkAcceptPendingForUser(
       projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: `@${user.handle || user.name} ${role} bulk-accepted ${accepted} pending submission(s) on "${project.title}"`,
+      summary: `@${user.handle || user.name} ${role} bulk-accepted ${accepted} pending (${skipped} skipped dual-key/gates) on "${project.title}"`,
       actorHandle: user.handle,
       meta: JSON.stringify({
         bulkAccept: true,
         count: accepted,
+        skipped,
+        skippedReasons: skippedReasons.slice(0, 20),
         via: opts?.via || "ui",
-        contributionIds: pending.map((p) => p.id),
+        contributionIds: acceptedIds,
         founderMod: !isCreator && isFounder,
       }),
     },
@@ -264,9 +274,11 @@ export async function bulkAcceptPendingForUser(
   await syncProjectCompletionStatus(projectId, { actorHandle: user.handle });
 
   revalidatePath(`/projects/${project.slug}`);
+  revalidatePath(`/projects/${project.slug}/cockpit`);
+  revalidatePath("/cockpit");
   revalidatePath("/dashboard");
   revalidatePath("/leaderboard");
   revalidatePath("/");
   revalidatePath("/projects");
-  return { ok: true, accepted };
+  return { ok: true, accepted, skipped, skippedReasons: skippedReasons.slice(0, 10) };
 }
