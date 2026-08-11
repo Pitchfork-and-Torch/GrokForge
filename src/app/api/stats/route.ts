@@ -10,7 +10,6 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   try {
-    const { getNightcapPublicTally } = await import("@/lib/nightcap-pool");
     const [
       live,
       acceptedWork,
@@ -18,7 +17,6 @@ export async function GET() {
       watches,
       comments,
       builders,
-      nightcap,
     ] = await Promise.all([
       getLiveStats(),
       prisma.contribution.count({ where: { status: "ACCEPTED" } }),
@@ -34,7 +32,6 @@ export async function GET() {
           ],
         },
       }),
-      getNightcapPublicTally(),
     ]);
 
     return NextResponse.json({
@@ -51,13 +48,7 @@ export async function GET() {
         watches,
         comments,
         builders,
-        nightcapAvailable: nightcap.networkAvailable,
-        nightcapPlatformAvailable: nightcap.platformAvailable,
-        nightcapProjectsAvailable: nightcap.projectsAvailable,
-        nightcapTotalGifted: nightcap.networkTotalGifted,
-        nightcapGiftCount: nightcap.giftCount,
       },
-      nightcap,
       features: {
         stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY?.trim()),
         rateLimitBackend: rateLimitBackend(),
@@ -69,7 +60,6 @@ export async function GET() {
         xMoneyP2p: true,
         themes: 11,
         creatorModeration: true,
-        nightcapPool: true,
       },
     });
   } catch (e) {

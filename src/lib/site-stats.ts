@@ -9,8 +9,6 @@ export type LiveStats = {
   /** Projects with status COMPLETED or all claimable leaves accepted. */
   completedProjects: number;
   openLeafTasks: number;
-  /** Nightcap network capacity available (on-platform pool). */
-  nightcapAvailable: number;
 };
 
 async function ensureRow() {
@@ -221,20 +219,12 @@ export async function getLiveStats(): Promise<LiveStats> {
     const completedProjects = publicProjects.filter((p) =>
       isProjectCompleteDisplay(p.status, p.tasks)
     ).length;
-    let nightcapAvailable = 0;
-    try {
-      const { getNightcapPublicTally } = await import("@/lib/nightcap-pool");
-      nightcapAvailable = (await getNightcapPublicTally()).networkAvailable;
-    } catch {
-      nightcapAvailable = 0;
-    }
     return {
       visitors: row.visitors,
       xBuilders,
       activeProjects,
       completedProjects,
       openLeafTasks,
-      nightcapAvailable,
     };
   } catch {
     return {
@@ -243,7 +233,6 @@ export async function getLiveStats(): Promise<LiveStats> {
       activeProjects: 0,
       completedProjects: 0,
       openLeafTasks: 0,
-      nightcapAvailable: 0,
     };
   }
 }

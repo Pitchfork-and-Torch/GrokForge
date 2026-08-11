@@ -34,7 +34,7 @@ Primary auth: **Sign in with X** (OAuth 2.0). Signed-in users never see Sign in 
 - **Live Forge** - visitors (rate-limited), X builders, active/completed projects, open tasks (polls `/api/stats`)
 - **Badges** - Whale, Bee, Forger, Critic, Architect, Ember, Pioneer, Founder (computed) with hover info panels + profile gallery
 - **Share on X** - ranked builders can tweet their rank from leaderboard / own profile
-- **Nightcap pool** - gift leftover capacity into a **real public pool** (platform or project); live tally on home/Live Forge; never stores SuperGrok keys
+- **Nightcap gift** - optional goodwill note of leftover capacity (ledger + badges only; not spendable tokens; never SuperGrok keys)
 - **Agent API (v1)** - personal access tokens so Grok Build can claim/submit/seal as you (never stores xAI keys). Docs: `docs/AGENT-API.md`
 - **X bio widget** - `/api/widget/{handle}` SVG; copy from profile/dashboard
 - **Watch projects**, notifications, claim auto-expire, streaks, leaderboard, mobile sticky bar

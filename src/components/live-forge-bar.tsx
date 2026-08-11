@@ -8,8 +8,6 @@ export type LiveForgeNumbers = {
   activeProjects: number;
   completedProjects: number;
   openLeafTasks: number;
-  /** Nightcap capacity available (network) */
-  nightcapAvailable?: number;
 };
 
 function CountUp({ value, className }: { value: number; className?: string }) {
@@ -66,12 +64,6 @@ function mergeStats(
       typeof s.openLeafTasks === "number"
         ? s.openLeafTasks
         : prev.openLeafTasks,
-    nightcapAvailable:
-      typeof s.nightcapAvailable === "number"
-        ? s.nightcapAvailable
-        : typeof s.nightcapNetworkAvailable === "number"
-          ? s.nightcapNetworkAvailable
-          : prev.nightcapAvailable,
   };
 }
 
@@ -141,12 +133,6 @@ export function LiveForgeBar({ stats }: { stats: LiveForgeNumbers }) {
       v: live.openLeafTasks,
       tone: "amber",
     },
-    {
-      k: "Nightcap pool",
-      hint: "Capacity available (live)",
-      v: live.nightcapAvailable ?? 0,
-      tone: "emerald",
-    },
   ];
 
   return (
@@ -173,13 +159,13 @@ export function LiveForgeBar({ stats }: { stats: LiveForgeNumbers }) {
             </span>
           </div>
           <p className="mt-1.5 max-w-xl text-xs text-stone-500 sm:text-sm">
-            Single network pulse - visitors, builders, projects, open tasks, and the public
-            nightcap capacity pool. Refreshes about every 30s while this page is open.
+            Single network pulse - visitors, builders, active and completed projects, open
+            tasks. Refreshes about every 30s while this page is open.
           </p>
         </div>
       </div>
 
-      <dl className="relative grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <dl className="relative grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
         {items.map((it) => (
           <div
             key={it.k}

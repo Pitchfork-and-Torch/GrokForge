@@ -6,7 +6,6 @@ import { LeaderboardPanel } from "@/components/leaderboard-panel";
 import { EmptyState } from "@/components/empty-state";
 import { LiveForgeBar } from "@/components/live-forge-bar";
 import { NightcapGift } from "@/components/nightcap-gift";
-import { NightcapPoolTally } from "@/components/nightcap-pool-tally";
 import { WeeklyChallenges } from "@/components/weekly-challenges";
 import { BadgeUnlockToast } from "@/components/badge-unlock-toast";
 import { RecentActivity } from "@/components/recent-activity";
@@ -139,8 +138,7 @@ export default async function HomePage() {
     }
   }
 
-  const { getNightcapPublicTally } = await import("@/lib/nightcap-pool");
-  const [leaders, activity, live, featured, nightcapTally] = await Promise.all([
+  const [leaders, activity, live, featured] = await Promise.all([
     fetchLeaderboard({ window: "all", limit: 8 }),
     prisma.ledgerEntry.findMany({
       where: { project: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } } },
@@ -152,7 +150,6 @@ export default async function HomePage() {
     }),
     getLiveStats(),
     getFeaturedProject(),
-    getNightcapPublicTally().catch(() => null),
   ]);
 
   let featuredThumbed = false;
@@ -579,26 +576,7 @@ export default async function HomePage() {
         <WeeklyChallenges challenges={challenges} />
       )}
 
-      <NightcapPoolTally
-        initial={
-          nightcapTally
-            ? {
-                platformAvailable: nightcapTally.platformAvailable,
-                platformTotalGifted: nightcapTally.platformTotalGifted,
-                projectsAvailable: nightcapTally.projectsAvailable,
-                networkAvailable: nightcapTally.networkAvailable,
-                networkTotalGifted: nightcapTally.networkTotalGifted,
-                giftCount: nightcapTally.giftCount,
-                lastGiftAt: nightcapTally.lastGiftAt,
-              }
-            : null
-        }
-      />
-      <NightcapGift
-        projects={nightcapProjects}
-        signedIn={signedIn}
-        poolAvailable={nightcapTally?.platformAvailable ?? null}
-      />
+      <NightcapGift projects={nightcapProjects} signedIn={signedIn} />
 
       <section className="rounded-3xl border border-amber-500/25 bg-amber-500/5 p-6 sm:p-8">
         <h2 className="text-xl font-semibold text-white">Trust rails</h2>

@@ -2104,9 +2104,9 @@ export async function toggleProjectThumbAction(projectId: string) {
 }
 
 /**
- * Nightcap gift: credits a REAL on-platform capacity pool (public tally).
- * Never stores SuperGrok / xAI API keys - units are builder-reported capacity
- * that become spendable/visible balances on GrokForge.
+ * Nightcap: optional goodwill note of leftover capacity.
+ * NOT spendable tokens, NOT SuperGrok quota, NOT a Live Forge inventory.
+ * Ledger + badges only.
  */
 export async function nightcapGiftAction(formData: FormData) {
   const user = await requireUser();
@@ -2118,11 +2118,11 @@ export async function nightcapGiftAction(formData: FormData) {
 
   const estimatedTokens = Math.floor(Number(formData.get("estimatedTokens") || 0));
   if (!Number.isFinite(estimatedTokens) || estimatedTokens < 100 || estimatedTokens > 5_000_000) {
-    return { error: "Gift between 100 and 5,000,000 capacity tokens" };
+    return { error: "Estimate between 100 and 5,000,000 (note only, not spendable)" };
   }
   const note = String(formData.get("note") || "").slice(0, 500);
   const targetRaw = String(formData.get("target") || "PLATFORM");
-  let target: "PLATFORM" | "PROJECT" = "PLATFORM";
+  let target = "PLATFORM";
   let projectId: string | null = null;
   let projectSlug: string | null = null;
   let projectTitle: string | null = null;
@@ -2142,15 +2142,6 @@ export async function nightcapGiftAction(formData: FormData) {
     projectTitle = project.title;
   }
 
-  const { creditNightcapPool, getNightcapPublicTally } = await import(
-    "@/lib/nightcap-pool"
-  );
-  const credited = await creditNightcapPool({
-    tokens: estimatedTokens,
-    target,
-    projectId,
-  });
-
   await prisma.nightcapGift.create({
     data: {
       userId: user.id,
@@ -2158,53 +2149,39 @@ export async function nightcapGiftAction(formData: FormData) {
       estimatedTokens,
       note: note || null,
       target,
-      creditedToPool: true,
+      creditedToPool: false,
     },
   });
 
   await prisma.ledgerEntry.create({
     data: {
       projectId: projectId || (await platformLedgerProjectId()),
-      kind: LedgerKind.CAPITAL,
+      kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: `@${user.handle || user.name} nightcap-gifted ${estimatedTokens.toLocaleString()} capacity tokens to ${
-        projectTitle || "platform nightcap pool"
-      } (pool credited)`,
+      summary: `@${user.handle || user.name} nightcap note: ~${estimatedTokens.toLocaleString()} leftover capacity toward ${
+        projectTitle || "platform ops"
+      } (not spendable tokens)`,
       actorHandle: user.handle,
       meta: JSON.stringify({
         kind: "nightcap",
         estimatedTokens,
         target,
-        poolCredited: true,
-        platformAvailable: credited.platformAvailable,
-        projectAvailable: credited.projectAvailable ?? null,
+        spendable: false,
       }),
     },
   });
 
-  // light rep for generosity
   await prisma.user.update({
     where: { id: user.id },
     data: { reputation: { increment: 1 } },
   });
-
-  const tally = await getNightcapPublicTally();
 
   if (projectSlug) revalidatePath(`/projects/${projectSlug}`);
   revalidatePath("/dashboard");
   revalidatePath("/activity");
   revalidatePath("/leaderboard");
   revalidatePath("/");
-  revalidatePath("/forge");
-  return {
-    ok: true,
-    estimatedTokens,
-    pool: {
-      platformAvailable: tally.platformAvailable,
-      networkAvailable: tally.networkAvailable,
-      projectAvailable: credited.projectAvailable ?? null,
-    },
-  };
+  return { ok: true, estimatedTokens };
 }
 
 /** Prefer civic toolkit as ledger anchor for platform gifts; else any active project. */

@@ -16,7 +16,6 @@ import { markNotificationsReadAction, updateProfileAction } from "@/lib/actions"
 import { isFounderHandle } from "@/lib/identity";
 import { computeStreak, streakBadgeLabel } from "@/lib/streaks";
 import { NightcapGift } from "@/components/nightcap-gift";
-import { NightcapPoolTally } from "@/components/nightcap-pool-tally";
 import { BuilderWidgetCard } from "@/components/builder-widget-card";
 import { BadgeRow } from "@/components/badge-row";
 import { BadgeUnlockToast } from "@/components/badge-unlock-toast";
@@ -367,43 +366,12 @@ export default async function DashboardPage() {
         <BuilderWidgetCard handle={user.handle} siteUrl="https://grokforge.app" />
       )}
 
-      {await (async () => {
-        try {
-          const { getNightcapPublicTally } = await import("@/lib/nightcap-pool");
-          const t = await getNightcapPublicTally();
-          return (
-            <>
-              <NightcapPoolTally
-                initial={{
-                  platformAvailable: t.platformAvailable,
-                  platformTotalGifted: t.platformTotalGifted,
-                  projectsAvailable: t.projectsAvailable,
-                  networkAvailable: t.networkAvailable,
-                  networkTotalGifted: t.networkTotalGifted,
-                  giftCount: t.giftCount,
-                  lastGiftAt: t.lastGiftAt,
-                }}
-              />
-              <NightcapGift
-                signedIn
-                poolAvailable={t.platformAvailable}
-                projects={user.projects
-                  .filter((p) => p.status === "ACTIVE" || p.status === "FUNDED")
-                  .map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
-              />
-            </>
-          );
-        } catch {
-          return (
-            <NightcapGift
-              signedIn
-              projects={user.projects
-                .filter((p) => p.status === "ACTIVE" || p.status === "FUNDED")
-                .map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
-            />
-          );
-        }
-      })()}
+      <NightcapGift
+        signedIn
+        projects={user.projects
+          .filter((p) => p.status === "ACTIVE" || p.status === "FUNDED")
+          .map((p) => ({ id: p.id, title: p.title, slug: p.slug }))}
+      />
 
       <LocalWorkerCard />
       <WorkerWebhookCard initialUrl={user.workerWebhookUrl} />

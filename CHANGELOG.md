@@ -1,11 +1,11 @@
 ﻿# Changelog
 
-## 2026-08-10 - Nightcap real pool + public live tally
+## 2026-08-10 - Nightcap: remove fake token inventory display
 
-- Nightcap gifts **credit real on-platform balances** (SiteStats + Project pools) - not ledger-only notes
-- Public **GET /api/nightcap** + Live Forge / home / dashboard tally (poll ~20-30s)
-- Honest copy: capacity units, never SuperGrok keys; network available = platform + project pools
-- Backfill reconcile from historical gifts when pool was empty
+- **Removed** Nightcap pool from Live Forge (was misleading: not spendable tokens)
+- Removed public live pool tally UI from home/dashboard
+- Nightcap is optional goodwill capacity **note** only (ledger + badges); copy says not spendable
+- `/api/nightcap` kept internal/ops only if needed - not marketed as inventory
 
 ## 2026-08-10 - Discover: newest first + completed panel
 
