@@ -480,6 +480,9 @@ export async function updateProjectAction(formData: FormData) {
 
   const titleChanged = project.title !== parsed.data.title;
   const descChanged = project.description !== parsed.data.description;
+  const impactChanged =
+    (project.impactSummary || "") !== (parsed.data.impactSummary || "");
+  const licenseChanged = project.license !== parsed.data.license;
 
   await prisma.project.update({
     where: { id: project.id },
@@ -519,6 +522,61 @@ export async function updateProjectAction(formData: FormData) {
   }
   if (bannerFile) summary += " + banner";
   if (clearBanner) summary += " (banner removed)";
+
+  const { recordProjectEdit } = await import("@/lib/edit-history");
+  if (titleChanged) {
+    await recordProjectEdit({
+      projectId: project.id,
+      actorId: user.id,
+      actorHandle: user.handle,
+      field: "title",
+      oldValue: project.title,
+      newValue: parsed.data.title,
+      summary: `Title → ${parsed.data.title.slice(0, 120)}`,
+    });
+  }
+  if (descChanged) {
+    await recordProjectEdit({
+      projectId: project.id,
+      actorId: user.id,
+      actorHandle: user.handle,
+      field: "description",
+      oldValue: project.description.slice(0, 500),
+      newValue: parsed.data.description.slice(0, 500),
+      summary: "Description updated",
+    });
+  }
+  if (impactChanged) {
+    await recordProjectEdit({
+      projectId: project.id,
+      actorId: user.id,
+      actorHandle: user.handle,
+      field: "impact",
+      oldValue: project.impactSummary,
+      newValue: parsed.data.impactSummary || null,
+      summary: "Impact summary updated",
+    });
+  }
+  if (licenseChanged) {
+    await recordProjectEdit({
+      projectId: project.id,
+      actorId: user.id,
+      actorHandle: user.handle,
+      field: "license",
+      oldValue: project.license,
+      newValue: parsed.data.license,
+      summary: `License → ${parsed.data.license}`,
+    });
+  }
+  if (bannerFile || clearBanner) {
+    await recordProjectEdit({
+      projectId: project.id,
+      actorId: user.id,
+      actorHandle: user.handle,
+      field: "banner",
+      summary: clearBanner ? "Banner removed" : "Banner updated",
+    });
+  }
 
   await prisma.ledgerEntry.create({
     data: {
@@ -2337,6 +2395,17 @@ export async function linkArtifactAction(formData: FormData) {
       url = n;
       source = "github";
       githubRepo = parseGitHubRepo(n);
+      try {
+        const { validateGithubRepoLink } = await import("@/lib/github-link-validate");
+        const check = await validateGithubRepoLink(n);
+        if (!check.ok && check.issues.length) {
+          return {
+            error: `GitHub link check failed: ${check.issues.join("; ")}`,
+          };
+        }
+      } catch {
+        /* non-fatal if API rate-limited */
+      }
     } else {
       try {
         const u = new URL(rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`);

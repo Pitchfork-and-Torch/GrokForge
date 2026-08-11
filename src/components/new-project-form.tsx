@@ -12,27 +12,54 @@ const emptySub = {
   estimatedTokens: 8000,
 };
 
-export function NewProjectForm() {
+export function NewProjectForm({
+  initialTemplate,
+}: {
+  initialTemplate?: {
+    title: string;
+    description: string;
+    category: string;
+    license: string;
+    impactSummary: string;
+    masterPrompt: string;
+    masterAcceptance: string;
+    leaves: {
+      title: string;
+      prompt: string;
+      acceptanceCriteria: string;
+      estimatedTokens: number;
+    }[];
+  } | null;
+} = {}) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [subs, setSubs] = useState([
-    {
-      title: "Research subtask 1",
-      prompt: "Describe the first nested agent task with a clear prompt package.",
-      acceptanceCriteria: "Deliverable meets listed criteria with sources.",
-      estimatedTokens: 12000,
-    },
-    {
-      title: "Research subtask 2",
-      prompt: "Second nested task - keep hierarchy shallow for MVP demos.",
-      acceptanceCriteria: "Peer-reviewable output under open license.",
-      estimatedTokens: 10000,
-    },
-  ]);
+  const [subs, setSubs] = useState(
+    initialTemplate?.leaves?.length
+      ? initialTemplate.leaves
+      : [
+          {
+            title: "Research subtask 1",
+            prompt:
+              "Describe the first nested agent task with a clear prompt package.",
+            acceptanceCriteria:
+              "Deliverable meets listed criteria with sources.",
+            estimatedTokens: 12000,
+          },
+          {
+            title: "Research subtask 2",
+            prompt:
+              "Second nested task - keep hierarchy shallow for MVP demos.",
+            acceptanceCriteria: "Peer-reviewable output under open license.",
+            estimatedTokens: 10000,
+          },
+        ]
+  );
   const [masterPrompt, setMasterPrompt] = useState(
-    "Coordinate nested multi-agent tasks toward the project outcome. Merge only verified open contributions."
+    initialTemplate?.masterPrompt ||
+      "Coordinate nested multi-agent tasks toward the project outcome. Merge only verified open contributions. Funding goal is $0 - labor + compute only."
   );
   const [masterAcceptance, setMasterAcceptance] = useState(
-    "Nested tasks accepted; open-license artifact published; public ledger complete."
+    initialTemplate?.masterAcceptance ||
+      "Nested tasks accepted; open-license artifact published; public ledger complete; funding goal remains $0."
   );
   const [error, setError] = useState<string | null>(null);
   const [decomposeNote, setDecomposeNote] = useState<string | null>(null);
@@ -118,7 +145,13 @@ export function NewProjectForm() {
         </p>
         <div>
           <Label>Title</Label>
-          <Input name="title" required minLength={5} placeholder="Open ocean plastic sensor mesh" />
+          <Input
+            name="title"
+            required
+            minLength={5}
+            placeholder="Open ocean plastic sensor mesh"
+            defaultValue={initialTemplate?.title || ""}
+          />
         </div>
         <div>
           <Label>Description</Label>
@@ -127,6 +160,7 @@ export function NewProjectForm() {
             required
             minLength={40}
             placeholder="Impact, scope, how multi-agent hierarchy helps, open license commitment..."
+            defaultValue={initialTemplate?.description || ""}
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -135,7 +169,7 @@ export function NewProjectForm() {
             <select
               name="category"
               className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-stone-100"
-              defaultValue="PUBLIC_GOODS_SOFTWARE"
+              defaultValue={initialTemplate?.category || "PUBLIC_GOODS_SOFTWARE"}
             >
               <option value="CLIMATE">Climate</option>
               <option value="OPEN_SCIENCE">Open Science</option>
@@ -147,11 +181,19 @@ export function NewProjectForm() {
           </div>
           <div>
             <Label>Open license</Label>
-            <Input name="license" defaultValue="MIT" required />
+            <Input
+              name="license"
+              defaultValue={initialTemplate?.license || "MIT"}
+              required
+            />
           </div>
           <div className="sm:col-span-2">
             <Label>Impact summary</Label>
-            <Input name="impactSummary" placeholder="One-line greater-good outcome" />
+            <Input
+              name="impactSummary"
+              placeholder="One-line greater-good outcome"
+              defaultValue={initialTemplate?.impactSummary || ""}
+            />
           </div>
           <div className="sm:col-span-2">
             <ProjectBannerField mode="create" defaultAutoImagine />

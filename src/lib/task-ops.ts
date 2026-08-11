@@ -41,12 +41,44 @@ export async function claimTaskForUser(
   if (!task) return { error: "Task not found" };
   if (task.status !== TaskStatus.OPEN) return { error: "Task is not open" };
 
+  // Dependency-aware claim: dependsOnJson = ["taskId", ...] must all be ACCEPTED
+  if (task.dependsOnJson) {
+    try {
+      const deps = JSON.parse(task.dependsOnJson) as string[];
+      if (Array.isArray(deps) && deps.length) {
+        const blockers = await prisma.task.findMany({
+          where: { id: { in: deps }, projectId: task.projectId },
+          select: { id: true, title: true, status: true },
+        });
+        const openDeps = blockers.filter((b) => b.status !== TaskStatus.ACCEPTED);
+        if (openDeps.length) {
+          return {
+            error: `Dependencies not accepted yet: ${openDeps
+              .map((d) => d.title)
+              .slice(0, 3)
+              .join("; ")}`,
+          };
+        }
+      }
+    } catch {
+      /* ignore bad JSON */
+    }
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { reputation: true },
+  });
+  const { tierForReputation } = await import("@/lib/reputation-tiers");
+  const tier = tierForReputation(dbUser?.reputation ?? 0);
+  const claimCap = tier.claimSoftCap;
+
   const activeClaims = await prisma.taskClaim.count({
     where: { userId: user.id, active: true, task: { projectId: task.projectId } },
   });
-  if (activeClaims >= 3) {
+  if (activeClaims >= claimCap) {
     return {
-      error: "Capacity guard: max 3 active claims per project (rate-limit friendly).",
+      error: `Capacity guard: max ${claimCap} active claims per project at ${tier.label} tier.`,
     };
   }
 
@@ -196,6 +228,14 @@ export async function submitContributionForUser(
   }
   if (body.length > 200_000) {
     return { error: "Submission body is too large (max ~200k characters)." };
+  }
+
+  const { scanForSecrets } = await import("@/lib/secret-scan");
+  const scan = scanForSecrets(`${body}\n${sources}`);
+  if (!scan.ok) {
+    return {
+      error: `Secret scan failed: remove ${scan.hits.join(", ")} before submit. Never paste PATs or API keys.`,
+    };
   }
 
   const task = await prisma.task.findUnique({

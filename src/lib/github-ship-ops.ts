@@ -165,6 +165,35 @@ export async function publishSealedToGitHubForUser(
     return { error: published.error };
   }
 
+  // Auto-create GitHub Release tag when version is semver-ish
+  try {
+    const ver = (pack.version || "").replace(/^v/i, "");
+    if (ver && /^[\w.-]+$/.test(ver) && ver.length < 40) {
+      const tag = ver.startsWith("v") ? ver : `v${ver}`;
+      const [owner, repo] = published.fullName.split("/");
+      const token = getPublishToken();
+      if (owner && repo && token) {
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/releases`, {
+          method: "POST",
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${token}`,
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "GrokForge-ShipToGitHub/1.0",
+          },
+          body: JSON.stringify({
+            tag_name: tag,
+            name: `${project.title} ${tag}`,
+            body: `Sealed on GrokForge.\n\n${sealNote.slice(0, 500)}\n\nShip: ${shipUrl}\nForged on GrokForge.`,
+            target_commitish: "main",
+          }),
+        });
+      }
+    }
+  } catch {
+    /* release optional */
+  }
+
   // Record github artifact (upsert by githubRepo full name)
   const existingGh = await prisma.artifact.findFirst({
     where: {

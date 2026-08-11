@@ -76,7 +76,7 @@ export default async function StatusPage() {
     {
       k: "Ship to GitHub",
       v: githubPublishConfigured()
-        ? `org ${getPublishOrg()}`
+        ? `org ${getPublishOrg()} (one-click founder publish)`
         : "token unset (ZIP only)",
       ok: githubPublishConfigured(),
     },
@@ -97,11 +97,17 @@ export default async function StatusPage() {
           GrokForge capability flags and live counts. For machines use{" "}
           <Link href="/api/stats" className="text-amber-400 hover:underline">
             /api/stats
-          </Link>{" "}
-          and{" "}
+          </Link>
+          ,{" "}
+          <Link href="/api/forge-health" className="text-amber-400 hover:underline">
+            /api/forge-health
+          </Link>
+          , and{" "}
           <Link href="/api/auth/flags" className="text-amber-400 hover:underline">
             /api/auth/flags
           </Link>
+          . Embed progress:{" "}
+          <code className="text-stone-500">/api/widget/project/&#123;slug&#125;</code>
           .
         </p>
       </div>

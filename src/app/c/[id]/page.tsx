@@ -2,10 +2,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { Badge, Button, Card } from "@/components/ui";
 import { FounderBadge } from "@/components/founder-badge";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { isFounderHandle } from "@/lib/identity";
+import { ContributionReviewPanel } from "@/components/contribution-review-panel";
+import { tierForReputation } from "@/lib/reputation-tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -55,16 +58,24 @@ export default async function ContributionReceiptPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await auth();
   const c = await prisma.contribution.findUnique({
     where: { id },
     include: {
-      user: { select: { handle: true, name: true, image: true, reputation: true } },
+      user: { select: { id: true, handle: true, name: true, image: true, reputation: true } },
       task: {
         select: {
           id: true,
           title: true,
           estimatedTokens: true,
-          project: { select: { slug: true, title: true, license: true } },
+          project: {
+            select: {
+              slug: true,
+              title: true,
+              license: true,
+              proposerId: true,
+            },
+          },
         },
       },
       reviews: {
@@ -78,6 +89,26 @@ export default async function ContributionReceiptPage({
 
   const handle = c.user.handle || "anonymous";
   const shareUrl = `${site}/c/${c.id}`;
+  let canPeerReview = false;
+  if (session?.user?.id) {
+    const me = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { reputation: true, handle: true },
+    });
+    const tier = tierForReputation(me?.reputation ?? 0);
+    canPeerReview =
+      (tier.canPeerReview || isFounderHandle(me?.handle)) &&
+      session.user.id !== c.userId;
+  }
+  const canDispute =
+    !!session?.user?.id &&
+    (session.user.id === c.userId ||
+      session.user.id === c.task.project.proposerId ||
+      isFounderHandle(session.user.handle));
+  const canReopen =
+    !!session?.user?.id &&
+    (session.user.id === c.task.project.proposerId ||
+      isFounderHandle(session.user.handle));
   const intent = `https://x.com/intent/tweet?text=${encodeURIComponent(
     `I shipped on GrokForge: ${c.task.title}\n@${handle} · ${c.status}\n${shareUrl}`
   )}`;
@@ -152,6 +183,16 @@ export default async function ContributionReceiptPage({
             ))}
           </ul>
         </Card>
+      )}
+
+      {(canPeerReview || canDispute || canReopen) && (
+        <ContributionReviewPanel
+          contributionId={c.id}
+          canPeerReview={canPeerReview}
+          canDispute={canDispute}
+          canReopen={canReopen}
+          disputed={!!c.disputedAt}
+        />
       )}
     </div>
   );

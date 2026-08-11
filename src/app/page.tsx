@@ -29,22 +29,35 @@ export default async function HomePage() {
   const signedIn = !!session?.user?.id;
   const isFounder = isFounderHandle(session?.user?.handle);
 
-  const projects = await prisma.project.findMany({
-    where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
-    include: {
-      proposer: { select: { handle: true, reputation: true } },
-      fundPots: true,
-      tasks: { select: { id: true, status: true, parentId: true } },
-      artifacts: {
-        where: { source: "package" },
-        select: { id: true },
-        take: 1,
+  const [projects, anvilMeta] = await Promise.all([
+    prisma.project.findMany({
+      where: { status: { in: ["ACTIVE", "FUNDED", "COMPLETED"] } },
+      include: {
+        proposer: { select: { handle: true, reputation: true } },
+        fundPots: true,
+        tasks: { select: { id: true, status: true, parentId: true } },
+        artifacts: {
+          where: { source: "package" },
+          select: { id: true },
+          take: 1,
+        },
+        _count: { select: { tasks: true, donations: true, thumbs: true } },
       },
-      _count: { select: { tasks: true, donations: true, thumbs: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 8,
-  });
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.project.findUnique({
+      where: { slug: "anvil-infinity" },
+      select: {
+        title: true,
+        slug: true,
+        description: true,
+        status: true,
+        createdAt: true,
+        tasks: { select: { id: true, status: true, parentId: true } },
+      },
+    }),
+  ]);
 
   const homeMyThumbs = new Set<string>();
   if (session?.user?.id) {
@@ -117,6 +130,46 @@ export default async function HomePage() {
 
       {/* Top of site: network pulse sits above the hero so it is never under the pin */}
       <LiveForgeBar stats={live} />
+
+      {anvilMeta && (
+        <Card className="border-amber-500/30 bg-gradient-to-r from-amber-950/40 to-black/40">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <Badge className="border-amber-400/40 bg-amber-500/15 text-amber-100">
+                Meta-project
+              </Badge>
+              <h2 className="text-lg font-bold text-white sm:text-xl">
+                <Link
+                  href={`/projects/${anvilMeta.slug}`}
+                  className="hover:text-amber-200"
+                >
+                  {anvilMeta.title}
+                </Link>
+              </h2>
+              <p className="max-w-2xl text-sm text-stone-400 line-clamp-2">
+                {anvilMeta.description}
+              </p>
+              <p className="text-xs text-stone-500">
+                Hierarchical multi-agent scientific harness · labor + compute only ·{" "}
+                {projectTaskProgress(anvilMeta.tasks).completed}/
+                {projectTaskProgress(anvilMeta.tasks).total} tasks · created{" "}
+                {anvilMeta.createdAt.toISOString().slice(0, 10)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/projects/${anvilMeta.slug}`}>
+                <Button>Open ANVIL</Button>
+              </Link>
+              <Link href="/quests">
+                <Button variant="secondary">Quest templates</Button>
+              </Link>
+              <Link href="/tasks?goodFirst=1">
+                <Button variant="ghost">Good first leaves</Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <section className="relative isolate overflow-hidden rounded-2xl border border-amber-900/40 bg-gradient-to-br from-[#0a0a0a] via-black to-amber-950/30 p-5 sm:rounded-3xl sm:p-8 md:p-12">
         <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-amber-500/15 blur-3xl" />

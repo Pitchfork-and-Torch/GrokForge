@@ -196,10 +196,29 @@ model Project {
   nightcaps        NightcapGift[]
   scorecard        ProjectScorecard?
   thumbs           ProjectThumb[]
+  editHistory      ProjectEditHistory[]
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
   @@index([category, status])
+  @@index([createdAt])
+}
+
+// Public collapsible edit history (title/description and creator task edits)
+model ProjectEditHistory {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actorId     String?
+  actorHandle String?
+  // title | description | impact | license | banner | task_add | task_edit | matching | other
+  field       String
+  oldValue    String?  @db.Text
+  newValue    String?  @db.Text
+  summary     String
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
 }
 
 // Signed-in thumbs-up (one per user per project)
@@ -334,12 +353,19 @@ model Task {
   estimatedTokens    Int            @default(0)
   status             TaskStatus     @default(OPEN)
   sortOrder          Int            @default(0)
+  // Comma-separated skill/topic tags for agent matching
+  tags               String?
+  // Soft "good first leaf" for new builders
+  goodFirst          Boolean        @default(false)
+  // JSON array of task ids that must be ACCEPTED before claim
+  dependsOnJson      String?        @db.Text
   claims             TaskClaim[]
   contributions      Contribution[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   @@index([projectId, status])
+  @@index([goodFirst, status])
 }
 
 model TaskClaim {
@@ -372,6 +398,10 @@ model Contribution {
   score       Int?
   reviews     ContributionReview[]
   artifacts   Artifact[]
+  // Peer-review / dispute rails
+  disputedAt   DateTime?
+  disputeNote  String?              @db.Text
+  reopenedAt   DateTime?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 

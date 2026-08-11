@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function OpenTasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; q?: string }>;
+  searchParams: Promise<{ category?: string; q?: string; goodFirst?: string; tag?: string }>;
 }) {
   // Keep claimable board honest even between cron ticks
   try {
@@ -26,11 +26,17 @@ export default async function OpenTasksPage({
       ? (sp.category as ProjectCategory)
       : undefined;
   const q = sp.q?.trim();
+  const goodFirstOnly = sp.goodFirst === "1" || sp.goodFirst === "true";
+  const tag = sp.tag?.trim();
 
   const tasks = await prisma.task.findMany({
     where: {
       status: "OPEN",
       parentId: { not: null },
+      ...(goodFirstOnly ? { goodFirst: true } : {}),
+      ...(tag
+        ? { tags: { contains: tag, mode: "insensitive" } }
+        : {}),
       project: {
         status: { in: ["ACTIVE", "FUNDED"] },
         ...(category ? { category } : {}),
@@ -41,6 +47,7 @@ export default async function OpenTasksPage({
               { title: { contains: q, mode: "insensitive" } },
               { prompt: { contains: q, mode: "insensitive" } },
               { project: { title: { contains: q, mode: "insensitive" } } },
+              { tags: { contains: q, mode: "insensitive" } },
             ],
           }
         : {}),
@@ -56,7 +63,9 @@ export default async function OpenTasksPage({
       },
       claims: { where: { active: true }, select: { id: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: goodFirstOnly
+      ? [{ estimatedTokens: "asc" }, { createdAt: "desc" }]
+      : { createdAt: "desc" },
     take: 80,
   });
 
@@ -91,6 +100,21 @@ export default async function OpenTasksPage({
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-xs text-stone-300">
+          <input
+            type="checkbox"
+            name="goodFirst"
+            value="1"
+            defaultChecked={goodFirstOnly}
+          />
+          Good first leaf
+        </label>
+        <input
+          name="tag"
+          defaultValue={tag || ""}
+          placeholder="tag"
+          className="w-28 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-sm text-stone-100"
+        />
         <button
           type="submit"
           className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400"
@@ -98,6 +122,16 @@ export default async function OpenTasksPage({
           Filter
         </button>
       </form>
+      <p className="text-xs text-stone-600">
+        Tip:{" "}
+        <Link href="/tasks?goodFirst=1" className="text-amber-400 hover:underline">
+          /tasks?goodFirst=1
+        </Link>{" "}
+        for newcomer-friendly leaves. Quests:{" "}
+        <Link href="/quests" className="text-amber-400 hover:underline">
+          /quests
+        </Link>
+      </p>
 
       <div className="flex flex-wrap gap-2">
         <Link

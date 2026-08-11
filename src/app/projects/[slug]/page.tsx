@@ -50,6 +50,9 @@ import {
   isProjectCompleteDisplay,
   projectTaskProgress,
 } from "@/lib/utils";
+import { ProjectEditHistory } from "@/components/project-edit-history";
+import { AddLeafForm } from "@/components/add-leaf-form";
+import { formatProjectCreatedAt } from "@/lib/edit-history";
 
 export const dynamic = "force-dynamic";
 
@@ -209,6 +212,10 @@ export default async function ProjectDetailPage({
         include: { pot: true },
       },
       ledgerEntries: { orderBy: { createdAt: "desc" }, take: 40 },
+      editHistory: {
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      },
       scorecard: {
         include: { scorer: { select: { handle: true } } },
       },
@@ -413,6 +420,14 @@ export default async function ProjectDetailPage({
             @{project.proposer.handle}
           </Link>{" "}
           · {project.proposer.reputation} rep
+          {" · "}
+          <time dateTime={project.createdAt.toISOString()}>
+            created {formatProjectCreatedAt(project.createdAt).absolute}
+          </time>
+          {" "}
+          <span className="text-stone-600">
+            ({formatProjectCreatedAt(project.createdAt).relative})
+          </span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <ProjectThumbButton
@@ -538,7 +553,28 @@ export default async function ProjectDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <section>
-            <h2 className="mb-3 text-xl font-semibold text-white">Task hierarchy</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xl font-semibold text-white">Task hierarchy</h2>
+              {isCreator && project.status !== "ARCHIVED" && (
+                <AddLeafForm projectId={project.id} />
+              )}
+            </div>
+            <div className="mb-4">
+              <ProjectEditHistory
+                createdAtIso={project.createdAt.toISOString()}
+                createdAtLabel={formatProjectCreatedAt(project.createdAt).absolute}
+                rows={(project.editHistory || []).map((h) => ({
+                  id: h.id,
+                  field: h.field,
+                  summary: h.summary,
+                  actorHandle: h.actorHandle,
+                  createdAt:
+                    h.createdAt.toISOString().slice(0, 16).replace("T", " ") + " UTC",
+                  oldValue: h.oldValue,
+                  newValue: h.newValue,
+                }))}
+              />
+            </div>
             {isCreator && pendingForCreator.length > 0 && (
               <Card className="mb-4 space-y-3 border-amber-900/45 bg-amber-500/5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
