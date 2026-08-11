@@ -1,13 +1,19 @@
 """Create/configure GrokForge on FIRSTHALFODD hobby with full env + deploy."""
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-TEAM = "team_er6zwd5YZa517zX4qeOC8wBf"
+# Default hobby team (FIRSTHALFODD). Override via VERCEL_TEAM_ID env or --team CLI arg.
+DEFAULT_TEAM_ID = "team_er6zwd5YZa517zX4qeOC8wBf"
+
+
+def resolve_team_id(cli_team: str | None = None) -> str:
+    return (cli_team or os.environ.get("VERCEL_TEAM_ID") or DEFAULT_TEAM_ID).strip()
 
 
 def get_token() -> str:
@@ -43,8 +49,20 @@ def api(token: str, method: str, url: str, body: dict | None = None):
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--team",
+        default=None,
+        help=(
+            "Vercel team id (default: env VERCEL_TEAM_ID or "
+            f"{DEFAULT_TEAM_ID})"
+        ),
+    )
+    args = parser.parse_args()
+    team = resolve_team_id(args.team)
+
     token = get_token()
-    code, proj = api(token, "GET", f"https://api.vercel.com/v9/projects?teamId={TEAM}&limit=50")
+    code, proj = api(token, "GET", f"https://api.vercel.com/v9/projects?teamId={team}&limit=50")
     print("list", code, [p.get("name") for p in (proj.get("projects") or [])])
     existing = next(
         (
@@ -61,7 +79,7 @@ def main() -> None:
         code, created = api(
             token,
             "POST",
-            f"https://api.vercel.com/v10/projects?teamId={TEAM}",
+            f"https://api.vercel.com/v10/projects?teamId={team}",
             {
                 "name": "grokforge",
                 "framework": "nextjs",
@@ -86,13 +104,13 @@ def main() -> None:
             env[k] = v
 
     code, existing_env = api(
-        token, "GET", f"https://api.vercel.com/v9/projects/{pid}/env?teamId={TEAM}"
+        token, "GET", f"https://api.vercel.com/v9/projects/{pid}/env?teamId={team}"
     )
     for e in existing_env.get("envs") or []:
         api(
             token,
             "DELETE",
-            f"https://api.vercel.com/v9/projects/{pid}/env/{e['id']}?teamId={TEAM}",
+            f"https://api.vercel.com/v9/projects/{pid}/env/{e['id']}?teamId={team}",
         )
 
     plain = {
@@ -106,7 +124,7 @@ def main() -> None:
         code, _ = api(
             token,
             "POST",
-            f"https://api.vercel.com/v10/projects/{pid}/env?teamId={TEAM}",
+            f"https://api.vercel.com/v10/projects/{pid}/env?teamId={team}",
             {
                 "key": k,
                 "value": v,
@@ -120,7 +138,7 @@ def main() -> None:
         code, res = api(
             token,
             "POST",
-            f"https://api.vercel.com/v10/projects/{pid}/domains?teamId={TEAM}",
+            f"https://api.vercel.com/v10/projects/{pid}/domains?teamId={team}",
             {"name": domain},
         )
         print("domain", domain, code, res.get("error") or res.get("name") or "ok")
@@ -128,7 +146,7 @@ def main() -> None:
     code, dep = api(
         token,
         "POST",
-        f"https://api.vercel.com/v13/deployments?teamId={TEAM}&forceNew=1",
+        f"https://api.vercel.com/v13/deployments?teamId={team}&forceNew=1",
         {
             "name": "grokforge",
             "project": pid,
@@ -149,7 +167,7 @@ def main() -> None:
         dep.get("readyState") if isinstance(dep, dict) else dep,
     )
     print("PROJECT_ID", pid)
-    print("TEAM firsthalfodd - transfer this project to GrokForge Pro after READY")
+    print("TEAM", team, "- transfer this project to GrokForge Pro after READY")
 
 
 if __name__ == "__main__":
