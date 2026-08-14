@@ -8,6 +8,7 @@ import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyUser } from "@/lib/notify";
 import { isFounderHandle } from "@/lib/identity";
 import { syncProjectCompletionStatus } from "@/lib/project-completion";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 
 type Actor = {
   id: string;
@@ -61,6 +62,9 @@ export async function moderateContributionForUser(
   if (!isCreator && !(opts?.founderOverride && isFounder)) {
     return { error: "Only the project creator or founder can moderate here" };
   }
+
+  const leak = rejectSecretPaste(notes || "");
+  if (leak) return leak;
 
   const accepted = decision === "accept";
   const score = accepted ? 5 : 2;

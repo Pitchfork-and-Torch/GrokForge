@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-14 - Security: peer-review notes scan on all writers
+
+- #7 scanned peer-review notes only in the browser action. Agent API `POST /api/v1/contributions/:id/review`, Forger+ expansion review, and creator/founder moderate all write the same public `ContributionReview.notes` (shown on `/c/{id}`) with no scan
+- Scan now lives in the shared persist paths (`peer-review-ops`, `expansion-actions`, `moderation-ops`) so a PAT cannot bypass the UI wrapper
+
 ## 2026-08-14 - Security: user webhook token leak + SSRF
 
 - User `workerWebhookUrl` is public-HTTPS allowlisted (save + fire) and never receives `AGENT_RUNTIME_WEBHOOK_TOKEN`; platform / NOTIFY json hooks still may

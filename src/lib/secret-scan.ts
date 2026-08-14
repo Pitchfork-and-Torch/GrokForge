@@ -33,3 +33,12 @@ export function scanForSecrets(text: string): { ok: true } | { ok: false; hits: 
   if (hits.length) return { ok: false, hits: [...new Set(hits)] };
   return { ok: true };
 }
+
+/** Shared reject shape for UI actions + Agent API writers of public paste. */
+export function rejectSecretPaste(text: string): { error: string } | null {
+  const scan = scanForSecrets(text);
+  if (scan.ok) return null;
+  return {
+    error: `Secret scan failed: remove ${scan.hits.join(", ")}. Never paste PATs or API keys.`,
+  };
+}

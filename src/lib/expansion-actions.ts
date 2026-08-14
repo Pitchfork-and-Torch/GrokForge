@@ -10,6 +10,7 @@ import { requireUser } from "@/lib/session";
 import { recordProjectEdit } from "@/lib/edit-history";
 import { tierForReputation } from "@/lib/reputation-tiers";
 import { isFounderHandle } from "@/lib/identity";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 
 /** Creator: add a nested OPEN leaf after publish */
 export async function addLeafTaskAction(formData: FormData) {
@@ -147,6 +148,8 @@ export async function peerReviewContributionAction(formData: FormData) {
     const contributionId = String(formData.get("contributionId") || "");
     const score = Math.max(1, Math.min(5, Number(formData.get("score") || 3)));
     const notes = String(formData.get("notes") || "").trim().slice(0, 2000);
+    const leak = rejectSecretPaste(notes);
+    if (leak) return leak;
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: { reputation: true, handle: true },
