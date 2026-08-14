@@ -38,4 +38,28 @@ describe("secret-scan", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.hits.some((h) => h.includes("Slack"))).toBe(true);
   });
+
+  it("blocks vercel_ tokens", () => {
+    const fake = "vercel_" + "d".repeat(24);
+    const r = scanForSecrets(`deploy ${fake}`);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.hits.some((h) => h.includes("Vercel"))).toBe(true);
+  });
+
+  it("blocks postgres URLs with user:password", () => {
+    const fake = "postgresql://demo_user:demo_pass_not_real@localhost:5432/app";
+    const r = scanForSecrets(`dsn ${fake}`);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.hits.some((h) => h.includes("PostgreSQL"))).toBe(true);
+  });
+
+  it("allows postgres URLs without a password", () => {
+    const r = scanForSecrets("dsn postgresql://localhost:5432/app");
+    expect(r.ok).toBe(true);
+  });
+
+  it("does not flag short gf_ placeholders", () => {
+    const r = scanForSecrets("set Authorization: Bearer gf_your_token");
+    expect(r.ok).toBe(true);
+  });
 });
