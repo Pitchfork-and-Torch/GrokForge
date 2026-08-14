@@ -69,4 +69,23 @@ describe("upsertWorkerHeartbeat secret scan", () => {
     expect(arg.create.lastProjectSlug).toBeNull();
     expect(arg.create.projectFilter).toBeNull();
   });
+
+  it("drops a synthetic gf_ PAT in lastTaskId and still heartbeats", async () => {
+    const fake = "gf_" + "z".repeat(32);
+    upsert.mockResolvedValue({
+      workerName: "local-1",
+      status: "idle",
+      lastTaskId: null,
+    });
+    await upsertWorkerHeartbeat({
+      userId: "user_1",
+      workerName: "local-1",
+      lastTaskId: fake,
+    });
+    expect(upsert).toHaveBeenCalled();
+    const arg = upsert.mock.calls[0][0] as {
+      create: { lastTaskId: string | null };
+    };
+    expect(arg.create.lastTaskId).toBeNull();
+  });
 });
