@@ -30,7 +30,7 @@ export function AddLeafForm({ projectId }: { projectId: string }) {
           fd.set("projectId", projectId);
           start(async () => {
             const res = await addLeafTaskAction(fd);
-            if (res?.error) setError(res.error);
+            if (res && "error" in res) setError(res.error ?? "Add leaf failed");
             else {
               setError(null);
               setOpen(false);

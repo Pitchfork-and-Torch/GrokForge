@@ -31,6 +31,10 @@ export async function addLeafTaskAction(formData: FormData) {
     if (title.length < 3 || prompt.length < 10 || acceptanceCriteria.length < 5) {
       return { error: "Leaf needs title (3+), prompt (10+), acceptance (5+)" };
     }
+    const leak = rejectSecretPaste(
+      `${title}\n${prompt}\n${acceptanceCriteria}\n${tags}`
+    );
+    if (leak) return leak;
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: { id: true, slug: true, proposerId: true, status: true },
@@ -114,6 +118,10 @@ export async function editLeafTaskAction(formData: FormData) {
     if (title.length < 3 || prompt.length < 10 || acceptanceCriteria.length < 5) {
       return { error: "Invalid leaf fields" };
     }
+    const leak = rejectSecretPaste(
+      `${title}\n${prompt}\n${acceptanceCriteria}\n${tags}`
+    );
+    if (leak) return leak;
     await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -209,6 +217,8 @@ export async function disputeContributionAction(formData: FormData) {
     if (note.length < 10) {
       return { error: "Dispute needs a public rationale (10+ chars)" };
     }
+    const leak = rejectSecretPaste(note);
+    if (leak) return leak;
     const c = await prisma.contribution.findUnique({
       where: { id: contributionId },
       include: { task: { include: { project: true } } },

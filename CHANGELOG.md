@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan public task prompts on persist
+
+- Task title/prompt/acceptanceCriteria were still unscanned after #10 (project pages + GET /api/v1/agent/work). `rejectSecretPaste` now runs on create-project master/leaf text, add-leaf, and edit-leaf before write. Dispute notes scanned too.
+
 ## 2026-08-14 - Security: peer-review notes scan on all writers
 
 - #7 scanned peer-review notes only in the browser action. Agent API `POST /api/v1/contributions/:id/review`, Forger+ expansion review, and creator/founder moderate all write the same public `ContributionReview.notes` (shown on `/c/{id}`) with no scan

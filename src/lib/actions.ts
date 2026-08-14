@@ -95,10 +95,6 @@ export async function createProjectAction(formData: FormData) {
   }
 
   const data = parsed.data;
-  const leak = rejectSecretPaste(
-    `${data.title}\n${data.description}\n${data.impactSummary || ""}`
-  );
-  if (leak) return leak;
   const check = alignmentPreCheck(data.title, data.description, data.license);
   if (!check.ok) return { error: check.message };
 
@@ -108,6 +104,18 @@ export async function createProjectAction(formData: FormData) {
   } catch {
     return { error: "Subtasks JSON invalid" };
   }
+
+  const leak = rejectSecretPaste(
+    [
+      data.title,
+      data.description,
+      data.impactSummary || "",
+      data.masterPrompt,
+      data.masterAcceptance,
+      ...subtasks.flatMap((t) => [t.title, t.prompt, t.acceptanceCriteria]),
+    ].join("\n")
+  );
+  if (leak) return leak;
 
   let slug = slugify(data.title);
   if (!slug) slug = `project-${Date.now()}`;
