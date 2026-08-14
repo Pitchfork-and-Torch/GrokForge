@@ -49,3 +49,11 @@ export function persistPublicPaste(text: string | null | undefined): string | nu
   if (!t) return null;
   return rejectSecretPaste(t) ? null : t;
 }
+
+/** Signup name/handle persist guard (same scanner). */
+export function rejectSignupIdentity(
+  name?: string | null,
+  handle?: string | null
+) {
+  return rejectSecretPaste(`${name || ""}\n${handle || ""}`);
+}

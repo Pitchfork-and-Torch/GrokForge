@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan signup name and handle before persist
+
+- Credentials create (email + x-demo) wrote public `User.name` / `handle` (`/u/{handle}`) with no scan. `rejectSecretPaste` now runs before `user.create`. Existing logins unchanged.
+
 ## 2026-08-14 - Security: scan public project license on persist
 
 - Project `license` renders on listings, the project badge, ship page, and OG. Create/edit scanned title/description/prompts but not license (`gf_` + 32 fits in the 40-char field). `rejectSecretPaste` now includes license before write.

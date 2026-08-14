@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   persistPublicPaste,
   rejectSecretPaste,
+  rejectSignupIdentity,
   scanForSecrets,
 } from "@/lib/secret-scan";
 
@@ -85,5 +86,12 @@ describe("secret-scan", () => {
       "Keep the leaves open-license."
     );
     expect(persistPublicPaste("")).toBeNull();
+  });
+
+  it("rejectSignupIdentity blocks a synthetic gf_ PAT in handle or name", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(rejectSignupIdentity("Ada", "ada-lovelace")).toBeNull();
+    expect(rejectSignupIdentity(fake, "ada")).not.toBeNull();
+    expect(rejectSignupIdentity("Ada", fake)?.error).toMatch(/GrokForge PAT/i);
   });
 });
