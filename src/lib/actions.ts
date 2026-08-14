@@ -110,6 +110,7 @@ export async function createProjectAction(formData: FormData) {
       data.title,
       data.description,
       data.impactSummary || "",
+      data.license,
       data.masterPrompt,
       data.masterAcceptance,
       ...subtasks.flatMap((t) => [t.title, t.prompt, t.acceptanceCriteria]),
@@ -458,6 +459,11 @@ export async function updateProjectAction(formData: FormData) {
     };
   }
 
+  const leak = rejectSecretPaste(
+    `${parsed.data.title}\n${parsed.data.description}\n${parsed.data.impactSummary || ""}\n${parsed.data.license}`
+  );
+  if (leak) return leak;
+
   const project = await prisma.project.findUnique({
     where: { id: parsed.data.projectId },
   });
@@ -468,11 +474,6 @@ export async function updateProjectAction(formData: FormData) {
   if (project.status === "ARCHIVED") {
     return { error: "Restore the project before editing" };
   }
-
-  const leak = rejectSecretPaste(
-    `${parsed.data.title}\n${parsed.data.description}\n${parsed.data.impactSummary || ""}`
-  );
-  if (leak) return leak;
 
   const check = alignmentPreCheck(
     parsed.data.title,
