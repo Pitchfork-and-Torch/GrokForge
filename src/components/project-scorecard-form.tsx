@@ -99,11 +99,11 @@ export function ProjectScorecardForm({
     }
     start(async () => {
       const res = await saveProjectScorecardAction(fd);
-      if (res?.error) {
+      if (res && "error" in res) {
         setError(res.error);
         return;
       }
-      if (res?.ok) {
+      if (res && "ok" in res && res.ok) {
         setSavedTotal(res.totalScore);
         setOpen(false);
       }
