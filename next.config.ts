@@ -15,7 +15,9 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://pbs.twimg.com https://abs.twimg.com https://api.dicebear.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com",
+      // Contribution / banner images: twimg avatars, Vercel Blob, plus CDNs
+      // ContentBody already recognizes (imgur, GitHub user content).
+      "img-src 'self' data: blob: https://pbs.twimg.com https://abs.twimg.com https://api.dicebear.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://i.imgur.com https://imgur.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://*.githubusercontent.com",
       "font-src 'self' data:",
       "connect-src 'self' https://api.x.com https://x.com https://api.stripe.com",
       "frame-ancestors 'self'",

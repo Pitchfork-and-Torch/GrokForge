@@ -13,11 +13,9 @@ function authorized(req: NextRequest): boolean {
     return true;
   }
   const auth = req.headers.get("authorization") || "";
-  if (auth === `Bearer ${secret}`) return true;
-  const q = req.nextUrl.searchParams.get("secret");
-  if (q && q === secret) return true;
+  // Bearer only — never accept ?secret= (leaks into access logs / Referer)
   // Vercel Cron sends Authorization: Bearer <CRON_SECRET> when configured
-  return false;
+  return auth === `Bearer ${secret}`;
 }
 
 async function run(req: NextRequest) {
