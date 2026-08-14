@@ -42,3 +42,10 @@ export function rejectSecretPaste(text: string): { error: string } | null {
     error: `Secret scan failed: remove ${scan.hits.join(", ")}. Never paste PATs or API keys.`,
   };
 }
+
+/** Persist-safe public text: keep clean paste, drop a secret hit (do not fail the writer). */
+export function persistPublicPaste(text: string | null | undefined): string | null {
+  const t = (text || "").trim();
+  if (!t) return null;
+  return rejectSecretPaste(t) ? null : t;
+}

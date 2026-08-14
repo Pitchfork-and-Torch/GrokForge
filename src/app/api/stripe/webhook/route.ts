@@ -3,6 +3,7 @@ import { LedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
 import { computeMatch } from "@/lib/matching-funds";
+import { persistPublicPaste } from "@/lib/secret-scan";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     const projectId = session.metadata?.projectId;
     const potId = session.metadata?.potId;
     const donorId = session.metadata?.donorId;
-    const message = session.metadata?.message;
+    const message = persistPublicPaste(session.metadata?.message);
     const amountCents = session.amount_total || 0;
 
     if (!projectId || amountCents <= 0) {

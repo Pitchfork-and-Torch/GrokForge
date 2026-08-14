@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: drop secret donate messages on webhook persist
+
+- UI donate already scans before Stripe metadata. Webhook `checkout.session.completed` still wrote `metadata.message` to `Donation.message`. `persistPublicPaste` (same `rejectSecretPaste` scanner) drops a hit; payment still records.
+
 ## 2026-08-14 - Security: scan remaining public paste writers
 
 - Scorecard criterion notes, donate public message (demo persist + Stripe metadata), and profile bio/capacity notes now run `rejectSecretPaste` before write. Comment report reason skipped (never collected or shown).
