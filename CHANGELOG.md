@@ -4,6 +4,10 @@
 
 - `reportProjectCommentAction` stored optional `reason` with no scan. UI does not collect it, but a crafted call could persist a PAT. `rejectSecretPaste` now runs before write.
 
+## 2026-08-14 - Security: scan public worker heartbeat name and lastError
+
+- `/forge` prints `workerName` and `lastError` from `upsertWorkerHeartbeat` (Agent API heartbeat). Sanitize keeps `gf_` tokens. `rejectSecretPaste` now rejects a secret name; `persistPublicPaste` drops a secret lastError so presence still records.
+
 ## 2026-08-14 - Security: scan GitHub ship repoName on persist
 
 - `publishSealedToGitHubForUser` (UI + `POST /api/v1/projects/:id/publish-github`) accepted a `repoName` override. Sanitize keeps `gf_` + alphanumerics, so a PAT can become a public org repo. `rejectSecretPaste` now runs before any GitHub or Prisma write.
