@@ -20,5 +20,22 @@ describe("secret-scan", () => {
     const r = scanForSecrets(`openai ${fake}`);
     expect(r.ok).toBe(false);
   });
-});
 
+  it("blocks Stripe live/test secrets and webhook secrets", () => {
+    const live = "sk_live_" + "a".repeat(24);
+    const test = "sk_test_" + "b".repeat(24);
+    const wh = "whsec_" + "c".repeat(24);
+    for (const fake of [live, test, wh]) {
+      const r = scanForSecrets(`stripe ${fake}`);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.hits.some((h) => h.includes("Stripe"))).toBe(true);
+    }
+  });
+
+  it("blocks Slack bot tokens", () => {
+    const fake = "xoxb-" + "1".repeat(12) + "-" + "2".repeat(12);
+    const r = scanForSecrets(`slack ${fake}`);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.hits.some((h) => h.includes("Slack"))).toBe(true);
+  });
+});
