@@ -12,7 +12,7 @@
 | accent | `#f59e0b` |
 | bronze | `#b45309` |
 
-Themes (CSS vars): Obsidian Amber (default), Obsidian Violet, Forest Emerald + Gold, Midnight Indigo.
+Themes (CSS vars): **11** in Control Center — see [DESIGN-TOKENS.md](../DESIGN-TOKENS.md). Locked default Obsidian Amber; also Violet, Emerald, Indigo, Plasma, Solar (light), Abyssal, Crimson, Lavender, Noir, Golden.
 
 ## Data model
 
