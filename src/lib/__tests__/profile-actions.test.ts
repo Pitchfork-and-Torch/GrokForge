@@ -79,4 +79,16 @@ describe("updateProfileAction secret scan", () => {
     expect(userFindUnique).not.toHaveBeenCalled();
     expect(userUpdate).not.toHaveBeenCalled();
   });
+
+  it("rejects a synthetic gf_ PAT pasted as githubHandle", async () => {
+    const fake = "gf_" + "z".repeat(32);
+    const res = await updateProfileAction(profileForm({ githubHandle: fake }));
+    expect(res).toEqual(
+      expect.objectContaining({
+        error: expect.stringMatching(/GrokForge PAT/i),
+      })
+    );
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(userUpdate).not.toHaveBeenCalled();
+  });
 });

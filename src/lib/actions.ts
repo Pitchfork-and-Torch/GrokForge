@@ -1357,15 +1357,18 @@ export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
   const capacityNotes = String(formData.get("capacityNotes") || "").slice(0, 2000);
   const bio = String(formData.get("bio") || "").slice(0, 2000);
-  const leak = rejectSecretPaste(`${bio}\n${capacityNotes}`);
-  if (leak) return leak;
   const handleRaw = String(formData.get("handle") || "").replace(/^@/, "").slice(0, 32);
-  const githubHandle = String(formData.get("githubHandle") || "")
+  const githubHandleRaw = String(formData.get("githubHandle") || "");
+  const githubHandle = githubHandleRaw
     .replace(/^@/, "")
     .replace(/^https?:\/\/(www\.)?github\.com\//i, "")
     .split("/")[0]
     .replace(/[^A-Za-z0-9-]/g, "")
     .slice(0, 39);
+  const leak = rejectSecretPaste(
+    `${bio}\n${capacityNotes}\n${handleRaw}\n${githubHandleRaw}`
+  );
+  if (leak) return leak;
 
   if (handleRaw && handleRaw !== user.handle) {
     const taken = await prisma.user.findUnique({ where: { handle: handleRaw } });

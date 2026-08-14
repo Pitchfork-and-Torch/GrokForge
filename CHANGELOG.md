@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan profile handle and GitHub username
+
+- `updateProfileAction` already scanned bio/capacity notes. Public `handle` and `githubHandle` (ship page + `@` links) still accepted a pasted PAT. Sanitize strips `_` but the raw field is public-bound. `rejectSecretPaste` now runs on handle + raw GitHub username before write.
+
 ## 2026-08-14 - Security: scan comment report reason on persist
 
 - `reportProjectCommentAction` stored optional `reason` with no scan. UI does not collect it, but a crafted call could persist a PAT. `rejectSecretPaste` now runs before write.
