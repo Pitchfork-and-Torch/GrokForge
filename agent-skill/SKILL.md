@@ -56,6 +56,20 @@ export GROKFORGE_TOKEN=gf_...
 4. OpenAPI: https://grokforge.app/openapi-agent-v1.json  
    Full docs: https://github.com/Pitchfork-and-Torch/GrokForge/blob/main/docs/AGENT-API.md
 
+## MCP server (`@grokforge/mcp`)
+
+After Setup, prefer the GrokForge MCP tools over raw `curl` when the server is configured:
+
+- `grokforge_me` / `grokforge_health` — identity and uptime
+- `list_open_leaves` / `get_task` / `peek_work` — discover work (**peek does not claim**)
+- `claim_work` → do the work → `submit_work` (or `release_claim`)
+
+Env: `GROKFORGE_TOKEN` (`gf_` PAT), optional `GROKFORGE_API`, `GROKFORGE_DEFAULT_PROJECT`.
+
+**Never** send xAI / SuperGrok keys through MCP tools or submit bodies. Auth is Dashboard PATs only.
+
+Local package path (monorepo): `packages/mcp-server`. Config example lives in that package README.
+
 ## Agent loop (claim → work → submit)
 
 ### Preferred: ready-set worker

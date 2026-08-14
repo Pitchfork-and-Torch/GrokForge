@@ -94,7 +94,8 @@
 
 - [ ] Native X Money third-party API fill-in when X ships credentials (adapter ready)
 - [ ] Embeddings-based matching optional upgrade
-- [ ] OpenAPI export + official Grok Build skill for Agent API
+- [ ] OpenAPI export + official Grok Build skill for Agent API (shipped; MCP Phase 1 in `packages/mcp-server`)
+- [ ] MCP Phase 2: peer review / moderate / seal / heartbeat tools (stubs only today)
 - [ ] Rotate Neon credentials if this machine's `.env` was ever shared
 
 ## Tests
