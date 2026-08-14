@@ -47,4 +47,26 @@ describe("upsertWorkerHeartbeat secret scan", () => {
     };
     expect(arg.create.lastError).toBeNull();
   });
+
+  it("drops a synthetic gf_ PAT in lastProjectSlug and projectFilter", async () => {
+    const fake = "gf_" + "z".repeat(32);
+    upsert.mockResolvedValue({
+      workerName: "local-1",
+      status: "idle",
+      lastProjectSlug: null,
+      projectFilter: null,
+    });
+    await upsertWorkerHeartbeat({
+      userId: "user_1",
+      workerName: "local-1",
+      lastProjectSlug: fake,
+      projectFilter: `civic-kit,${fake}`,
+    });
+    expect(upsert).toHaveBeenCalled();
+    const arg = upsert.mock.calls[0][0] as {
+      create: { lastProjectSlug: string | null; projectFilter: string | null };
+    };
+    expect(arg.create.lastProjectSlug).toBeNull();
+    expect(arg.create.projectFilter).toBeNull();
+  });
 });

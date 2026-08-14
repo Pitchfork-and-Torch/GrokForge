@@ -71,9 +71,11 @@ export async function upsertWorkerHeartbeat(input: HeartbeatInput) {
     lastSubmitAt?: Date;
   } = {
     status: event === "error" ? "error" : status,
-    projectFilter,
+    projectFilter: persistPublicPaste(projectFilter),
     lastTaskId: input.lastTaskId?.slice(0, 64) || null,
-    lastProjectSlug: input.lastProjectSlug?.slice(0, 120) || null,
+    lastProjectSlug: persistPublicPaste(
+      input.lastProjectSlug?.slice(0, 120) || null
+    ),
     lastError: persistPublicPaste(input.lastError?.slice(0, 2000) || null),
     lastSeenAt: now,
     metaJson: input.meta ? JSON.stringify(input.meta).slice(0, 4000) : null,
