@@ -86,7 +86,7 @@ export function CreatorGitHubPublish({
           fd.set("license", "MIT");
           start(async () => {
             const res = await linkArtifactAction(fd);
-            if (res?.error) setError(res.error);
+            if (res && "error" in res) setError(res.error ?? "Link failed");
             else setOk(true);
           });
         }}

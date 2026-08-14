@@ -28,7 +28,7 @@ export function LinkArtifactForm({
           setError(null);
           setOk(false);
           const res = await linkArtifactAction(fd);
-          if (res?.error) setError(res.error);
+          if (res && "error" in res) setError(res.error ?? "Link failed");
           else {
             setOk(true);
             try {
