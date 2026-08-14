@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan ranking scorecard notes on persist
+
+- Scorecard criterion notes render on public project pages and `/rankings`. `saveProjectScorecardAction` wrote them with no scan. `rejectSecretPaste` now runs before upsert.
+
 ## 2026-08-14 - Security: scan seal notes on the persist path
 
 - UI `sealProjectAction` already scanned; Agent API `POST /api/v1/projects/:id/seal` writes the same public `sealNote` / `packageTitle` (ship page + impactSummary) via `sealProjectForUser` with no scan. `rejectSecretPaste` now runs in that shared persist path before write.
