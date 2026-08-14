@@ -7,6 +7,7 @@ import { LedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimitAsync } from "@/lib/rate-limit";
 import { isFounderHandle } from "@/lib/identity";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 import { loadPackageFilesForProject } from "@/lib/seal-ops";
 import {
   defaultRepoDescription,
@@ -66,6 +67,9 @@ export async function publishSealedToGitHubForUser(
     windowMs: 60 * 60 * 1000,
   });
   if (!rl.ok) return { error: `Rate limit: try again in ${rl.retryAfterSec}s` };
+
+  const leak = rejectSecretPaste(input.repoName || "");
+  if (leak) return leak;
 
   const project = await prisma.project.findFirst({
     where: {
