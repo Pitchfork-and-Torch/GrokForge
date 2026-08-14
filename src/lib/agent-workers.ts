@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { checkPublicHttpsWebhookUrl } from "@/lib/webhook-url";
 
 export const WORKER_ONLINE_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -122,6 +123,44 @@ export async function listOnlineWorkers(opts?: { withinMs?: number }) {
   }));
 }
 
+function platformRuntimeWebhookUrls(): string[] {
+  const urls = new Set<string>();
+  const platform = process.env.AGENT_RUNTIME_WEBHOOK_URL?.trim();
+  if (platform) urls.add(platform);
+  // Also reuse NOTIFY_WEBHOOK when format is json (not agent-email spam)
+  const notify = process.env.NOTIFY_WEBHOOK_URL?.trim();
+  const fmt = (process.env.NOTIFY_WEBHOOK_FORMAT || "").toLowerCase();
+  if (notify && fmt !== "agent-email") urls.add(notify);
+  return [...urls];
+}
+
+async function postRuntimeWebhook(
+  url: string,
+  body: unknown,
+  opts: { attachPlatformToken: boolean }
+) {
+  try {
+    if (!/^https:\/\//i.test(url)) return;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": "GrokForge-AgentRuntime/1.0",
+    };
+    if (opts.attachPlatformToken) {
+      const tok = process.env.AGENT_RUNTIME_WEBHOOK_TOKEN?.trim();
+      if (tok) headers.Authorization = `Bearer ${tok}`;
+    }
+    await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(8000),
+      redirect: "error",
+    });
+  } catch (e) {
+    console.error("[agent-runtime-webhook]", url.slice(0, 40), e);
+  }
+}
+
 export async function fireAgentRuntimeWebhook(payload: {
   type: string;
   title: string;
@@ -132,16 +171,20 @@ export async function fireAgentRuntimeWebhook(payload: {
   extra?: Record<string, unknown>;
   userWebhookUrl?: string | null;
 }) {
-  const urls = new Set<string>();
-  const platform = process.env.AGENT_RUNTIME_WEBHOOK_URL?.trim();
-  if (platform) urls.add(platform);
-  // Also reuse NOTIFY_WEBHOOK when format is json (not agent-email spam)
-  const notify = process.env.NOTIFY_WEBHOOK_URL?.trim();
-  const fmt = (process.env.NOTIFY_WEBHOOK_FORMAT || "").toLowerCase();
-  if (notify && fmt !== "agent-email") urls.add(notify);
-  if (payload.userWebhookUrl?.trim()) urls.add(payload.userWebhookUrl.trim());
+  const platformUrls = platformRuntimeWebhookUrls();
 
-  if (urls.size === 0) return;
+  let userUrl: string | null = null;
+  const userRaw = payload.userWebhookUrl?.trim() || "";
+  if (userRaw) {
+    const check = checkPublicHttpsWebhookUrl(userRaw);
+    if (!check.ok) {
+      console.error("[agent-runtime-webhook] skipped user url:", check.error);
+    } else if (!platformUrls.includes(check.url)) {
+      userUrl = check.url;
+    }
+  }
+
+  if (platformUrls.length === 0 && !userUrl) return;
 
   const site =
     process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
@@ -163,25 +206,12 @@ export async function fireAgentRuntimeWebhook(payload: {
     at: new Date().toISOString(),
   };
 
-  await Promise.all(
-    [...urls].map(async (url) => {
-      try {
-        if (!/^https:\/\//i.test(url)) return;
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          "User-Agent": "GrokForge-AgentRuntime/1.0",
-        };
-        const tok = process.env.AGENT_RUNTIME_WEBHOOK_TOKEN?.trim();
-        if (tok) headers.Authorization = `Bearer ${tok}`;
-        await fetch(url, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(8000),
-        });
-      } catch (e) {
-        console.error("[agent-runtime-webhook]", url.slice(0, 40), e);
-      }
-    })
-  );
+  await Promise.all([
+    ...platformUrls.map((url) =>
+      postRuntimeWebhook(url, body, { attachPlatformToken: true })
+    ),
+    userUrl
+      ? postRuntimeWebhook(userUrl, body, { attachPlatformToken: false })
+      : Promise.resolve(),
+  ]);
 }

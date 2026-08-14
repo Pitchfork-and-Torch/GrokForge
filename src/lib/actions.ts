@@ -20,6 +20,7 @@ import {
   storeUploadedBanner,
 } from "@/lib/banner";
 import { scanForSecrets } from "@/lib/secret-scan";
+import { checkPublicHttpsWebhookUrl } from "@/lib/webhook-url";
 
 function rejectIfSecrets(text: string): { error: string } | null {
   const scan = scanForSecrets(text);
@@ -1550,18 +1551,24 @@ export async function nudgeProjectOrderAction(
   }
 }
 
-/** Optional agent-runtime webhook URL for the signed-in user (HTTPS only). */
+/** Optional agent-runtime webhook URL for the signed-in user (public HTTPS only). */
 export async function saveWorkerWebhookAction(url: string) {
   try {
     const user = await requireUser();
     const trimmed = (url || "").trim();
-    if (trimmed && !/^https:\/\//i.test(trimmed)) {
-      return { error: "Webhook must be https://" };
+    if (!trimmed) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { workerWebhookUrl: null },
+      });
+      revalidatePath("/dashboard");
+      return { ok: true };
     }
-    if (trimmed.length > 500) return { error: "URL too long" };
+    const check = checkPublicHttpsWebhookUrl(trimmed);
+    if (!check.ok) return { error: check.error };
     await prisma.user.update({
       where: { id: user.id },
-      data: { workerWebhookUrl: trimmed || null },
+      data: { workerWebhookUrl: check.url },
     });
     revalidatePath("/dashboard");
     return { ok: true };
