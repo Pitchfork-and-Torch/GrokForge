@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-14 - Security: timing-safe cron + public paste scan
+
+- Cron Bearer compare is timing-safe (`crypto.timingSafeEqual` on sha256 of both sides)
+- Secret scan also runs on project comments, description/impact create+edit, seal notes, and peer-review notes
+
 ## 2026-08-14 - Hygiene + docs sync
 
 - Secret scan blocks Stripe (`sk_live_` / `sk_test_` / `whsec_`) and Slack tokens on submit

@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { expireStaleClaims } from "@/lib/expire-claims";
+import { authorizeCron } from "@/lib/cron-auth";
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function authorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) {
-    // Fail closed in production when secret missing
-    if (process.env.VERCEL_ENV === "production") return false;
-    return true;
-  }
-  const auth = req.headers.get("authorization") || "";
-  // Bearer only — never accept ?secret= (leaks into access logs / Referer)
-  // Vercel Cron sends Authorization: Bearer <CRON_SECRET> when configured
-  return auth === `Bearer ${secret}`;
-}
-
 async function run(req: NextRequest) {
-  if (!authorized(req)) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {

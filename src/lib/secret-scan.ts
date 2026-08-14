@@ -17,6 +17,11 @@ const PATTERNS: { re: RegExp; label: string }[] = [
   { re: /\bgf_[A-Za-z0-9]{20,}\b/g, label: "GrokForge PAT (do not paste raw tokens)" },
   { re: /\bAKIA[0-9A-Z]{16}\b/g, label: "AWS access key" },
   { re: /-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----/g, label: "Private key block" },
+  { re: /\bvercel_[A-Za-z0-9]{20,}\b/g, label: "Vercel token" },
+  {
+    re: /postgres(?:ql)?:\/\/[^\s/:]+:[^\s/@]+@/gi,
+    label: "PostgreSQL URL with password",
+  },
 ];
 
 export function scanForSecrets(text: string): { ok: true } | { ok: false; hits: string[] } {
