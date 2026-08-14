@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { isFounderHandle } from "@/lib/identity";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 
 /** Platform agent scopes (not xAI keys). */
 export const API_SCOPES = [
@@ -67,6 +68,8 @@ export type CreateTokenInput = {
 };
 
 export async function createApiToken(input: CreateTokenInput) {
+  const leak = rejectSecretPaste(input.name || "");
+  if (leak) throw new Error(leak.error);
   const name = input.name.trim().slice(0, 80) || "Agent token";
   const requested = (input.scopes?.length ? input.scopes : DEFAULT_SCOPES).filter(
     (s) => (API_SCOPES as readonly string[]).includes(s)
