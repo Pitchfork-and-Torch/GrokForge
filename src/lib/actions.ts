@@ -788,19 +788,6 @@ export async function saveProjectScorecardAction(formData: FormData) {
     const projectId = String(formData.get("projectId") || "");
     if (!projectId) return { error: "Missing project" };
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true, slug: true, proposerId: true, title: true },
-    });
-    if (!project) return { error: "Project not found" };
-
-    const { isFounderHandle } = await import("@/lib/identity");
-    const canEdit =
-      project.proposerId === user.id || isFounderHandle(user.handle);
-    if (!canEdit) {
-      return { error: "Only the project creator or founder can set the ranking scorecard" };
-    }
-
     const parsed = z
       .object({
         strategicAlignment: scoreField,
@@ -833,6 +820,31 @@ export async function saveProjectScorecardAction(formData: FormData) {
 
     if (!parsed.success) {
       return { error: "Each criterion needs a score from 1 to 5" };
+    }
+
+    const leak = rejectSecretPaste(
+      [
+        parsed.data.strategicNote,
+        parsed.data.technicalNote,
+        parsed.data.businessNote,
+        parsed.data.effortNote,
+        parsed.data.riskNote,
+        parsed.data.timeNote,
+      ].join("\n")
+    );
+    if (leak) return leak;
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, slug: true, proposerId: true, title: true },
+    });
+    if (!project) return { error: "Project not found" };
+
+    const { isFounderHandle } = await import("@/lib/identity");
+    const canEdit =
+      project.proposerId === user.id || isFounderHandle(user.handle);
+    if (!canEdit) {
+      return { error: "Only the project creator or founder can set the ranking scorecard" };
     }
 
     const { computeRankingTotal } = await import("@/lib/project-ranking");
