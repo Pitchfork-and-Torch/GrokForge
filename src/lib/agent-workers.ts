@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { persistPublicPaste, rejectSecretPaste } from "@/lib/secret-scan";
 import { checkPublicHttpsWebhookUrl } from "@/lib/webhook-url";
 
 export const WORKER_ONLINE_MS = 10 * 60 * 1000; // 10 minutes
@@ -48,6 +49,8 @@ function sanitizeName(name: string): string {
 }
 
 export async function upsertWorkerHeartbeat(input: HeartbeatInput) {
+  const leak = rejectSecretPaste(input.workerName || "");
+  if (leak) throw new Error(leak.error);
   const workerName = sanitizeName(input.workerName || "worker");
   if (!workerName) throw new Error("workerName required");
 
@@ -71,7 +74,7 @@ export async function upsertWorkerHeartbeat(input: HeartbeatInput) {
     projectFilter,
     lastTaskId: input.lastTaskId?.slice(0, 64) || null,
     lastProjectSlug: input.lastProjectSlug?.slice(0, 120) || null,
-    lastError: input.lastError?.slice(0, 2000) || null,
+    lastError: persistPublicPaste(input.lastError?.slice(0, 2000) || null),
     lastSeenAt: now,
     metaJson: input.meta ? JSON.stringify(input.meta).slice(0, 4000) : null,
   };
