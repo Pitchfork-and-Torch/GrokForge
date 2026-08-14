@@ -100,15 +100,21 @@ function firstHttpUrl(s: string): string | null {
 function looksLikeImageUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    if (!/^https?:$/i.test(u.protocol)) return false;
+    // https only — never promote javascript:/data: into <img src>
+    if (!/^https:$/i.test(u.protocol)) return false;
     const path = u.pathname.toLowerCase();
-    if (/\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(path)) return true;
-    // Hosted blob / CDN without extension
+    // Raster only (no .svg — avoid treating scriptable SVG as a safe image)
+    if (/\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(path)) return true;
+    // Hosted blob / CDN without extension (must stay in sync with CSP img-src)
+    const host = u.hostname.toLowerCase();
     if (
-      u.hostname.includes("blob.vercel-storage.com") ||
-      u.hostname.includes("public.blob.vercel-storage.com") ||
-      u.hostname.includes("imgur.com") ||
-      u.hostname.includes("twimg.com")
+      host.endsWith("blob.vercel-storage.com") ||
+      host.endsWith("public.blob.vercel-storage.com") ||
+      host === "i.imgur.com" ||
+      host === "imgur.com" ||
+      host.endsWith("twimg.com") ||
+      host === "raw.githubusercontent.com" ||
+      host.endsWith("githubusercontent.com")
     ) {
       return true;
     }

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * POST /api/v1/projects/:id/publish-github
  * Body: { repoName? }
  * Scope: tasks:read minimum; auth checks creator/founder in publishSealedToGitHubForUser.
- * Elevated moderation:write still works for founder ops tokens.
+ * (moderation:write is not required — creator PATs work.)
  */
 export async function POST(
   req: NextRequest,
