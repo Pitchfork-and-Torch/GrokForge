@@ -7,6 +7,7 @@ import { LedgerKind, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 
 type Actor = {
   id: string;
@@ -50,6 +51,9 @@ export async function peerReviewContributionForUser(
   if (existing) {
     return { error: "You already reviewed this submission" };
   }
+
+  const leak = rejectSecretPaste(notes || "");
+  if (leak) return leak;
 
   await prisma.contributionReview.create({
     data: {

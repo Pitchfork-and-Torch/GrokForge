@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scanForSecrets } from "@/lib/secret-scan";
+import { rejectSecretPaste, scanForSecrets } from "@/lib/secret-scan";
 
 describe("secret-scan", () => {
   it("allows clean markdown", () => {
@@ -61,5 +61,16 @@ describe("secret-scan", () => {
   it("does not flag short gf_ placeholders", () => {
     const r = scanForSecrets("set Authorization: Bearer gf_your_token");
     expect(r.ok).toBe(true);
+  });
+
+  it("rejectSecretPaste is null for clean review notes", () => {
+    expect(rejectSecretPaste("Ship it — clear provenance and MIT header.")).toBeNull();
+  });
+
+  it("rejectSecretPaste blocks raw gf_ PATs in review notes", () => {
+    const fake = "gf_" + "z".repeat(32);
+    const r = rejectSecretPaste(`lgtm ${fake}`);
+    expect(r).not.toBeNull();
+    expect(r?.error).toMatch(/GrokForge PAT/i);
   });
 });

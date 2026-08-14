@@ -19,17 +19,8 @@ import {
   getBannerFile,
   storeUploadedBanner,
 } from "@/lib/banner";
-import { scanForSecrets } from "@/lib/secret-scan";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 import { checkPublicHttpsWebhookUrl } from "@/lib/webhook-url";
-
-function rejectIfSecrets(text: string): { error: string } | null {
-  const scan = scanForSecrets(text);
-  if (scan.ok) return null;
-  return {
-    error: `Secret scan failed: remove ${scan.hits.join(", ")}. Never paste PATs or API keys.`,
-  };
-}
-
 
 const projectSchema = z.object({
   title: z.string().min(5).max(120),
@@ -104,7 +95,7 @@ export async function createProjectAction(formData: FormData) {
   }
 
   const data = parsed.data;
-  const leak = rejectIfSecrets(
+  const leak = rejectSecretPaste(
     `${data.title}\n${data.description}\n${data.impactSummary || ""}`
   );
   if (leak) return leak;
@@ -470,7 +461,7 @@ export async function updateProjectAction(formData: FormData) {
     return { error: "Restore the project before editing" };
   }
 
-  const leak = rejectIfSecrets(
+  const leak = rejectSecretPaste(
     `${parsed.data.title}\n${parsed.data.description}\n${parsed.data.impactSummary || ""}`
   );
   if (leak) return leak;
@@ -642,7 +633,7 @@ export async function sealProjectAction(formData: FormData) {
     const user = await requireUser();
     const projectId = String(formData.get("projectId") || "");
     const sealNote = String(formData.get("sealNote") || "");
-    const leak = rejectIfSecrets(sealNote);
+    const leak = rejectSecretPaste(sealNote);
     if (leak) return leak;
     const version = String(formData.get("version") || "v1.0.0");
     const packageTitle = String(formData.get("packageTitle") || "").trim() || undefined;
@@ -919,7 +910,7 @@ export async function reviewContributionAction(
 ) {
   try {
     const user = await requireUser();
-    const leak = rejectIfSecrets(notes || "");
+    const leak = rejectSecretPaste(notes || "");
     if (leak) return leak;
     const { peerReviewContributionForUser } = await import(
       "@/lib/peer-review-ops"
@@ -1860,7 +1851,7 @@ export async function addProjectCommentAction(formData: FormData) {
     return { error: "Comment must be 2-4000 characters" };
   }
 
-  const leak = rejectIfSecrets(parsed.data.body);
+  const leak = rejectSecretPaste(parsed.data.body);
   if (leak) return leak;
 
   const project = await prisma.project.findUnique({

@@ -39,7 +39,7 @@ export function ContributionReviewPanel({
             fd.set("contributionId", contributionId);
             start(async () => {
               const res = await peerReviewContributionAction(fd);
-              if (res?.error) setError(res.error);
+              if (res && "error" in res) setError(res.error ?? "Review failed");
               else {
                 setOk("Peer review recorded");
                 router.refresh();
@@ -72,7 +72,7 @@ export function ContributionReviewPanel({
             fd.set("contributionId", contributionId);
             start(async () => {
               const res = await disputeContributionAction(fd);
-              if (res?.error) setError(res.error);
+              if (res && "error" in res) setError(res.error ?? "Dispute failed");
               else {
                 setOk("Dispute filed");
                 router.refresh();
@@ -100,7 +100,7 @@ export function ContributionReviewPanel({
             fd.set("contributionId", contributionId);
             start(async () => {
               const res = await reopenContributionTaskAction(fd);
-              if (res?.error) setError(res.error);
+              if (res && "error" in res) setError(res.error ?? "Reopen failed");
               else {
                 setOk("Task reopened for rework");
                 router.refresh();
