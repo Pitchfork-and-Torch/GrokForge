@@ -54,7 +54,7 @@ export function ProjectComments({
               start(async () => {
                 try {
                   const res = await addProjectCommentAction(fd);
-                  if (res && "error" in res) setError(res.error);
+                  if (res && "error" in res) setError(res.error ?? "Comment failed");
                   else {
                     setError(null);
                     try {
@@ -129,9 +129,8 @@ export function ProjectComments({
                           onClick={() =>
                             start(async () => {
                               const res = await reportProjectCommentAction(c.id);
-                              if (res?.error) setError(res.error);
-                              else if (res?.autoHidden) {
-                                setError(null);
+                              if (res && "error" in res) {
+                                setError(res.error ?? "Report failed");
                               } else {
                                 setError(null);
                               }
