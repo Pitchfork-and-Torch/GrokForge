@@ -1,5 +1,12 @@
 ﻿# Changelog
 
+## 2026-08-14 - @grokforge/mcp Phase 1
+
+- Stdio MCP server (`packages/mcp-server`) wraps Agent API: me, health, list/get tasks, peek/claim/submit/release
+- Auth is Dashboard `gf_` PATs only; submit refuses xAI-looking keys and raw `gf_` secrets
+- `peek_work` sends `?project=` (live GET /agent/work contract). Phase 2 stubs stay unregistered
+- Next typecheck excludes the package so `next build` does not compile it without local deps
+
 ## 2026-08-13 - Interior shell (v2.3.0)
 
 - Product pages use a left workspace rail (Work / You / Network / Studio). Header no longer stacks destinations.

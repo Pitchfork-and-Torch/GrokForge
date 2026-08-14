@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:mcp": "npm test --prefix packages/mcp-server",
+    "typecheck:mcp": "npm run typecheck --prefix packages/mcp-server",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
