@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: user webhook token leak + SSRF
+
+- User `workerWebhookUrl` is public-HTTPS allowlisted (save + fire) and never receives `AGENT_RUNTIME_WEBHOOK_TOKEN`; platform / NOTIFY json hooks still may
+
 ## 2026-08-14 - Security: timing-safe cron + public paste scan
 
 - Cron Bearer compare is timing-safe (`crypto.timingSafeEqual` on sha256 of both sides)
