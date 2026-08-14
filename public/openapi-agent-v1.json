@@ -278,7 +278,8 @@
     },
     "/projects/{id}/publish-github": {
       "post": {
-        "summary": "Publish sealed package to GitHub (founder elevated)",
+        "summary": "Publish sealed package to GitHub (project creator or founder)",
+        "description": "Requires tasks:read (or any valid PAT). Role check: project proposer or founder handle. Server GITHUB_PUBLISH_TOKEN must be configured.",
         "operationId": "publishGitHub",
         "parameters": [
           {
