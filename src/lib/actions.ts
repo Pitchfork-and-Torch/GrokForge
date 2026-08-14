@@ -1994,6 +1994,8 @@ export async function markNotificationsReadAction() {
 
 export async function reportProjectCommentAction(commentId: string, reason?: string) {
   const user = await requireUser();
+  const leak = rejectSecretPaste(reason || "");
+  if (leak) return leak;
   const rl = await rateLimitAsync(`report-comment:${user.id}`, {
     limit: 20,
     windowMs: 60 * 60 * 1000,

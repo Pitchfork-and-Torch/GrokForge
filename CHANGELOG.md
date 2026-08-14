@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan comment report reason on persist
+
+- `reportProjectCommentAction` stored optional `reason` with no scan. UI does not collect it, but a crafted call could persist a PAT. `rejectSecretPaste` now runs before write.
+
 ## 2026-08-14 - Security: drop secret donate messages on webhook persist
 
 - UI donate already scans before Stripe metadata. Webhook `checkout.session.completed` still wrote `metadata.message` to `Donation.message`. `persistPublicPaste` (same `rejectSecretPaste` scanner) drops a hit; payment still records.
