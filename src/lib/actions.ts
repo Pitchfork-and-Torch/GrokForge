@@ -2433,7 +2433,7 @@ export async function linkArtifactAction(formData: FormData) {
     const titleRaw = String(formData.get("title") || "").trim();
     const license = String(formData.get("license") || "MIT").slice(0, 40);
 
-    const leak = rejectSecretPaste(`${titleRaw}\n${license}`);
+    const leak = rejectSecretPaste(`${titleRaw}\n${license}\n${rawUrl}`);
     if (leak) return leak;
 
     const project = await prisma.project.findUnique({
