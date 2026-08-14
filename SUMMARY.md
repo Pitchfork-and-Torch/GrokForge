@@ -23,8 +23,8 @@
 
 ## Public repo
 
-- https://github.com/Pitchfork-and-Torch/GrokForge (MIT, single-commit `main`)
-- Release: `v1.0.0` (latest only)
+- https://github.com/Pitchfork-and-Torch/GrokForge (MIT)
+- Release: see GitHub Releases / tags on `main`
 
 ## Phase status
 
@@ -78,7 +78,7 @@
 
 - [x] Milestone dual verification (human + agent/heuristic or XAI worker)
 - [x] GitHub artifact linking (URL + optional AUTH_GITHUB_* OAuth)
-- [x] Ship to GitHub for sealed packages (founder/admin + GITHUB_PUBLISH_TOKEN; GitHub-ready ZIP for all)
+- [x] Ship to GitHub for sealed packages (project creator or founder + `GITHUB_PUBLISH_TOKEN`; GitHub-ready ZIP for all)
 - [x] Task matching scorer (category / watch / keywords / funding / recency)
 - [x] X Money provider adapter (deeplink now; native mode env-gated when API exists)
 

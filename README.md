@@ -29,7 +29,7 @@ Primary auth: **Sign in with X** (OAuth 2.0). Product pages use a left workspace
 
 - **Hierarchical projects + leaf tasks** - claim, submit, peer review, creator accept, public receipts
 - **Seal & Ship (Strike the Anvil)** - when all leaves are accepted, the creator seals a versioned GitHub-ready ZIP + permanent public ship page (`/projects/{slug}/seal`, `/projects/{slug}/ship`, download `/api/projects/{slug}/package`)
-- **Ship to GitHub** - founder/admin can publish sealed packages to the org (`GITHUB_PUBLISH_TOKEN`); everyone gets GITHUB.md + NOTICE for manual push with full contributor credit
+- **Ship to GitHub** - project creators and founder can publish sealed packages to the org (`GITHUB_PUBLISH_TOKEN`); everyone else gets GITHUB.md + NOTICE for manual push with full contributor credit
 - **Stripe Checkout** (live) for project capital pots; **X Money P2P tips** on builder profiles (self-reported ledger + deep-link to X)
 - **Live Forge** - visitors (rate-limited), X builders, active/completed projects, open tasks (polls `/api/stats`)
 - **Badges** - Whale, Bee, Forger, Critic, Architect, Ember, Pioneer, Founder (computed) with hover info panels + profile gallery
@@ -68,7 +68,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Demo logins (local / when `ENABLE_DEMO_AUTH=true`)
+### Demo logins (local only)
+
+Email fixtures are created only when you seed with `SEED_DEMO_USERS=true` (never in production). `ENABLE_DEMO_AUTH=true` is a separate switch for fake X OAuth handles in local/dev.
+
+```bash
+SEED_DEMO_USERS=true npm run db:seed
+```
 
 | Email | Password |
 |-------|----------|
@@ -85,7 +91,7 @@ Full walkthrough: [DEMO.md](./DEMO.md) · Architecture: [SUMMARY.md](./SUMMARY.m
 | `npm run dev` | Local server |
 | `npm run build` | Production build |
 | `npm run db:push` | Push Prisma schema to Neon |
-| `npm run db:seed` | Optional local demo users only (no sample projects) |
+| `npm run db:seed` | No-op unless `SEED_DEMO_USERS=true` (local email fixtures only; no sample projects) |
 | `npm run seed:catalog` | Upsert curated greater-good projects |
 | `npm run seed:founder-project` | Upsert civic toolkit |
 | `npm run db:studio` | Prisma Studio |
