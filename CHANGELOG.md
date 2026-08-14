@@ -4,6 +4,10 @@
 
 - Scorecard criterion notes, donate public message (demo persist + Stripe metadata), and profile bio/capacity notes now run `rejectSecretPaste` before write. Comment report reason skipped (never collected or shown).
 
+## 2026-08-14 - Security: scan public profile bio and capacity notes
+
+- `/u/{handle}` prints `bio` and `capacityNotes`. `updateProfileAction` wrote them with no scan. `rejectSecretPaste` now runs before persist.
+
 ## 2026-08-14 - Security: scan ranking scorecard notes on persist
 
 - Scorecard criterion notes render on public project pages and `/rankings`. `saveProjectScorecardAction` wrote them with no scan. `rejectSecretPaste` now runs before upsert.
