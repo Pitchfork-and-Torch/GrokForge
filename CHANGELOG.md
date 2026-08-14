@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan seal notes on the persist path
+
+- UI `sealProjectAction` already scanned; Agent API `POST /api/v1/projects/:id/seal` writes the same public `sealNote` / `packageTitle` (ship page + impactSummary) via `sealProjectForUser` with no scan. `rejectSecretPaste` now runs in that shared persist path before write.
+
 ## 2026-08-14 - Security: scan public task prompts on persist
 
 - Task title/prompt/acceptanceCriteria were still unscanned after #10 (project pages + GET /api/v1/agent/work). `rejectSecretPaste` now runs on create-project master/leaf text, add-leaf, and edit-leaf before write. Dispute notes scanned too.

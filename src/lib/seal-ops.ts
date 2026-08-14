@@ -8,6 +8,7 @@ import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyUser } from "@/lib/notify";
 import { isFounderHandle } from "@/lib/identity";
 import { projectTaskProgress } from "@/lib/utils";
+import { rejectSecretPaste } from "@/lib/secret-scan";
 import {
   buildPackageFiles,
   buildTaskTree,
@@ -166,6 +167,10 @@ export async function sealProjectForUser(
   if (sealNote.length > 8000) {
     return { error: "Seal note too long (max 8000)" };
   }
+  const leak = rejectSecretPaste(
+    `${sealNote}\n${input.packageTitle || ""}`
+  );
+  if (leak) return leak;
 
   const project = await prisma.project.findUnique({
     where: { id: input.projectId },
