@@ -39,10 +39,10 @@ export function DonateForm({
           setOk(false);
           const res = await demoDonateAction(fd);
           // Stripe path redirects; if we return, demo path or error
-          if (res?.error) {
-            setError(res.error);
+          if (res && "error" in res) {
+            setError(res.error ?? "Donate failed");
             setOk(false);
-          } else if (res?.ok) {
+          } else if (res && "ok" in res && res.ok) {
             setError(null);
             setOk(true);
             try {

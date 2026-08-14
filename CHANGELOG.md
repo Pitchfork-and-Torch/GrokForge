@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan remaining public paste writers
+
+- Scorecard criterion notes, donate public message (demo persist + Stripe metadata), and profile bio/capacity notes now run `rejectSecretPaste` before write. Comment report reason skipped (never collected or shown).
+
 ## 2026-08-14 - Security: scan public artifact titles on persist
 
 - Artifact titles render on project pages. `linkArtifactAction` wrote title/license with no scan. `rejectSecretPaste` now runs before persist.

@@ -824,12 +824,12 @@ export async function saveProjectScorecardAction(formData: FormData) {
 
     const leak = rejectSecretPaste(
       [
-        parsed.data.strategicNote,
-        parsed.data.technicalNote,
-        parsed.data.businessNote,
-        parsed.data.effortNote,
-        parsed.data.riskNote,
-        parsed.data.timeNote,
+        parsed.data.strategicNote || "",
+        parsed.data.technicalNote || "",
+        parsed.data.businessNote || "",
+        parsed.data.effortNote || "",
+        parsed.data.riskNote || "",
+        parsed.data.timeNote || "",
       ].join("\n")
     );
     if (leak) return leak;
@@ -1017,6 +1017,8 @@ export async function demoDonateAction(formData: FormData) {
   const potId = String(formData.get("potId") || "");
   const amountUsd = Number(formData.get("amountUsd") || 0);
   const message = String(formData.get("message") || "");
+  const leak = rejectSecretPaste(message);
+  if (leak) return leak;
 
   if (!projectId || !potId || amountUsd < 1) {
     return { error: "Pick a pot and amount of at least $1" };
@@ -1355,6 +1357,8 @@ export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
   const capacityNotes = String(formData.get("capacityNotes") || "").slice(0, 2000);
   const bio = String(formData.get("bio") || "").slice(0, 2000);
+  const leak = rejectSecretPaste(`${bio}\n${capacityNotes}`);
+  if (leak) return leak;
   const handleRaw = String(formData.get("handle") || "").replace(/^@/, "").slice(0, 32);
   const githubHandle = String(formData.get("githubHandle") || "")
     .replace(/^@/, "")
@@ -1362,9 +1366,6 @@ export async function updateProfileAction(formData: FormData) {
     .split("/")[0]
     .replace(/[^A-Za-z0-9-]/g, "")
     .slice(0, 39);
-
-  const leak = rejectSecretPaste(`${bio}\n${capacityNotes}`);
-  if (leak) return leak;
 
   if (handleRaw && handleRaw !== user.handle) {
     const taken = await prisma.user.findUnique({ where: { handle: handleRaw } });
