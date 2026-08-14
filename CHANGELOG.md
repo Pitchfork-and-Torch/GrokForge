@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan public project license on persist
+
+- Project `license` renders on listings, the project badge, ship page, and OG. Create/edit scanned title/description/prompts but not license (`gf_` + 32 fits in the 40-char field). `rejectSecretPaste` now includes license before write.
+
 ## 2026-08-14 - Security: scan public artifact URLs on persist
 
 - `linkArtifactAction` already scanned title/license. The public `url` (project pages; blank title falls back to the URL) still persisted raw. `rejectSecretPaste` now includes the URL before write.
