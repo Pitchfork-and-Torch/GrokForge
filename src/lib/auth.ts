@@ -6,6 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { rejectSignupIdentity } from "@/lib/secret-scan";
 
 const credentialsSchema = z.object({
   mode: z.enum(["email", "x-demo"]).default("email"),
@@ -84,6 +85,8 @@ providers.push(
         const email = `${handle.toLowerCase()}@x-demo.grokforge.local`;
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
+          const leak = rejectSignupIdentity(data.name, handle);
+          if (leak) return null;
           user = await prisma.user.create({
             data: {
               email,
@@ -114,6 +117,8 @@ providers.push(
           data.handle?.replace(/^@/, "") ||
           data.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "").slice(0, 24) ||
           "builder";
+        const leak = rejectSignupIdentity(data.name, handleBase);
+        if (leak) return null;
         let handle = handleBase;
         let n = 0;
         while (await prisma.user.findUnique({ where: { handle } })) {
