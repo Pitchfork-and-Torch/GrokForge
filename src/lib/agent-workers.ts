@@ -72,7 +72,7 @@ export async function upsertWorkerHeartbeat(input: HeartbeatInput) {
   } = {
     status: event === "error" ? "error" : status,
     projectFilter: persistPublicPaste(projectFilter),
-    lastTaskId: input.lastTaskId?.slice(0, 64) || null,
+    lastTaskId: persistPublicPaste(input.lastTaskId?.slice(0, 64) || null),
     lastProjectSlug: persistPublicPaste(
       input.lastProjectSlug?.slice(0, 120) || null
     ),
