@@ -1363,6 +1363,9 @@ export async function updateProfileAction(formData: FormData) {
     .replace(/[^A-Za-z0-9-]/g, "")
     .slice(0, 39);
 
+  const leak = rejectSecretPaste(`${bio}\n${capacityNotes}`);
+  if (leak) return leak;
+
   if (handleRaw && handleRaw !== user.handle) {
     const taken = await prisma.user.findUnique({ where: { handle: handleRaw } });
     if (taken) return { error: "Handle taken" };
