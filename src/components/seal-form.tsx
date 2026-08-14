@@ -42,7 +42,7 @@ export function SealForm({
     fd.set("packageTitle", packageTitle);
     start(async () => {
       const res = await sealProjectAction(fd);
-      if (res?.error) {
+      if (res && "error" in res) {
         setError(res.error);
         return;
       }
@@ -51,7 +51,7 @@ export function SealForm({
       } catch {
         /* ok */
       }
-      if (res?.shipPath) {
+      if (res.shipPath) {
         router.push(res.shipPath);
         router.refresh();
       } else {

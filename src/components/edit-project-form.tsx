@@ -96,7 +96,7 @@ export function EditProjectForm({
           fd.set("projectId", projectId);
           start(async () => {
             const res = await updateProjectAction(fd);
-            if (res?.error) {
+            if (res && "error" in res) {
               setError(res.error);
               setOk(false);
             } else {

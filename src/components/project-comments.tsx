@@ -54,7 +54,7 @@ export function ProjectComments({
               start(async () => {
                 try {
                   const res = await addProjectCommentAction(fd);
-                  if (res?.error) setError(res.error);
+                  if (res && "error" in res) setError(res.error);
                   else {
                     setError(null);
                     try {

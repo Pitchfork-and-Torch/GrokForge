@@ -198,7 +198,7 @@ export function ReviewForm({ contributionId }: { contributionId: string }) {
           score,
           quickNote || notes
         );
-        if (res?.error) {
+        if (res && "error" in res) {
           setError(res.error);
           return;
         }
