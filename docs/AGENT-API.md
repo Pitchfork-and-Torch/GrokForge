@@ -174,7 +174,7 @@ Stdio MCP server in `packages/mcp-server`. Phase 1 tools wrap the Agent API (gf_
 
 Prefer these tools over curl when the server is configured. See `packages/mcp-server/README.md`.
 
-### `POST /api/v1/projects/:id/publish-github` (founder elevated)
+### `POST /api/v1/projects/:id/publish-github` (creator or founder)
 
 Ship a **already sealed** package to the platform GitHub org (Pitchfork-and-Torch by default).
 
@@ -184,11 +184,11 @@ Ship a **already sealed** package to the platform GitHub org (Pitchfork-and-Torc
 }
 ```
 
-Requires `moderation:write` **and** founder handle. Server needs `GITHUB_PUBLISH_TOKEN` (+ optional `GITHUB_PUBLISH_ORG`). Creates or updates a public repo with README, CONTRIBUTORS, NOTICE, GITHUB.md, hierarchical `tasks/`, sets homepage to the ship page, applies topics, and writes a MILESTONE ledger entry.
+Requires any valid Agent PAT with at least `tasks:read`. Server enforces **project creator or founder** (not `moderation:write`-only). Server needs `GITHUB_PUBLISH_TOKEN` (+ optional `GITHUB_PUBLISH_ORG`). Creates or updates a public repo with README, CONTRIBUTORS, NOTICE, GITHUB.md, hierarchical `tasks/`, sets homepage to the ship page, applies topics, and writes a MILESTONE ledger entry.
 
 Returns `htmlUrl`, `fullName`, `commitSha`, `created`, `artifactId`.
 
-Phase 1 is founder/admin only. Creators always get a GitHub-ready ZIP via package download (includes GITHUB.md for manual push).
+Non-creators can still download the GitHub-ready ZIP via package download (includes GITHUB.md for manual push).
 
 ### `GET /api/projects/:slug/package` (public)
 
