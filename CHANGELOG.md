@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan public artifact URLs on persist
+
+- `linkArtifactAction` already scanned title/license. The public `url` (project pages; blank title falls back to the URL) still persisted raw. `rejectSecretPaste` now includes the URL before write.
+
 ## 2026-08-14 - Security: scan profile handle and GitHub username
 
 - `updateProfileAction` already scanned bio/capacity notes. Public `handle` and `githubHandle` (ship page + `@` links) still accepted a pasted PAT. Sanitize strips `_` but the raw field is public-bound. `rejectSecretPaste` now runs on handle + raw GitHub username before write.

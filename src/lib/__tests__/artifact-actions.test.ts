@@ -79,4 +79,18 @@ describe("linkArtifactAction secret scan", () => {
     expect(projectFindUnique).not.toHaveBeenCalled();
     expect(artifactCreate).not.toHaveBeenCalled();
   });
+
+  it("rejects a synthetic gf_ PAT in the public URL without hitting the DB", async () => {
+    const fake = "gf_" + "z".repeat(32);
+    const res = await linkArtifactAction(
+      artifactForm({ url: `https://example.com/deliverable?token=${fake}` })
+    );
+    expect(res).toEqual(
+      expect.objectContaining({
+        error: expect.stringMatching(/GrokForge PAT/i),
+      })
+    );
+    expect(projectFindUnique).not.toHaveBeenCalled();
+    expect(artifactCreate).not.toHaveBeenCalled();
+  });
 });
