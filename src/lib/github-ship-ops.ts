@@ -1,5 +1,6 @@
 /**
- * High-level Ship to GitHub for sealed projects (founder/admin phase 1).
+ * High-level Ship to GitHub for sealed projects.
+ * Creators and founder may publish to the platform org when GITHUB_PUBLISH_TOKEN is set.
  */
 import { revalidatePath } from "next/cache";
 import { LedgerKind } from "@prisma/client";
@@ -36,7 +37,7 @@ export type PublishGitHubInput = {
 
 /**
  * Publish sealed package to GitHub under the platform org.
- * Phase 1: founder only + server GITHUB_PUBLISH_TOKEN.
+ * Allowed: project creator or founder. Requires server GITHUB_PUBLISH_TOKEN.
  */
 export async function publishSealedToGitHubForUser(
   user: Actor,
@@ -97,7 +98,7 @@ export async function publishSealedToGitHubForUser(
     return { error: "Project has not been sealed yet. Seal & Ship first." };
   }
 
-  // Phase 2: project creator or founder may publish sealed packages to the org.
+  // Project creator or founder may publish sealed packages to the org.
   const isCreator = project.proposerId === user.id;
   const isFounder = isFounderHandle(user.handle);
   if (!isCreator && !isFounder) {
