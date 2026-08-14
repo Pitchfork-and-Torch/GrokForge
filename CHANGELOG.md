@@ -12,6 +12,10 @@
 
 - `reportProjectCommentAction` stored optional `reason` with no scan. UI does not collect it, but a crafted call could persist a PAT. `rejectSecretPaste` now runs before write.
 
+## 2026-08-14 - Security: scan agent token names on persist
+
+- `createApiToken` wrote the dashboard token label with no scan. `rejectSecretPaste` now runs in that shared persist path before mint.
+
 ## 2026-08-14 - Security: drop secret heartbeat slug and filter on persist
 
 - #20 scanned workerName and lastError. `/forge` still prints `lastProjectSlug` and `projectFilter` from the same heartbeat persist. `persistPublicPaste` now drops a hit so presence still records.
