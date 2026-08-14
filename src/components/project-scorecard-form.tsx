@@ -100,10 +100,10 @@ export function ProjectScorecardForm({
     start(async () => {
       const res = await saveProjectScorecardAction(fd);
       if (res && "error" in res) {
-        setError(res.error);
+        setError(res.error ?? "Save scorecard failed");
         return;
       }
-      if (res && "ok" in res && res.ok) {
+      if (res && "ok" in res) {
         setSavedTotal(res.totalScore);
         setOpen(false);
       }
