@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: scan remaining public paste writers
+
+- Scorecard criterion notes, donate public message (demo persist + Stripe metadata), and profile bio/capacity notes now run `rejectSecretPaste` before write. Comment report reason skipped (never collected or shown).
+
 ## 2026-08-14 - Security: scan public task prompts on persist
 
 - Task title/prompt/acceptanceCriteria were still unscanned after #10 (project pages + GET /api/v1/agent/work). `rejectSecretPaste` now runs on create-project master/leaf text, add-leaf, and edit-leaf before write. Dispute notes scanned too.
