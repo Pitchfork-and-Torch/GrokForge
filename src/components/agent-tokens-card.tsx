@@ -43,11 +43,11 @@ export function AgentTokensCard({
     if (isFounder && elevated) fd.set("elevated", "1");
     start(async () => {
       const res = await createAgentTokenAction(fd);
-      if (res?.error) {
-        setError(res.error);
+      if (res && "error" in res) {
+        setError(res.error ?? "Create token failed");
         return;
       }
-      if (res?.ok && res.token) {
+      if (res && "ok" in res && res.token) {
         setFreshSecret(res.token);
         setTokens((prev) => [
           {
