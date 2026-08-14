@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { rejectSecretPaste, scanForSecrets } from "@/lib/secret-scan";
+import {
+  persistPublicPaste,
+  rejectSecretPaste,
+  scanForSecrets,
+} from "@/lib/secret-scan";
 
 describe("secret-scan", () => {
   it("allows clean markdown", () => {
@@ -72,5 +76,14 @@ describe("secret-scan", () => {
     const r = rejectSecretPaste(`lgtm ${fake}`);
     expect(r).not.toBeNull();
     expect(r?.error).toMatch(/GrokForge PAT/i);
+  });
+
+  it("persistPublicPaste drops a synthetic gf_ PAT and keeps clean text", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(persistPublicPaste(`thanks ${fake}`)).toBeNull();
+    expect(persistPublicPaste("  Keep the leaves open-license.  ")).toBe(
+      "Keep the leaves open-license."
+    );
+    expect(persistPublicPaste("")).toBeNull();
   });
 });
