@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2026-08-15 - Security: drop secrets on agent runtime webhook leaf titles
+
+- #34 scanned `fireAgentRuntimeWebhook` title/body. `extra.leaves[].title` still POSTed raw (pre-scan task titles on leaf-ready). `persistNotifyText` (same scanner) now replaces a hit; the webhook still fires.
+
 ## 2026-08-15 - Security: drop secrets on agent runtime webhook fan-out
 
 - #33 scanned `notifyUser` title/body. `fireAgentRuntimeWebhook` still POSTed raw title/body to platform + user webhooks (leaf-ready / skill-pack). Callers already scan new paste; composed strings still embed pre-scan task/project titles. `persistNotifyText` (same scanner) now replaces a hit; the webhook still fires.
