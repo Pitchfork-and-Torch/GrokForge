@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import {
   persistOAuthDisplayName,
   persistOAuthGithubHandle,
+  persistOAuthTwitterHandle,
   rejectSignupIdentity,
 } from "@/lib/secret-scan";
 
@@ -218,8 +219,9 @@ async function enrichTwitterUser(
   } = {};
 
   const safeName = persistOAuthDisplayName(name);
-  if (username) {
-    data.handle = await ensureUniqueHandle(username, userId);
+  const safeUsername = persistOAuthTwitterHandle(username);
+  if (safeUsername) {
+    data.handle = await ensureUniqueHandle(safeUsername, userId);
     data.name = safeName || data.handle;
   } else if (safeName && !existing.name) {
     data.name = safeName;

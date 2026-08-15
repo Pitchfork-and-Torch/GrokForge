@@ -70,3 +70,11 @@ export function persistOAuthGithubHandle(raw?: string | null): string | null {
   const gh = t.replace(/[^A-Za-z0-9-]/g, "").slice(0, 39);
   return gh || null;
 }
+
+/** OAuth X username persist: scan raw, then sanitize (signIn must not throw). */
+export function persistOAuthTwitterHandle(raw?: string | null): string | null {
+  const t = (raw || "").replace(/^@/, "").trim();
+  if (!t || rejectSecretPaste(t)) return null;
+  const handle = t.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32);
+  return handle || null;
+}
