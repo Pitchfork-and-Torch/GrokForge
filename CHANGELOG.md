@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2026-08-15 - Security: drop secrets on agent runtime webhook fan-out
+
+- #33 scanned `notifyUser` title/body. `fireAgentRuntimeWebhook` still POSTed raw title/body to platform + user webhooks (leaf-ready / skill-pack). Callers already scan new paste; composed strings still embed pre-scan task/project titles. `persistNotifyText` (same scanner) now replaces a hit; the webhook still fires.
+
 ## 2026-08-15 - Security: drop secrets on notify persist
 
 - #32 scanned `LedgerEntry.summary`. `notifyUser` still wrote raw title/body to the in-app bell, dashboard inbox, and NOTIFY webhook/email. Callers already scan new paste; claim expiry and comments still copy pre-scan titles or comment snippets into a new row. `persistNotifyText` (same scanner) now replaces a hit; the row and fan-out still write.

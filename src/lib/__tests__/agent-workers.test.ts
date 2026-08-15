@@ -73,4 +73,46 @@ describe("fireAgentRuntimeWebhook", () => {
     expect(captured.map((c) => c.url)).toEqual([PLATFORM]);
     expect(authOf(PLATFORM)).toBe(`Bearer ${TOKEN}`);
   });
+
+  function sentBodies() {
+    return captured.map((row) =>
+      JSON.parse(String(row.init.body)) as { title: string; body: string }
+    );
+  }
+
+  it("POSTs a clean title and body unchanged", async () => {
+    await fireAgentRuntimeWebhook({
+      type: "leaf.ready",
+      title: "Ready leaves: Open civic kit",
+      body: "1 claimable leaf(ves). Top: Write the open brief",
+      userWebhookUrl: USER,
+    });
+
+    expect(captured).toHaveLength(2);
+    for (const sent of sentBodies()) {
+      expect(sent.title).toBe("Ready leaves: Open civic kit");
+      expect(sent.body).toBe("1 claimable leaf(ves). Top: Write the open brief");
+    }
+  });
+
+  it("does not POST a synthetic gf_ PAT in title or body", async () => {
+    const fake = "gf_" + "z".repeat(32);
+    await fireAgentRuntimeWebhook({
+      type: "leaf.ready",
+      title: `Ready leaves: ${fake}`,
+      body: `1 claimable. Top: ${fake}`,
+      userWebhookUrl: USER,
+    });
+
+    expect(captured).toHaveLength(2);
+    for (const sent of sentBodies()) {
+      expect(sent.title).toBe("Notification");
+      expect(sent.body).toBe("Activity recorded");
+      expect(sent.title.includes("gf_")).toBe(false);
+      expect(sent.body.includes("gf_")).toBe(false);
+      expect(JSON.stringify(sent).includes("gf_")).toBe(false);
+    }
+    expect(authOf(USER)).toBeNull();
+    expect(authOf(PLATFORM)).toBe(`Bearer ${TOKEN}`);
+  });
 });
