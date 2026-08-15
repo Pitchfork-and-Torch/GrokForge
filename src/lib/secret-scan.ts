@@ -55,6 +55,11 @@ export function persistLedgerSummary(text: string): string {
   return persistPublicPaste(text.slice(0, 500)) || "Activity recorded";
 }
 
+/** In-app bell + notify webhook/email: keep clean text, replace a hit so the row still writes. */
+export function persistNotifyText(text: string, fallback: string): string {
+  return persistPublicPaste(text) || fallback;
+}
+
 /** Signup name/handle persist guard (same scanner). */
 export function rejectSignupIdentity(
   name?: string | null,
