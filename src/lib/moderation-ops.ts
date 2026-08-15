@@ -8,7 +8,7 @@ import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyUser } from "@/lib/notify";
 import { isFounderHandle } from "@/lib/identity";
 import { syncProjectCompletionStatus } from "@/lib/project-completion";
-import { rejectSecretPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, rejectSecretPaste } from "@/lib/secret-scan";
 
 type Actor = {
   id: string;
@@ -139,7 +139,9 @@ export async function moderateContributionForUser(
       projectId: contribution.task.projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: `@${user.handle || user.name} ${role}-${accepted ? "accepted" : "rejected"} "${contribution.task.title}" by @${contribution.user.handle || "builder"}`,
+      summary: persistLedgerSummary(
+        `@${user.handle || user.name} ${role}-${accepted ? "accepted" : "rejected"} "${contribution.task.title}" by @${contribution.user.handle || "builder"}`
+      ),
       actorHandle: user.handle,
       meta: JSON.stringify({
         contributionId,
@@ -326,7 +328,9 @@ export async function bulkAcceptPendingForUser(
       projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: `@${user.handle || user.name} ${role} bulk-accepted ${accepted} pending (${skipped} skipped dual-key/gates) on "${project.title}"`,
+      summary: persistLedgerSummary(
+        `@${user.handle || user.name} ${role} bulk-accepted ${accepted} pending (${skipped} skipped dual-key/gates) on "${project.title}"`
+      ),
       actorHandle: user.handle,
       meta: JSON.stringify({
         bulkAccept: true,

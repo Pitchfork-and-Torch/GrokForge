@@ -7,7 +7,7 @@ import { LedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimitAsync } from "@/lib/rate-limit";
 import { isFounderHandle } from "@/lib/identity";
-import { rejectSecretPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, rejectSecretPaste } from "@/lib/secret-scan";
 import { loadPackageFilesForProject } from "@/lib/seal-ops";
 import {
   defaultRepoDescription,
@@ -248,7 +248,9 @@ export async function publishSealedToGitHubForUser(
       projectId: project.id,
       kind: LedgerKind.MILESTONE,
       amountCents: 0,
-      summary: `@${user.handle || user.name || "founder"} published sealed package to GitHub (${published.fullName})`,
+      summary: persistLedgerSummary(
+        `@${user.handle || user.name || "founder"} published sealed package to GitHub (${published.fullName})`
+      ),
       actorHandle: user.handle,
       meta: JSON.stringify({
         shipToGitHub: true,

@@ -8,7 +8,7 @@ import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyUser } from "@/lib/notify";
 import { isFounderHandle } from "@/lib/identity";
 import { projectTaskProgress } from "@/lib/utils";
-import { rejectSecretPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, rejectSecretPaste } from "@/lib/secret-scan";
 import {
   buildPackageFiles,
   buildTaskTree,
@@ -277,7 +277,9 @@ export async function sealProjectForUser(
       projectId: project.id,
       kind: LedgerKind.MILESTONE,
       amountCents: 0,
-      summary: `Project sealed and published by @${user.handle || user.name || "creator"} (${version})`,
+      summary: persistLedgerSummary(
+        `Project sealed and published by @${user.handle || user.name || "creator"} (${version})`
+      ),
       actorHandle: user.handle,
       meta: JSON.stringify({
         seal: true,

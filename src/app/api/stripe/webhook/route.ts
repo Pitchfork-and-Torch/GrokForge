@@ -3,7 +3,7 @@ import { LedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
 import { computeMatch } from "@/lib/matching-funds";
-import { persistPublicPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, persistPublicPaste } from "@/lib/secret-scan";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -84,7 +84,9 @@ export async function POST(req: NextRequest) {
             projectId,
             kind: LedgerKind.CAPITAL,
             amountCents,
-            summary: `${donor?.handle ? `@${donor.handle}` : "Donor"} funded matching pool +$${(amountCents / 100).toFixed(2)} via Stripe`,
+            summary: persistLedgerSummary(
+              `${donor?.handle ? `@${donor.handle}` : "Donor"} funded matching pool +$${(amountCents / 100).toFixed(2)} via Stripe`
+            ),
             actorHandle: donor?.handle,
             meta: JSON.stringify({
               matchingPoolFund: true,
@@ -169,7 +171,9 @@ export async function POST(req: NextRequest) {
                 projectId,
                 kind: LedgerKind.CAPITAL,
                 amountCents,
-                summary: `${donor?.handle ? `@${donor.handle}` : "Donor"} funded ${pot?.label || "pot"} via Stripe`,
+                summary: persistLedgerSummary(
+                  `${donor?.handle ? `@${donor.handle}` : "Donor"} funded ${pot?.label || "pot"} via Stripe`
+                ),
                 actorHandle: donor?.handle,
               },
             });
@@ -195,7 +199,9 @@ export async function POST(req: NextRequest) {
                   projectId,
                   kind: LedgerKind.CAPITAL,
                   amountCents: match.matchCents,
-                  summary: `Matching funds (${match.ratioLabel}): +$${(match.matchCents / 100).toFixed(2)} to ${pot?.label || "pot"} after Stripe gift`,
+                  summary: persistLedgerSummary(
+                    `Matching funds (${match.ratioLabel}): +$${(match.matchCents / 100).toFixed(2)} to ${pot?.label || "pot"} after Stripe gift`
+                  ),
                   actorHandle: "matching-pool",
                   meta: JSON.stringify({
                     matching: true,

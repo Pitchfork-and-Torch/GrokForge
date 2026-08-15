@@ -10,7 +10,7 @@ import { requireUser } from "@/lib/session";
 import { recordProjectEdit } from "@/lib/edit-history";
 import { tierForReputation } from "@/lib/reputation-tiers";
 import { isFounderHandle } from "@/lib/identity";
-import { rejectSecretPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, rejectSecretPaste } from "@/lib/secret-scan";
 
 /** Creator: add a nested OPEN leaf after publish */
 export async function addLeafTaskAction(formData: FormData) {
@@ -78,7 +78,9 @@ export async function addLeafTaskAction(formData: FormData) {
         projectId,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} added leaf "${title.slice(0, 60)}"`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} added leaf "${title.slice(0, 60)}"`
+        ),
         actorHandle: user.handle,
       },
     });
@@ -191,7 +193,9 @@ export async function peerReviewContributionAction(formData: FormData) {
         projectId: c.task.projectId,
         kind: LedgerKind.LABOR,
         amountCents: 0,
-        summary: `@${user.handle || user.name} peer-reviewed submission on "${c.task.title}" (${score}/5) (+2 rep)`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} peer-reviewed submission on "${c.task.title}" (${score}/5) (+2 rep)`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({ peerReview: true, contributionId, score }),
       },
@@ -238,7 +242,9 @@ export async function disputeContributionAction(formData: FormData) {
         projectId: c.task.projectId,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} disputed submission on "${c.task.title}"`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} disputed submission on "${c.task.title}"`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({ dispute: true, contributionId }),
       },
@@ -283,7 +289,9 @@ export async function reopenContributionTaskAction(formData: FormData) {
           projectId: c.task.projectId,
           kind: LedgerKind.ADJUSTMENT,
           amountCents: 0,
-          summary: `@${user.handle || user.name} reopened "${c.task.title}" for rework`,
+          summary: persistLedgerSummary(
+            `@${user.handle || user.name} reopened "${c.task.title}" for rework`
+          ),
           actorHandle: user.handle,
         },
       }),

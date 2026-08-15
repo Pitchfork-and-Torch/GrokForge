@@ -7,7 +7,7 @@ import { LedgerKind, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
-import { rejectSecretPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, rejectSecretPaste } from "@/lib/secret-scan";
 
 type Actor = {
   id: string;
@@ -123,7 +123,9 @@ export async function peerReviewContributionForUser(
       projectId: contribution.task.projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: `@${user.handle || user.name} reviewed contribution (${avg}/5) -> ${accepted ? "accepted" : "rejected"}`,
+      summary: persistLedgerSummary(
+        `@${user.handle || user.name} reviewed contribution (${avg}/5) -> ${accepted ? "accepted" : "rejected"}`
+      ),
       actorHandle: user.handle,
       meta: JSON.stringify({
         contributionId,

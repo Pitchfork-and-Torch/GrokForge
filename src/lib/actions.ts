@@ -19,7 +19,7 @@ import {
   getBannerFile,
   storeUploadedBanner,
 } from "@/lib/banner";
-import { rejectSecretPaste } from "@/lib/secret-scan";
+import { persistLedgerSummary, rejectSecretPaste } from "@/lib/secret-scan";
 import { checkPublicHttpsWebhookUrl } from "@/lib/webhook-url";
 
 const projectSchema = z.object({
@@ -232,7 +232,9 @@ export async function createProjectAction(formData: FormData) {
       projectId: project.id,
       kind: LedgerKind.ADJUSTMENT,
       amountCents: 0,
-      summary: `Project created by @${user.handle || user.name}`,
+      summary: persistLedgerSummary(
+        `Project created by @${user.handle || user.name}`
+      ),
       actorHandle: user.handle,
     },
   });
@@ -298,7 +300,9 @@ export async function generateProjectBannerAction(projectId: string) {
         projectId: project.id,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} set project banner via Grok Imagine`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} set project banner via Grok Imagine`
+        ),
         actorHandle: user.handle,
       },
     });
@@ -391,7 +395,9 @@ export async function uploadProjectBannerAction(formData: FormData) {
         projectId: project.id,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} uploaded a custom project banner`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} uploaded a custom project banner`
+        ),
         actorHandle: user.handle,
       },
     });
@@ -602,7 +608,7 @@ export async function updateProjectAction(formData: FormData) {
       projectId: project.id,
       kind: LedgerKind.ADJUSTMENT,
       amountCents: 0,
-      summary,
+      summary: persistLedgerSummary(summary),
       actorHandle: user.handle,
     },
   });
@@ -906,7 +912,9 @@ export async function saveProjectScorecardAction(formData: FormData) {
         projectId: project.id,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} set ranking scorecard to ${totalScore.toFixed(2)}/5.00`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} set ranking scorecard to ${totalScore.toFixed(2)}/5.00`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({ totalScore }),
       },
@@ -1119,7 +1127,9 @@ export async function demoDonateAction(formData: FormData) {
         projectId,
         kind: LedgerKind.CAPITAL,
         amountCents,
-        summary: `${user.handle ? `@${user.handle}` : user.name} donated $${amountUsd.toFixed(2)} to ${pot.label}`,
+        summary: persistLedgerSummary(
+          `${user.handle ? `@${user.handle}` : user.name} donated $${amountUsd.toFixed(2)} to ${pot.label}`
+        ),
         actorHandle: user.handle,
       },
     });
@@ -1143,7 +1153,9 @@ export async function demoDonateAction(formData: FormData) {
           projectId,
           kind: LedgerKind.CAPITAL,
           amountCents: match.matchCents,
-          summary: `Matching funds (${match.ratioLabel}): +$${(match.matchCents / 100).toFixed(2)} to ${pot.label} after @${user.handle || "donor"} gift`,
+          summary: persistLedgerSummary(
+            `Matching funds (${match.ratioLabel}): +$${(match.matchCents / 100).toFixed(2)} to ${pot.label} after @${user.handle || "donor"} gift`
+          ),
           actorHandle: "matching-pool",
           meta: JSON.stringify({
             matching: true,
@@ -1233,11 +1245,13 @@ export async function setMatchingFundsAction(formData: FormData) {
         projectId,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} set matching funds ${enabled ? "ON" : "OFF"} (${clampRatioBps(ratioBps)} bps)${
-          data.requireDualKey != null
-            ? `; dual-key ${data.requireDualKey ? "ON" : "OFF"}`
-            : ""
-        }`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} set matching funds ${enabled ? "ON" : "OFF"} (${clampRatioBps(ratioBps)} bps)${
+            data.requireDualKey != null
+              ? `; dual-key ${data.requireDualKey ? "ON" : "OFF"}`
+              : ""
+          }`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({
           matchingConfig: true,
@@ -1333,7 +1347,9 @@ export async function fundMatchingPoolAction(formData: FormData) {
         projectId,
         kind: LedgerKind.CAPITAL,
         amountCents,
-        summary: `@${who} funded matching pool +$${amountUsd.toFixed(2)} (demo ledger)`,
+        summary: persistLedgerSummary(
+          `@${who} funded matching pool +$${amountUsd.toFixed(2)} (demo ledger)`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({ matchingPoolFund: true, demo: true }),
       },
@@ -1434,7 +1450,9 @@ export async function pinFeaturedProjectAction(projectId: string | null) {
           projectId: project.id,
           kind: LedgerKind.ADJUSTMENT,
           amountCents: 0,
-          summary: `@${user.handle || user.name} pinned "${project.title}" as home featured project`,
+          summary: persistLedgerSummary(
+            `@${user.handle || user.name} pinned "${project.title}" as home featured project`
+          ),
           actorHandle: user.handle,
           meta: JSON.stringify({ featuredPin: true, projectId: project.id }),
         },
@@ -1512,7 +1530,9 @@ export async function reorderProjectsAction(orderedIds: string[]) {
         projectId: existing[0].id,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle || user.name} reordered public project list (${ids.length} projects)`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} reordered public project list (${ids.length} projects)`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({
           projectReorder: true,
@@ -1665,9 +1685,11 @@ export async function recordXMoneyTipAction(input: {
         projectId: ledgerProjectId,
         kind: LedgerKind.CAPITAL,
         amountCents,
-        summary: `@${user.handle || user.name} X Money P2P tip to @${recipient.handle || "builder"}${
-          projectTitle ? ` (attributed: ${projectTitle})` : " (general support)"
-        } · $${(amountCents / 100).toFixed(2)} self-reported`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} X Money P2P tip to @${recipient.handle || "builder"}${
+            projectTitle ? ` (attributed: ${projectTitle})` : " (general support)"
+          } · $${(amountCents / 100).toFixed(2)} self-reported`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({
           source: "X_MONEY_P2P",
@@ -1738,7 +1760,9 @@ export async function noteLeaderboardShareAction(input: {
         projectId: await platformLedgerProjectId(),
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `@${user.handle} shared leaderboard rank #${input.rank} on X`,
+        summary: persistLedgerSummary(
+          `@${user.handle} shared leaderboard rank #${input.rank} on X`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({
           kind: "leaderboard_share",
@@ -1817,7 +1841,9 @@ export async function archiveProjectAction(projectId: string) {
       projectId: project.id,
       kind: LedgerKind.ADJUSTMENT,
       amountCents: 0,
-      summary: `@${user.handle || user.name} archived the project`,
+      summary: persistLedgerSummary(
+        `@${user.handle || user.name} archived the project`
+      ),
       actorHandle: user.handle,
     },
   });
@@ -1849,7 +1875,9 @@ export async function unarchiveProjectAction(projectId: string) {
       projectId: project.id,
       kind: LedgerKind.ADJUSTMENT,
       amountCents: 0,
-      summary: `@${user.handle || user.name} restored the project to active`,
+      summary: persistLedgerSummary(
+        `@${user.handle || user.name} restored the project to active`
+      ),
       actorHandle: user.handle,
     },
   });
@@ -2188,7 +2216,9 @@ async function maybeReleaseMilestone(milestoneId: string) {
         projectId: m.projectId,
         kind: LedgerKind.MILESTONE,
         amountCents: m.targetCents,
-        summary: `Milestone released (human + agent dual verify): "${m.title}"`,
+        summary: persistLedgerSummary(
+          `Milestone released (human + agent dual verify): "${m.title}"`
+        ),
         meta: JSON.stringify({
           milestoneId: m.id,
           dualVerify: true,
@@ -2250,7 +2280,9 @@ export async function humanVerifyMilestoneAction(milestoneId: string) {
         projectId: m.projectId,
         kind: LedgerKind.MILESTONE,
         amountCents: 0,
-        summary: `@${user.handle || user.name} human-verified milestone "${m.title}"`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} human-verified milestone "${m.title}"`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({ milestoneId, leg: "human" }),
       },
@@ -2389,7 +2421,9 @@ export async function agentVerifyMilestoneAction(milestoneId: string) {
         projectId: m.projectId,
         kind: LedgerKind.MILESTONE,
         amountCents: 0,
-        summary: `Agent-verified milestone "${m.title}" (${key ? "grok-worker" : "heuristic-worker"})`,
+        summary: persistLedgerSummary(
+          `Agent-verified milestone "${m.title}" (${key ? "grok-worker" : "heuristic-worker"})`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({
           milestoneId,
@@ -2513,9 +2547,11 @@ export async function linkArtifactAction(formData: FormData) {
         projectId,
         kind: LedgerKind.LABOR,
         amountCents: 0,
-        summary: `@${user.handle || user.name} linked artifact "${art.title}"${
-          githubRepo ? ` (${githubRepo})` : ""
-        }`,
+        summary: persistLedgerSummary(
+          `@${user.handle || user.name} linked artifact "${art.title}"${
+            githubRepo ? ` (${githubRepo})` : ""
+          }`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({
           artifactId: art.id,

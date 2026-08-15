@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  persistLedgerSummary,
   persistOAuthDisplayName,
   persistOAuthGithubHandle,
   persistOAuthTwitterHandle,
@@ -89,6 +90,19 @@ describe("secret-scan", () => {
       "Keep the leaves open-license."
     );
     expect(persistPublicPaste("")).toBeNull();
+  });
+
+  it("persistLedgerSummary keeps clean tape text and replaces a synthetic gf_ PAT", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(persistLedgerSummary('@tester claimed "Open civic kit"')).toBe(
+      '@tester claimed "Open civic kit"'
+    );
+    expect(persistLedgerSummary(`Claim expired on "${fake}"`)).toBe(
+      "Activity recorded"
+    );
+    expect(persistLedgerSummary(`Claim expired on "${fake}"`).includes("gf_")).toBe(
+      false
+    );
   });
 
   it("rejectSignupIdentity blocks a synthetic gf_ PAT in handle or name", () => {
