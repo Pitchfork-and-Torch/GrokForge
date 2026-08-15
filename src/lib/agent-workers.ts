@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { persistPublicPaste, rejectSecretPaste } from "@/lib/secret-scan";
+import {
+  persistNotifyText,
+  persistPublicPaste,
+  rejectSecretPaste,
+} from "@/lib/secret-scan";
 import { checkPublicHttpsWebhookUrl } from "@/lib/webhook-url";
 
 export const WORKER_ONLINE_MS = 10 * 60 * 1000; // 10 minutes
@@ -191,6 +195,11 @@ export async function fireAgentRuntimeWebhook(payload: {
 
   if (platformUrls.length === 0 && !userUrl) return;
 
+  // Callers already scan new paste; title/body still embed pre-scan DB text
+  // (task/project titles). Scan once so platform + user webhooks get cleaned strings.
+  const title = persistNotifyText(payload.title, "Notification");
+  const text = persistNotifyText(payload.body, "Activity recorded");
+
   const site =
     process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
     process.env.AUTH_URL?.replace(/\/$/, "") ||
@@ -198,8 +207,8 @@ export async function fireAgentRuntimeWebhook(payload: {
   const body = {
     source: "grokforge-agent-runtime",
     type: payload.type,
-    title: payload.title,
-    body: payload.body,
+    title,
+    body: text,
     href: payload.href
       ? payload.href.startsWith("http")
         ? payload.href
