@@ -76,7 +76,11 @@ describe("fireAgentRuntimeWebhook", () => {
 
   function sentBodies() {
     return captured.map((row) =>
-      JSON.parse(String(row.init.body)) as { title: string; body: string }
+      JSON.parse(String(row.init.body)) as {
+        title: string;
+        body: string;
+        leaves?: { id?: string; title?: string; goodFirst?: boolean }[];
+      }
     );
   }
 
@@ -110,6 +114,53 @@ describe("fireAgentRuntimeWebhook", () => {
       expect(sent.body).toBe("Activity recorded");
       expect(sent.title.includes("gf_")).toBe(false);
       expect(sent.body.includes("gf_")).toBe(false);
+      expect(JSON.stringify(sent).includes("gf_")).toBe(false);
+    }
+    expect(authOf(USER)).toBeNull();
+    expect(authOf(PLATFORM)).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("POSTs a clean extra.leaves[].title unchanged", async () => {
+    await fireAgentRuntimeWebhook({
+      type: "leaf.ready",
+      title: "Ready leaves: Open civic kit",
+      body: "1 claimable leaf(ves). Top: Write the open brief",
+      userWebhookUrl: USER,
+      extra: {
+        readyCount: 1,
+        leaves: [{ id: "task_1", title: "Write the open brief", goodFirst: true }],
+      },
+    });
+
+    expect(captured).toHaveLength(2);
+    for (const sent of sentBodies()) {
+      expect(sent.leaves?.[0]).toEqual({
+        id: "task_1",
+        title: "Write the open brief",
+        goodFirst: true,
+      });
+    }
+  });
+
+  it("does not POST a synthetic gf_ PAT in extra.leaves[].title", async () => {
+    const fake = "gf_" + "z".repeat(32);
+    await fireAgentRuntimeWebhook({
+      type: "leaf.ready",
+      title: "Ready leaves: Open civic kit",
+      body: "1 claimable leaf(ves). Top: Write the open brief",
+      userWebhookUrl: USER,
+      extra: {
+        readyCount: 1,
+        leaves: [{ id: "task_1", title: fake, goodFirst: true }],
+      },
+    });
+
+    expect(captured).toHaveLength(2);
+    for (const sent of sentBodies()) {
+      expect(sent.leaves?.[0].id).toBe("task_1");
+      expect(sent.leaves?.[0].title).toBe("Activity recorded");
+      expect(sent.leaves?.[0].goodFirst).toBe(true);
+      expect(String(sent.leaves?.[0].title).includes("gf_")).toBe(false);
       expect(JSON.stringify(sent).includes("gf_")).toBe(false);
     }
     expect(authOf(USER)).toBeNull();

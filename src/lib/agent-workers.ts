@@ -170,6 +170,29 @@ async function postRuntimeWebhook(
   }
 }
 
+/** Scan extra.title and extra.leaves[].title (same persistNotifyText scanner). */
+function persistRuntimeExtra(
+  extra?: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  if (!extra) return extra;
+  const out: Record<string, unknown> = { ...extra };
+  if (typeof out.title === "string") {
+    out.title = persistNotifyText(out.title, "Activity recorded");
+  }
+  if (Array.isArray(out.leaves)) {
+    out.leaves = out.leaves.map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+      const row = item as Record<string, unknown>;
+      if (typeof row.title !== "string") return item;
+      return {
+        ...row,
+        title: persistNotifyText(row.title, "Activity recorded"),
+      };
+    });
+  }
+  return out;
+}
+
 export async function fireAgentRuntimeWebhook(payload: {
   type: string;
   title: string;
@@ -216,7 +239,7 @@ export async function fireAgentRuntimeWebhook(payload: {
       : undefined,
     projectSlug: payload.projectSlug,
     taskId: payload.taskId,
-    ...payload.extra,
+    ...persistRuntimeExtra(payload.extra),
     at: new Date().toISOString(),
   };
 
