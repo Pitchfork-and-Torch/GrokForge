@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   persistOAuthDisplayName,
   persistOAuthGithubHandle,
+  persistOAuthTwitterHandle,
   persistPublicPaste,
   rejectSecretPaste,
   rejectSignupIdentity,
@@ -108,5 +109,12 @@ describe("secret-scan", () => {
     expect(persistOAuthGithubHandle("octocat")).toBe("octocat");
     expect(persistOAuthGithubHandle("@Ada-Lovelace")).toBe("Ada-Lovelace");
     expect(persistOAuthGithubHandle(fake)).toBeNull();
+  });
+
+  it("persistOAuthTwitterHandle scans raw username before sanitize", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(persistOAuthTwitterHandle("ada_lovelace")).toBe("ada_lovelace");
+    expect(persistOAuthTwitterHandle("@Ada_Lovelace")).toBe("Ada_Lovelace");
+    expect(persistOAuthTwitterHandle(fake)).toBeNull();
   });
 });

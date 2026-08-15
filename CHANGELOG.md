@@ -1,4 +1,8 @@
-# Changelog
+﻿# Changelog
+
+## 2026-08-14 - Security: drop secret OAuth X usernames on persist
+
+- Signup and profile already scan handle. Twitter OAuth enrich still wrote public `User.handle` (`/u/{handle}`) from `username`. Sanitize keeps `_`, so a `gf_` PAT would persist. Same scanner now runs on the raw value; a hit skips the handle write so sign-in still succeeds.
 
 ## 2026-08-14 - Security: drop secret OAuth GitHub usernames on persist
 
