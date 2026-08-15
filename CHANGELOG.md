@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: drop secret OAuth display names on persist
+
+- Credentials signup already scans name/handle. PrismaAdapter `createUser` and Twitter enrich still wrote public `User.name` (`/u/{handle}`, ship, leaderboard) from the provider profile. `persistPublicPaste` (same scanner) drops a hit so sign-in still succeeds.
+
 ## 2026-08-14 - Security: scan signup name and handle before persist
 
 - Credentials create (email + x-demo) wrote public `User.name` / `handle` (`/u/{handle}`) with no scan. `rejectSecretPaste` now runs before `user.create`. Existing logins unchanged.
