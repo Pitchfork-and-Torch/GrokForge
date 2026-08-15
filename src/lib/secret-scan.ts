@@ -50,6 +50,11 @@ export function persistPublicPaste(text: string | null | undefined): string | nu
   return rejectSecretPaste(t) ? null : t;
 }
 
+/** Public ledger tape: keep a clean summary, replace a hit so the row still writes. */
+export function persistLedgerSummary(text: string): string {
+  return persistPublicPaste(text.slice(0, 500)) || "Activity recorded";
+}
+
 /** Signup name/handle persist guard (same scanner). */
 export function rejectSignupIdentity(
   name?: string | null,

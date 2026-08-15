@@ -6,6 +6,7 @@ import { LedgerKind, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimitAsync } from "@/lib/rate-limit";
 import { notifyProjectWatchers, notifyUser } from "@/lib/notify";
+import { persistLedgerSummary } from "@/lib/secret-scan";
 // revalidatePath already imported for task surfaces + Network Gravity pages
 
 type Actor = {
@@ -104,7 +105,9 @@ export async function claimTaskForUser(
         projectId: task.projectId,
         kind: LedgerKind.LABOR,
         amountCents: 0,
-        summary: `@${actorLabel(user)} claimed "${task.title}"`,
+        summary: persistLedgerSummary(
+          `@${actorLabel(user)} claimed "${task.title}"`
+        ),
         actorHandle: user.handle,
         meta: JSON.stringify({ via: "api-or-ui", claimId: claim.id }),
       },
@@ -173,7 +176,9 @@ export async function releaseClaimForUser(
         projectId: claim.task.projectId,
         kind: LedgerKind.LABOR,
         amountCents: 0,
-        summary: `@${actorLabel(user)} released claim on "${claim.task.title}"`,
+        summary: persistLedgerSummary(
+          `@${actorLabel(user)} released claim on "${claim.task.title}"`
+        ),
         actorHandle: user.handle,
       },
     }),
@@ -373,11 +378,13 @@ export async function submitContributionForUser(
       projectId: task.projectId,
       kind: LedgerKind.LABOR,
       amountCents: 0,
-      summary: autoAccept
-        ? `@${actorLabel(user)} strong-worker auto-accepted "${task.title}" (quality)`
-        : quality.agent
-          ? `@${actorLabel(user)} submitted agent work on "${task.title}"`
-          : `@${actorLabel(user)} submitted work on "${task.title}"`,
+      summary: persistLedgerSummary(
+        autoAccept
+          ? `@${actorLabel(user)} strong-worker auto-accepted "${task.title}" (quality)`
+          : quality.agent
+            ? `@${actorLabel(user)} submitted agent work on "${task.title}"`
+            : `@${actorLabel(user)} submitted work on "${task.title}"`
+      ),
       actorHandle: user.handle,
       meta: JSON.stringify({
         contributionId: contribution.id,

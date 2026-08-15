@@ -1,5 +1,6 @@
 import { LedgerKind, ProjectStatus, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { persistLedgerSummary } from "@/lib/secret-scan";
 import { projectTaskProgress } from "@/lib/utils";
 
 type TaskRow = { id: string; status: string; parentId: string | null };
@@ -143,7 +144,9 @@ export async function syncProjectCompletionStatus(
         projectId,
         kind: LedgerKind.MILESTONE,
         amountCents: 0,
-        summary: `Project marked complete - all ${progress.total} claimable tasks accepted`,
+        summary: persistLedgerSummary(
+          `Project marked complete - all ${progress.total} claimable tasks accepted`
+        ),
         actorHandle: opts?.actorHandle || null,
         meta: JSON.stringify({
           autoComplete: true,
@@ -165,7 +168,9 @@ export async function syncProjectCompletionStatus(
         projectId,
         kind: LedgerKind.ADJUSTMENT,
         amountCents: 0,
-        summary: `Project reopened (${resumeStatus}) - claimable work no longer fully accepted`,
+        summary: persistLedgerSummary(
+          `Project reopened (${resumeStatus}) - claimable work no longer fully accepted`
+        ),
         actorHandle: opts?.actorHandle || null,
         meta: JSON.stringify({
           autoReopen: true,

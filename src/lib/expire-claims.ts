@@ -1,6 +1,7 @@
 import { LedgerKind, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyUser } from "@/lib/notify";
+import { persistLedgerSummary } from "@/lib/secret-scan";
 
 export type ExpireClaimsResult = {
   expired: number;
@@ -74,7 +75,9 @@ export async function expireStaleClaims(opts?: {
           projectId: claim.task.projectId,
           kind: LedgerKind.LABOR,
           amountCents: 0,
-          summary: `Claim expired on "${claim.task.title}" (was @${claim.user.handle || claim.user.name || "builder"})`,
+          summary: persistLedgerSummary(
+            `Claim expired on "${claim.task.title}" (was @${claim.user.handle || claim.user.name || "builder"})`
+          ),
           actorHandle: claim.user.handle,
           meta: JSON.stringify({ claimId: claim.id, reason: "expiresAt" }),
         },

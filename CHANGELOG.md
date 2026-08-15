@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2026-08-15 - Security: drop secrets on public ledger summary persist
+
+- #31 scanned `recordProjectEdit`. `LedgerEntry.summary` still embeds user-controlled titles/handles and renders on `/`, `/activity`, `/api/activity`, and `/feed.xml`. Callers already scan new paste; claim/expire/moderate still copy pre-scan DB text into the public tape. `persistLedgerSummary` (same scanner) now replaces a hit; the row still writes.
+
 ## 2026-08-15 - Security: drop secrets on public project-edit log persist
 
 - Callers already scan new paste. `recordProjectEdit` still wrote raw `oldValue` / `newValue` / `summary` to the public project timeline (including pre-scan DB text). `persistPublicPaste` (same scanner) now drops a hit; the log row still writes.
