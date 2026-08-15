@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   persistOAuthDisplayName,
+  persistOAuthGithubHandle,
   persistPublicPaste,
   rejectSecretPaste,
   rejectSignupIdentity,
@@ -100,5 +101,12 @@ describe("secret-scan", () => {
     const fake = "gf_" + "z".repeat(32);
     expect(persistOAuthDisplayName("Ada Lovelace")).toBe("Ada Lovelace");
     expect(persistOAuthDisplayName(fake)).toBeNull();
+  });
+
+  it("persistOAuthGithubHandle scans raw login before sanitize", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(persistOAuthGithubHandle("octocat")).toBe("octocat");
+    expect(persistOAuthGithubHandle("@Ada-Lovelace")).toBe("Ada-Lovelace");
+    expect(persistOAuthGithubHandle(fake)).toBeNull();
   });
 });

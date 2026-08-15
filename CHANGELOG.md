@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-14 - Security: drop secret OAuth GitHub usernames on persist
+
+- Profile update already scans raw `githubHandle`. GitHub OAuth jwt enrich still wrote the public ship-page handle from `login` / display `name` after stripping `_` (so a `gf_` PAT would not match). Same scanner now runs on the raw value; a hit skips the write so sign-in still succeeds.
+
 ## 2026-08-14 - Security: drop secret OAuth display names on persist
 
 - Credentials signup already scans name/handle. PrismaAdapter `createUser` and Twitter enrich still wrote public `User.name` (`/u/{handle}`, ship, leaderboard) from the provider profile. `persistPublicPaste` (same scanner) drops a hit so sign-in still succeeds.
