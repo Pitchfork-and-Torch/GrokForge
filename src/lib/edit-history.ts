@@ -2,6 +2,7 @@
  * Project edit history helpers (collapsible public log).
  */
 import { prisma } from "@/lib/prisma";
+import { persistPublicPaste } from "@/lib/secret-scan";
 
 export type EditHistoryInput = {
   projectId: string;
@@ -21,9 +22,10 @@ export async function recordProjectEdit(input: EditHistoryInput) {
         actorId: input.actorId || null,
         actorHandle: input.actorHandle || null,
         field: input.field.slice(0, 40),
-        oldValue: input.oldValue?.slice(0, 8000) || null,
-        newValue: input.newValue?.slice(0, 8000) || null,
-        summary: input.summary.slice(0, 500),
+        // Callers already reject new paste; oldValue can still be pre-scan DB text.
+        oldValue: persistPublicPaste(input.oldValue?.slice(0, 8000)),
+        newValue: persistPublicPaste(input.newValue?.slice(0, 8000)),
+        summary: persistPublicPaste(input.summary.slice(0, 500)) || "Updated",
       },
     });
   } catch {

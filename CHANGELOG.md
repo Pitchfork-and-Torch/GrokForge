@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2026-08-15 - Security: drop secrets on public project-edit log persist
+
+- Callers already scan new paste. `recordProjectEdit` still wrote raw `oldValue` / `newValue` / `summary` to the public project timeline (including pre-scan DB text). `persistPublicPaste` (same scanner) now drops a hit; the log row still writes.
+
 ## 2026-08-14 - Security: drop secret OAuth X usernames on persist
 
 - Signup and profile already scan handle. Twitter OAuth enrich still wrote public `User.handle` (`/u/{handle}`) from `username`. Sanitize keeps `_`, so a `gf_` PAT would persist. Same scanner now runs on the raw value; a hit skips the handle write so sign-in still succeeds.
