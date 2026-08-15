@@ -62,3 +62,11 @@ export function rejectSignupIdentity(
 export function persistOAuthDisplayName(name?: string | null) {
   return persistPublicPaste(name);
 }
+
+/** OAuth GitHub login/name persist: scan raw, then sanitize (signIn must not throw). */
+export function persistOAuthGithubHandle(raw?: string | null): string | null {
+  const t = (raw || "").replace(/^@/, "").trim();
+  if (!t || rejectSecretPaste(t)) return null;
+  const gh = t.replace(/[^A-Za-z0-9-]/g, "").slice(0, 39);
+  return gh || null;
+}

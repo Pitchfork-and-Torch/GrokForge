@@ -9,6 +9,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
   persistOAuthDisplayName,
+  persistOAuthGithubHandle,
   rejectSignupIdentity,
 } from "@/lib/secret-scan";
 
@@ -302,10 +303,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (profile as { login?: string }).login ||
             (profile as { name?: string }).name ||
             "";
-          const gh = String(login)
-            .replace(/^@/, "")
-            .replace(/[^A-Za-z0-9-]/g, "")
-            .slice(0, 39);
+          const gh = persistOAuthGithubHandle(login);
           if (gh) {
             await prisma.user.update({
               where: { id: user.id },
