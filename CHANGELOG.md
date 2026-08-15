@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2026-08-15 - Security: drop secrets on notify persist
+
+- #32 scanned `LedgerEntry.summary`. `notifyUser` still wrote raw title/body to the in-app bell, dashboard inbox, and NOTIFY webhook/email. Callers already scan new paste; claim expiry and comments still copy pre-scan titles or comment snippets into a new row. `persistNotifyText` (same scanner) now replaces a hit; the row and fan-out still write.
+
 ## 2026-08-15 - Security: drop secrets on public ledger summary persist
 
 - #31 scanned `recordProjectEdit`. `LedgerEntry.summary` still embeds user-controlled titles/handles and renders on `/`, `/activity`, `/api/activity`, and `/feed.xml`. Callers already scan new paste; claim/expire/moderate still copy pre-scan DB text into the public tape. `persistLedgerSummary` (same scanner) now replaces a hit; the row still writes.

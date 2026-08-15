@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { persistNotifyText } from "@/lib/secret-scan";
 
 /**
  * In-app notification + optional webhook / agent-email bridge (no PII in repo).
@@ -35,21 +36,27 @@ export async function notifyUser(opts: {
   body: string;
   href?: string;
 }) {
+  // Callers already scan new paste; title/body still embed pre-scan DB text
+  // (task/project titles) and comment snippets. Scan once for persist + fan-out.
+  const title = persistNotifyText(opts.title, "Notification");
+  const body = persistNotifyText(opts.body, "Activity recorded");
+  const safe = { ...opts, title, body };
+
   try {
     await prisma.notification.create({
       data: {
-        userId: opts.userId,
-        type: opts.type,
-        title: opts.title,
-        body: opts.body,
-        href: opts.href || null,
+        userId: safe.userId,
+        type: safe.type,
+        title: safe.title,
+        body: safe.body,
+        href: safe.href || null,
       },
     });
   } catch (e) {
     console.error("[notify] db", e);
   }
 
-  await dispatchWebhook(opts);
+  await dispatchWebhook(safe);
 }
 
 async function dispatchWebhook(opts: {

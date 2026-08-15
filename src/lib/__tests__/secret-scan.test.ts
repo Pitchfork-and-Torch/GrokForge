@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   persistLedgerSummary,
+  persistNotifyText,
   persistOAuthDisplayName,
   persistOAuthGithubHandle,
   persistOAuthTwitterHandle,
@@ -101,6 +102,22 @@ describe("secret-scan", () => {
       "Activity recorded"
     );
     expect(persistLedgerSummary(`Claim expired on "${fake}"`).includes("gf_")).toBe(
+      false
+    );
+  });
+
+  it("persistNotifyText keeps clean bell text and replaces a synthetic gf_ PAT", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(persistNotifyText('Claim expired: Write the open brief', "Notification")).toBe(
+      "Claim expired: Write the open brief"
+    );
+    expect(persistNotifyText(`Claim expired: ${fake}`, "Notification")).toBe(
+      "Notification"
+    );
+    expect(persistNotifyText(`@tester: oops ${fake}`, "Activity recorded")).toBe(
+      "Activity recorded"
+    );
+    expect(persistNotifyText(`@tester: oops ${fake}`, "Activity recorded").includes("gf_")).toBe(
       false
     );
   });
