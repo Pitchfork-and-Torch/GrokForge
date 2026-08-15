@@ -3,10 +3,14 @@ import Credentials from "next-auth/providers/credentials";
 import Twitter from "next-auth/providers/twitter";
 import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { AdapterUser } from "@auth/core/adapters";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { rejectSignupIdentity } from "@/lib/secret-scan";
+import {
+  persistOAuthDisplayName,
+  rejectSignupIdentity,
+} from "@/lib/secret-scan";
 
 const credentialsSchema = z.object({
   mode: z.enum(["email", "x-demo"]).default("email"),
@@ -212,11 +216,12 @@ async function enrichTwitterUser(
     image?: string;
   } = {};
 
+  const safeName = persistOAuthDisplayName(name);
   if (username) {
     data.handle = await ensureUniqueHandle(username, userId);
-    data.name = name || data.handle;
-  } else if (name && !existing.name) {
-    data.name = name;
+    data.name = safeName || data.handle;
+  } else if (safeName && !existing.name) {
+    data.name = safeName;
   }
 
   if (image) {
@@ -235,8 +240,18 @@ async function enrichTwitterUser(
   }
 }
 
+const prismaAdapter = PrismaAdapter(prisma);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma) as never,
+  adapter: {
+    ...prismaAdapter,
+    async createUser(data: AdapterUser) {
+      return prismaAdapter.createUser!({
+        ...data,
+        name: persistOAuthDisplayName(data.name),
+      });
+    },
+  } as never,
   session: { strategy: "jwt" },
   trustHost: true,
   pages: {

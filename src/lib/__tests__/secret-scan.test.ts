@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  persistOAuthDisplayName,
   persistPublicPaste,
   rejectSecretPaste,
   rejectSignupIdentity,
@@ -93,5 +94,11 @@ describe("secret-scan", () => {
     expect(rejectSignupIdentity("Ada", "ada-lovelace")).toBeNull();
     expect(rejectSignupIdentity(fake, "ada")).not.toBeNull();
     expect(rejectSignupIdentity("Ada", fake)?.error).toMatch(/GrokForge PAT/i);
+  });
+
+  it("persistOAuthDisplayName drops a synthetic gf_ PAT and keeps a clean name", () => {
+    const fake = "gf_" + "z".repeat(32);
+    expect(persistOAuthDisplayName("Ada Lovelace")).toBe("Ada Lovelace");
+    expect(persistOAuthDisplayName(fake)).toBeNull();
   });
 });

@@ -57,3 +57,8 @@ export function rejectSignupIdentity(
 ) {
   return rejectSecretPaste(`${name || ""}\n${handle || ""}`);
 }
+
+/** OAuth/adapter display name: keep clean, drop a hit (signIn must not throw). */
+export function persistOAuthDisplayName(name?: string | null) {
+  return persistPublicPaste(name);
+}
