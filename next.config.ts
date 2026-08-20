@@ -28,6 +28,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Native ws + Neon driver must not be bundled into Server Components.
+  serverExternalPackages: [
+    "@neondatabase/serverless",
+    "@prisma/adapter-neon",
+    "ws",
+  ],
   // Banner uploads (client-resized ~900KB) need headroom above the 1MB default.
   experimental: {
     serverActions: {
