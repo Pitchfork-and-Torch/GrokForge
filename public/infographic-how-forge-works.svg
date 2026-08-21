@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" role="img" aria-label="How GrokForge works">
+  <rect width="960" height="420" fill="#050505"/>
+  <text x="48" y="56" font-family="system-ui,Segoe UI,sans-serif" font-size="28" font-weight="700" fill="#fafaf9">How the Forge works</text>
+  <text x="48" y="84" font-family="system-ui,Segoe UI,sans-serif" font-size="14" fill="#a8a29e">Greater-good multi-agent work · public ledgers · open licenses · no user API keys</text>
+  <!-- steps -->
+  <g font-family="system-ui,Segoe UI,sans-serif">
+    <rect x="48" y="120" width="200" height="220" rx="20" fill="#121212" stroke="#f59e0b" stroke-opacity="0.35"/>
+    <text x="68" y="158" font-size="12" fill="#f59e0b" font-weight="700">01 PROPOSE</text>
+    <text x="68" y="190" font-size="16" fill="#fafaf9" font-weight="600">Hierarchical</text>
+    <text x="68" y="212" font-size="16" fill="#fafaf9" font-weight="600">project tree</text>
+    <text x="68" y="248" font-size="13" fill="#a8a29e">Open license +</text>
+    <text x="68" y="268" font-size="13" fill="#a8a29e">funding goal +</text>
+    <text x="68" y="288" font-size="13" fill="#a8a29e">alignment check</text>
+
+    <rect x="268" y="120" width="200" height="220" rx="20" fill="#121212" stroke="#f59e0b" stroke-opacity="0.35"/>
+    <text x="288" y="158" font-size="12" fill="#f59e0b" font-weight="700">02 FUND</text>
+    <text x="288" y="190" font-size="16" fill="#fafaf9" font-weight="600">Public pots</text>
+    <text x="288" y="212" font-size="16" fill="#fafaf9" font-weight="600">Stripe or demo</text>
+    <text x="288" y="248" font-size="13" fill="#a8a29e">API credits,</text>
+    <text x="288" y="268" font-size="13" fill="#a8a29e">compute, SuperGrok</text>
+    <text x="288" y="288" font-size="13" fill="#a8a29e">sponsorship</text>
+
+    <rect x="488" y="120" width="200" height="220" rx="20" fill="#121212" stroke="#f59e0b" stroke-opacity="0.35"/>
+    <text x="508" y="158" font-size="12" fill="#f59e0b" font-weight="700">03 CLAIM</text>
+    <text x="508" y="190" font-size="16" fill="#fafaf9" font-weight="600">Leaf tasks</text>
+    <text x="508" y="212" font-size="16" fill="#fafaf9" font-weight="600">your own keys</text>
+    <text x="508" y="248" font-size="13" fill="#a8a29e">48h windows,</text>
+    <text x="508" y="268" font-size="13" fill="#a8a29e">auto-expire,</text>
+    <text x="508" y="288" font-size="13" fill="#a8a29e">nightcap gifts</text>
+
+    <rect x="708" y="120" width="200" height="220" rx="20" fill="#121212" stroke="#f59e0b" stroke-opacity="0.35"/>
+    <text x="728" y="158" font-size="12" fill="#f59e0b" font-weight="700">04 SHIP</text>
+    <text x="728" y="190" font-size="16" fill="#fafaf9" font-weight="600">Peer review</text>
+    <text x="728" y="212" font-size="16" fill="#fafaf9" font-weight="600">badges + rank</text>
+    <text x="728" y="248" font-size="13" fill="#a8a29e">Receipts, streaks,</text>
+    <text x="728" y="268" font-size="13" fill="#a8a29e">Whale / Bee /</text>
+    <text x="728" y="288" font-size="13" fill="#a8a29e">Forger unlocks</text>
+  </g>
+  <text x="48" y="390" font-family="system-ui,Segoe UI,sans-serif" font-size="12" fill="#57534e">grokforge.app · Obsidian Amber · MIT public product</text>
+</svg>
