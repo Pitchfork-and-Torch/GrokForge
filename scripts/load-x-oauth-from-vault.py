@@ -1,57 +1,23 @@
-"""Copy X OAuth2 client credentials from SafeDeposit vault into GrokForge .env.local."""
+"""Merge process environment or one out-of-tree directory into repo .env.local."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-
-def parse_env(path: Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    if not path.exists():
-        return out
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        out[k.strip()] = v.strip().strip('"').strip("'")
-    return out
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from operator_env import collect_assignments, parse_file, repo_root, write_dotenv
 
 
 def main() -> None:
-    vault = (
-        Path.home()
-        / "SafeDeposit-Secrets"
-        / "x-api-safedepositusa"
-        / "credentials.env"
-    )
-    local = Path.home() / "GrokForge" / ".env.local"
-    kv = parse_env(vault)
-    cid = kv.get("X_OAUTH2_CLIENT_ID", "")
-    csec = kv.get("X_OAUTH2_CLIENT_SECRET", "")
-    if len(cid) < 6 or len(csec) < 6:
-        raise SystemExit("X_OAUTH2_CLIENT_ID/SECRET missing or short in vault")
+    incoming = collect_assignments()
+    if not incoming:
+        raise SystemExit("no assignments in the process environment or operator directory")
 
-    existing = local.read_text(encoding="utf-8") if local.exists() else ""
-    keep = [
-        ln
-        for ln in existing.splitlines()
-        if not ln.startswith(
-            (
-                "AUTH_TWITTER_",
-                "TWITTER_",
-                "ENABLE_DEMO_AUTH=",
-            )
-        )
-    ]
-    keep.append(f"AUTH_TWITTER_ID={cid}")
-    keep.append(f"AUTH_TWITTER_SECRET={csec}")
-    # Local demos stay available; production should set ENABLE_DEMO_AUTH=false or omit
-    keep.append("ENABLE_DEMO_AUTH=true")
-    local.write_text("\n".join(keep).rstrip() + "\n", encoding="utf-8")
-    print("OK wrote .env.local")
-    print("AUTH_TWITTER_ID length", len(cid))
-    print("AUTH_TWITTER_SECRET length", len(csec))
-    print("Add X portal callback: https://grokforge.app/api/auth/callback/twitter")
+    dest = repo_root() / ".env.local"
+    merged = parse_file(dest) if dest.is_file() else {}
+    merged.update(incoming)
+    write_dotenv(dest, merged)
+    print("updated local dotenv", dest.name, "assignments", len(merged))
 
 
 if __name__ == "__main__":

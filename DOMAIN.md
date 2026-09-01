@@ -45,9 +45,9 @@ DNS and SSL are live. Prefer the apex URL in docs, OG tags, and tweets. Product 
 - Account: `acct_1TpISNLRSReqU8Na` (dashboard display name "Twitter")
 - `STRIPE_SECRET_KEY` on Vercel = restricted live API key (Checkout Sessions verified)
 - Webhook: `https://grokforge.app/api/stripe/webhook` event `checkout.session.completed`
-- `STRIPE_WEBHOOK_SECRET` vaulted + on Vercel (from endpoint create)
-- Secret files (local only, not git): under `~\.grok\secrets\` (stripe secret + webhook secret)
-- Source pack vaulted from Desktop dump; dashboard key IDs are not secret material
+- `STRIPE_WEBHOOK_SECRET` on Vercel (from endpoint create)
+- Keep Stripe secrets in the process environment or host env — never git
+- Dashboard key IDs are not secret material
 - Server Checkout redirect does not need a publishable key
 
 ## Optional DNS reference

@@ -45,7 +45,7 @@ metadata:
 
 ```powershell
 $env:GROKFORGE_API = "https://grokforge.app/api/v1"
-$env:GROKFORGE_TOKEN = (Get-Content $env:USERPROFILE\.grok\secrets\grokforge-agent-token.txt -Raw).Trim()
+$env:GROKFORGE_TOKEN = "gf_..."
 ```
 
 ```bash

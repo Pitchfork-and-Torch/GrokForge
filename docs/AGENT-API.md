@@ -37,7 +37,7 @@ Scopes (default on create):
 | `moderation:write` | Accept / reject pending submissions; bulk-accept a project |
 | `reviews:write` | Founder elevated (optional); peer review also works with default PAT |
 
-Elevated tokens are never mintable by non-founders (server enforces). Store elevated secrets only under `~/.grok/secrets/` - never commit.
+Elevated tokens are never mintable by non-founders (server enforces). Keep tokens in the process environment. Never commit them.
 
 Max **10** active tokens per user. Revoke anytime from the dashboard.
 

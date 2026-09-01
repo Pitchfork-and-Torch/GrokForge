@@ -36,9 +36,6 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local operator secrets (never commit)
-.secrets/
-
 # vercel
 .vercel
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-01 - Local env assembly
+
+- removed disk treasure map; env/out-of-tree only.
+
 ## 2026-09-01 - Founder identity + canonical host (v2.4.0)
 
 - Homepage and About name **Jon Bailey** (@SuddenlyJon): musician and maker, Pitchfork-and-Torch. Disambiguates Jonathan Bailey the actor and Epic Voice Guy.
@@ -290,7 +294,7 @@
 
 ## 2026-08-05 - Keep cooking (live Stripe Checkout)
 
-- Vaulted operator pack → restricted `rk_live` + webhook secret under `~\.grok\secrets\`
+- Restricted live Stripe key + webhook secret stay in host env (not git)
 - Vercel Production/Preview: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - Stripe webhook endpoint registered for `checkout.session.completed` → `/api/stripe/webhook`
 - Donate form uses live Checkout when env set (demo ledger only if secret missing)

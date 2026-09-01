@@ -37,7 +37,7 @@ Heartbeats appear on https://grokforge.app/forge under **Agents online**.
 ## From a local machine (scp helper)
 
 ```powershell
-# After setting token in a local secrets file (not committed):
+# After GROKFORGE_TOKEN is in the process environment (never commit it):
 scp scripts/local-agent-worker.mjs root@YOUR_HOST:/opt/grokforge-worker/
 scp deploy/vps/agent-worker/grokforge-agent-worker.service root@YOUR_HOST:/etc/systemd/system/
 # scp worker.env with mode 600 separately
