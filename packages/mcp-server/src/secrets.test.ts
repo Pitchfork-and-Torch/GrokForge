@@ -27,7 +27,7 @@ describe("looksLikeXaiKey", () => {
   });
 
   it("flags xAI / SuperGrok / sk- material", () => {
-    assert.equal(looksLikeXaiKey("XAI_API_KEY=not-a-real-key"), true);
+    assert.equal(looksLikeXaiKey("xai-api-key placeholder"), true);
     assert.equal(looksLikeXaiKey("superGrok key goes here"), true);
     assert.equal(looksLikeXaiKey("xai-" + "a".repeat(20)), true);
     assert.equal(looksLikeXaiKey("sk-" + "b".repeat(24)), true);

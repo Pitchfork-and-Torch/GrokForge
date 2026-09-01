@@ -8,8 +8,7 @@
 #   1) vercel login  (browser - pick GrokForge Pro team if asked)
 #   2) Or: $env:VERCEL_TOKEN = "<token with Pro team access>"
 #
-# Usage:
-#   cd $env:USERPROFILE\GrokForge
+# Usage (from the repository root):
 #   powershell -ExecutionPolicy Bypass -File .\scripts\migrate-to-pro-team.ps1 -TeamSlug YOUR_PRO_SLUG
 #
 # Find TeamSlug: while on Pro team, URL is https://vercel.com/<TeamSlug>/...
@@ -25,17 +24,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = Split-Path $PSScriptRoot -Parent
-
-function Get-DotEnv([string]$path, [string]$key) {
-  if (-not (Test-Path $path)) { return $null }
-  foreach ($line in Get-Content $path) {
-    if ($line -match "^\s*$key=(.*)$") {
-      return $Matches[1].Trim().Trim('"').Trim("'")
-    }
-  }
-  return $null
-}
 
 function Invoke-VercelApi {
   param([string]$Method = "GET", [string]$Url, [hashtable]$Headers, [string]$Body = $null)
@@ -83,17 +71,16 @@ try {
   Write-Host "Created project: $projectId"
 }
 
-# Env from local
-$db = Get-DotEnv "$root\.env" "DATABASE_URL"
-$auth = Get-DotEnv "$root\.env" "AUTH_SECRET"
-if (-not $auth) { $auth = Get-DotEnv "$root\.env" "NEXTAUTH_SECRET" }
-$xai = Get-DotEnv "$root\.env.local" "XAI_API_KEY"
-if (-not $xai) { $xai = $env:XAI_API_KEY }
-$model = Get-DotEnv "$root\.env.local" "XAI_MODEL"
+# Env from the process environment only
+$db = $env:DATABASE_URL
+$auth = $env:AUTH_SECRET
+if (-not $auth) { $auth = $env:NEXTAUTH_SECRET }
+$xai = $env:XAI_API_KEY
+$model = $env:XAI_MODEL
 if (-not $model) { $model = "grok-3-mini" }
 $prodUrl = "https://$CustomDomain"
 
-if (-not $db -or -not $auth) { throw "Missing DATABASE_URL or AUTH_SECRET in local .env" }
+if (-not $db -or -not $auth) { throw "DATABASE_URL and AUTH_SECRET must be in the process environment" }
 
 function Set-Env([string]$key, [string]$value, [string[]]$targets, [string]$type = "encrypted") {
   if (-not $value) { Write-Host "SKIP $key"; return }

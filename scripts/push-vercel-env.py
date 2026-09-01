@@ -1,7 +1,8 @@
 """
 Push GrokForge env vars to a Vercel project.
 
-Uses VERCEL_TOKEN (full account token) or MCP oauth token if it can see the project.
+Uses VERCEL_TOKEN from the process environment.
+Assignments come from the process environment or one out-of-tree directory.
 Never prints secret values.
 """
 from __future__ import annotations
@@ -10,22 +11,11 @@ import json
 import os
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 from pathlib import Path
 
-
-def parse_env(path: Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    if not path.exists():
-        return out
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        out[k.strip()] = v.strip().strip('"').strip("'")
-    return out
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from operator_env import collect_assignments
 
 
 def api(token: str, method: str, url: str, body: dict | None = None) -> tuple[int, object]:
@@ -53,50 +43,25 @@ def api(token: str, method: str, url: str, body: dict | None = None) -> tuple[in
 
 
 def get_token() -> str:
-    if os.environ.get("VERCEL_TOKEN"):
-        t = os.environ["VERCEL_TOKEN"].strip().strip('"').strip("'")
-        if len(t) >= 30 and " " not in t:
-            return t
-    # secrets file - pick longest non-comment line without spaces
-    p = Path.home() / ".grok" / "secrets" / "vercel_token.txt"
-    if p.exists():
-        candidates: list[str] = []
-        for line in p.read_text(encoding="utf-8").splitlines():
-            line = line.strip().strip('"').strip("'")
-            if not line or line.startswith("#"):
-                continue
-            if " " in line or len(line) < 30:
-                continue
-            candidates.append(line)
-        if candidates:
-            return max(candidates, key=len)
-    # MCP oauth
-    mcp = Path.home() / ".grok" / "mcp_credentials.json"
-    if mcp.exists():
-        d = json.loads(mcp.read_text(encoding="utf-8"))
-        key = "vercel:https://mcp.vercel.com/"
-        if key in d:
-            tok = d[key].get("token_response", {}).get("access_token")
-            if tok:
-                return tok
-    raise SystemExit("No Vercel token available")
+    token = os.environ.get("VERCEL_TOKEN", "").strip().strip('"').strip("'")
+    if len(token) >= 30 and " " not in token:
+        return token
+    raise SystemExit("VERCEL_TOKEN is not set")
 
 
 def main() -> None:
     token = get_token()
-    env_path = Path.home() / ".grok" / "secrets" / "grokforge-vercel-env.env"
-    if not env_path.exists():
-        raise SystemExit(f"Missing {env_path} - run assemble-local-env.py first")
-    env = parse_env(env_path)
+    env = collect_assignments()
+    if not env:
+        raise SystemExit("no assignments in the process environment or operator directory")
 
-    # Discover teams + projects
     code, teams_payload = api(token, "GET", "https://api.vercel.com/v2/teams?limit=50")
     teams = []
     if code == 200 and isinstance(teams_payload, dict):
         teams = teams_payload.get("teams") or []
     print("teams_status", code, "count", len(teams))
 
-    targets: list[tuple[str, str, str]] = []  # teamId, projectId, name
+    targets: list[tuple[str, str, str]] = []
     if teams:
         for t in teams:
             tid = t["id"]
@@ -113,7 +78,6 @@ def main() -> None:
                     targets.append((tid, p["id"], name))
                     print("found", slug, name, p["id"])
     else:
-        # no team list - try default team from user
         code, user = api(token, "GET", "https://api.vercel.com/v2/user")
         print("user_status", code)
         if code == 200 and isinstance(user, dict):
@@ -130,31 +94,22 @@ def main() -> None:
                             print("found defaultTeam", name, p["id"])
 
     if not targets:
-        # last resort known hobby id + transferred name guesses
-        print("NO_GROK_PROJECT_VISIBLE - token cannot see Pro grok-forge")
+        print("NO_GROK_PROJECT_VISIBLE")
         print("Set a full Vercel token with Pro team access, or paste env in dashboard.")
         sys.exit(2)
 
-    # Prefer name exact grok-forge or grokforge
     targets.sort(key=lambda x: (0 if x[2] in ("grok-forge", "grokforge") else 1, x[2]))
 
-    keys = [
-        "DATABASE_URL",
-        "AUTH_SECRET",
-        "NEXTAUTH_SECRET",
+    public_plain = {
         "NEXTAUTH_URL",
         "AUTH_URL",
         "AUTH_TRUST_HOST",
-        "AUTH_TWITTER_ID",
-        "AUTH_TWITTER_SECRET",
-        "XAI_API_KEY",
         "XAI_MODEL",
         "ENABLE_DEMO_AUTH",
-    ]
+    }
 
     for team_id, project_id, name in targets:
         print("PUSH", name, project_id)
-        # list existing
         code, existing = api(
             token,
             "GET",
@@ -165,42 +120,39 @@ def main() -> None:
             for e in existing.get("envs") or []:
                 by_key.setdefault(e["key"], []).append(e["id"])
 
-        for k in keys:
-            val = env.get(k)
+        pushed = 0
+        skipped = 0
+        for key, val in env.items():
             if not val:
-                print("  skip empty", k)
+                skipped += 1
                 continue
-            # delete old
-            for eid in by_key.get(k, []):
+            for eid in by_key.get(key, []):
                 api(
                     token,
                     "DELETE",
                     f"https://api.vercel.com/v9/projects/{project_id}/env/{eid}?teamId={team_id}",
                 )
-            typ = "plain" if k in (
-                "NEXTAUTH_URL",
-                "AUTH_URL",
-                "AUTH_TRUST_HOST",
-                "XAI_MODEL",
-                "ENABLE_DEMO_AUTH",
-            ) else "encrypted"
+            typ = "plain" if key in public_plain else "encrypted"
             body = {
-                "key": k,
+                "key": key,
                 "value": val,
                 "type": typ,
                 "target": ["production", "preview", "development"],
             }
-            code, res = api(
+            code, _res = api(
                 token,
                 "POST",
                 f"https://api.vercel.com/v10/projects/{project_id}/env?teamId={team_id}",
                 body,
             )
-            print(f"  {k} -> HTTP {code} len={len(val)}")
+            if code in (200, 201):
+                pushed += 1
+            else:
+                print("  assign failed HTTP", code)
+        print("  assignments ok", pushed, "empty", skipped)
 
-        # domains
         for domain in ("grokforge.app", "www.grokforge.app"):
-            code, res = api(
+            code, _res = api(
                 token,
                 "POST",
                 f"https://api.vercel.com/v10/projects/{project_id}/domains?teamId={team_id}",
@@ -208,7 +160,6 @@ def main() -> None:
             )
             print(f"  domain {domain} -> HTTP {code}")
 
-        # redeploy production from git main
         body = {
             "name": name,
             "project": project_id,

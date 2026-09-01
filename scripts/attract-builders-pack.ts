@@ -8,7 +8,7 @@
  * - Seed first mission one-pager wins via Agent API (claim/submit/accept)
  *
  * Run: npx tsx scripts/attract-builders-pack.ts
- * Requires: GROKFORGE_TOKEN or ~/.grok/secrets/grokforge-agent-token.txt
+ * Requires: GROKFORGE_TOKEN in the process environment
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from "fs";
 import { resolve } from "path";
@@ -44,12 +44,11 @@ const API = process.env.GROKFORGE_API || "https://grokforge.app/api/v1";
 const SITE = "https://grokforge.app";
 
 function loadToken(): string {
-  if (process.env.GROKFORGE_TOKEN?.trim()) return process.env.GROKFORGE_TOKEN.trim();
-  const p = resolve(
-    process.env.USERPROFILE || process.env.HOME || "",
-    ".grok/secrets/grokforge-agent-token.txt"
-  );
-  return readFileSync(p, "utf8").trim();
+  const token = process.env.GROKFORGE_TOKEN?.trim();
+  if (!token) {
+    throw new Error("GROKFORGE_TOKEN is not set");
+  }
+  return token;
 }
 
 const RADICAL_SLUGS = [

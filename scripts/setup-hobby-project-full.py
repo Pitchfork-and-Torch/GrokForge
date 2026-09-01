@@ -10,12 +10,25 @@ from pathlib import Path
 TEAM = os.environ.get("VERCEL_TEAM_ID", "").strip()
 
 
+def assignments_from_process_env() -> dict[str, str]:
+    example = Path(__file__).resolve().parent.parent / ".env.example"
+    keys: list[str] = []
+    if example.is_file():
+        for line in example.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key = line.split("=", 1)[0].strip()
+            if key:
+                keys.append(key)
+    return {key: value for key in keys if (value := os.environ.get(key))}
+
+
 def get_token() -> str:
-    if os.environ.get("VERCEL_TOKEN"):
-        return os.environ["VERCEL_TOKEN"].strip()
-    mcp = Path.home() / ".grok" / "mcp_credentials.json"
-    d = json.loads(mcp.read_text(encoding="utf-8"))
-    return d["vercel:https://mcp.vercel.com/"]["token_response"]["access_token"]
+    token = os.environ.get("VERCEL_TOKEN", "").strip()
+    if token:
+        return token
+    raise SystemExit("VERCEL_TOKEN is not set")
 
 
 def api(token: str, method: str, url: str, body: dict | None = None):
@@ -80,12 +93,9 @@ def main() -> None:
             raise SystemExit(1)
         pid = created["id"]
 
-    env: dict[str, str] = {}
-    env_path = Path.home() / ".grok" / "secrets" / "grokforge-vercel-env.env"
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        if "=" in line and not line.startswith("#"):
-            k, v = line.split("=", 1)
-            env[k] = v
+    env = assignments_from_process_env()
+    if not env:
+        raise SystemExit("no assignments in the process environment")
 
     code, existing_env = api(
         token, "GET", f"https://api.vercel.com/v9/projects/{pid}/env?teamId={TEAM}"
@@ -116,7 +126,10 @@ def main() -> None:
                 "target": ["production", "preview", "development"],
             },
         )
-        print("env", k, code, "len", len(v))
+        if code not in (200, 201):
+            print("env assign failed HTTP", code)
+        else:
+            print("env assign ok")
 
     for domain in ("grokforge.app", "www.grokforge.app"):
         code, res = api(

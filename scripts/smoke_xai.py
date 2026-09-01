@@ -1,22 +1,16 @@
-"""Optional local smoke: verify platform XAI_API_KEY can call chat completions."""
+"""Optional local smoke: verify the platform chat-completions key from the process environment."""
 from __future__ import annotations
 
 import json
 import os
 import urllib.request
-from pathlib import Path
 
 
 def load_key() -> str:
     key = os.environ.get("XAI_API_KEY", "").strip()
     if key:
         return key
-    env_local = Path(__file__).resolve().parents[1] / ".env.local"
-    if env_local.exists():
-        for line in env_local.read_text(encoding="utf-8").splitlines():
-            if line.startswith("XAI_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise SystemExit("No XAI_API_KEY in env or .env.local")
+    raise SystemExit("XAI_API_KEY is not set")
 
 
 def main() -> None:

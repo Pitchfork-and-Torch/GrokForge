@@ -2,33 +2,22 @@
  * Second-builder peer-review of main-account pending backlog.
  *
  * Usage:
- *   set GROKFORGE_TOKEN from Desktop second-account file (or env)
+ *   GROKFORGE_TOKEN must already be in the process environment
  *   npx tsx scripts/second-builder-clear-pending.ts
  *
  * Default score 4 (accept). Does not use SuperGrok keys.
  * Prefer live API once /review is deployed; falls back to local peer-review-ops + Neon.
  */
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
-
 const API =
   process.env.GROKFORGE_API?.replace(/\/$/, "") ||
   "https://grokforge.app/api/v1";
 
 function loadToken(): string {
-  if (process.env.GROKFORGE_TOKEN?.trim()) {
-    return process.env.GROKFORGE_TOKEN.trim();
+  const token = process.env.GROKFORGE_TOKEN?.trim();
+  if (!token) {
+    throw new Error("GROKFORGE_TOKEN is not set");
   }
-  const desktop = join(
-    homedir(),
-    "Desktop",
-    "backup grokfroge api 2nd account.txt"
-  );
-  if (existsSync(desktop)) {
-    return readFileSync(desktop, "utf8").trim();
-  }
-  throw new Error("Set GROKFORGE_TOKEN or place second-account token on Desktop");
+  return token;
 }
 
 async function apiJson(
