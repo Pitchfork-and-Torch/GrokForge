@@ -1,6 +1,7 @@
 """Assemble GrokForge .env.local from vaults without printing secret values."""
 from __future__ import annotations
 
+import os
 import secrets
 from pathlib import Path
 
@@ -18,12 +19,19 @@ def parse(path: Path) -> dict[str, str]:
     return out
 
 
+def secrets_root() -> Path:
+    raw = os.environ.get("SECRETS_DIR")
+    if raw:
+        return Path(raw).expanduser()
+    return Path(__file__).resolve().parent.parent / ".secrets"
+
+
 def main() -> None:
     home = Path.home()
     base = home / "GrokForge"
     env_file = base / ".env"
     local_file = base / ".env.local"
-    vault = home / "SafeDeposit-Secrets" / "x-api-safedepositusa" / "credentials.env"
+    vault = secrets_root() / "credentials.env"
     xai_file = home / ".grok" / "secrets" / "xai-api-key.txt"
 
     merged: dict[str, str] = {}
@@ -40,7 +48,7 @@ def main() -> None:
     merged["AUTH_URL"] = "https://grokforge.app"
     merged["AUTH_TRUST_HOST"] = "true"
 
-    # Prefer dedicated GrokForge OAuth2 secrets over SafeDeposit vault
+    # Prefer dedicated GrokForge OAuth2 secrets over SECRETS_DIR / .secrets
     gf_oauth = home / ".grok" / "secrets" / "grokforge-x-oauth2.txt"
     gf = parse(gf_oauth)
     if gf.get("AUTH_TWITTER_ID") and gf.get("AUTH_TWITTER_SECRET"):
@@ -52,7 +60,7 @@ def main() -> None:
         if v.get("X_OAUTH2_CLIENT_ID") and v.get("X_OAUTH2_CLIENT_SECRET"):
             merged["AUTH_TWITTER_ID"] = v["X_OAUTH2_CLIENT_ID"]
             merged["AUTH_TWITTER_SECRET"] = v["X_OAUTH2_CLIENT_SECRET"]
-            print("twitter oauth2: safedeposit vault fallback")
+            print("twitter oauth2: secrets dir fallback")
         else:
             print("twitter oauth2: MISSING")
 
