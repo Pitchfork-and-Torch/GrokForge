@@ -1,6 +1,7 @@
 /**
  * Secret hygiene: redact tokens and refuse to leak xAI / model keys.
  * GrokForge PATs (gf_) are not treated as xAI secrets by looksLikeXaiKey.
+ * This module does not read disk. Auth tokens come from the process environment.
  */
 
 /** Show only a short prefix/suffix so logs never contain a full token. */
@@ -18,7 +19,6 @@ export function looksLikeXaiKey(text: string): boolean {
   if (!text || typeof text !== "string") return false;
 
   if (/\bxai[_-]?api[_-]?key\b/i.test(text)) return true;
-  if (/\bXAI_API_KEY\b/.test(text)) return true;
   if (/\bSUPERGROK[_\s-]?KEY\b/i.test(text)) return true;
 
   // xai- prefixed secrets (not gf_)

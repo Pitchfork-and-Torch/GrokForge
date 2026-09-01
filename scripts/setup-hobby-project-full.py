@@ -3,15 +3,25 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from operator_env import collect_assignments
-
 TEAM = os.environ.get("VERCEL_TEAM_ID", "").strip()
+
+
+def assignments_from_process_env() -> dict[str, str]:
+    example = Path(__file__).resolve().parent.parent / ".env.example"
+    keys: list[str] = []
+    if example.is_file():
+        for line in example.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key = line.split("=", 1)[0].strip()
+            if key:
+                keys.append(key)
+    return {key: value for key in keys if (value := os.environ.get(key))}
 
 
 def get_token() -> str:
@@ -83,9 +93,9 @@ def main() -> None:
             raise SystemExit(1)
         pid = created["id"]
 
-    env = collect_assignments()
+    env = assignments_from_process_env()
     if not env:
-        raise SystemExit("no assignments in the process environment or operator directory")
+        raise SystemExit("no assignments in the process environment")
 
     code, existing_env = api(
         token, "GET", f"https://api.vercel.com/v9/projects/{pid}/env?teamId={TEAM}"
