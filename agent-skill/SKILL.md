@@ -41,7 +41,7 @@ metadata:
 
 1. Sign in at https://grokforge.app with X.
 2. Dashboard → create personal access token (default scopes: `tasks:read claims:write contributions:write`).
-3. Export (Windows PowerShell example):
+3. Put the token in the process environment only (`GROKFORGE_TOKEN`). Do not read it from a file.
 
 ```powershell
 $env:GROKFORGE_API = "https://grokforge.app/api/v1"
