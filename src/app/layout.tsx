@@ -12,6 +12,7 @@ import { prisma, probeDatabase } from "@/lib/prisma";
 import { bumpVisitor } from "@/lib/site-stats";
 import { ForgeOfflineBanner } from "@/components/forge-offline-banner";
 import {
+  APEX_ORIGIN,
   APP_VERSION,
   canonicalSiteUrl,
   ogImagePath,
@@ -146,7 +147,8 @@ export default async function RootLayout({
 
   const dbProbe = await probeDatabase();
 
-  const jsonLd = siteGraphJsonLd(siteUrl);
+  // Always advertise the live apex identity — never a preview or localhost @id.
+  const jsonLd = siteGraphJsonLd(APEX_ORIGIN);
   return (
     <html lang="en" className="dark" data-theme="amber">
       <body className={`${geistMono.variable} antialiased font-sans`}>

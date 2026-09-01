@@ -63,7 +63,8 @@ describe("founder identity (Jon Bailey, musician/maker)", () => {
     expect(person.sameAs).toContain("https://grokforge.app/u/SuddenlyJon");
     expect(JSON.stringify(person).toLowerCase()).not.toContain("epic voice");
 
-    const graph = siteGraphJsonLd(APEX_ORIGIN);
+    const graph = siteGraphJsonLd();
+    expect(JSON.stringify(graph)).not.toContain("localhost");
     const types = graph["@graph"].map((n) => n["@type"]);
     expect(types).toContain("Person");
     expect(types).toContain("WebApplication");
