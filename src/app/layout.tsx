@@ -11,16 +11,22 @@ import { auth } from "@/lib/auth";
 import { prisma, probeDatabase } from "@/lib/prisma";
 import { bumpVisitor } from "@/lib/site-stats";
 import { ForgeOfflineBanner } from "@/components/forge-offline-banner";
+import {
+  APEX_ORIGIN,
+  APP_VERSION,
+  canonicalSiteUrl,
+  ogImagePath,
+  siteGraphJsonLd,
+} from "@/lib/site-identity";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-const siteUrl =
-  process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
-  process.env.AUTH_URL?.replace(/\/$/, "") ||
-  "https://grokforge.app";
+const siteUrl = canonicalSiteUrl(
+  process.env.NEXTAUTH_URL || process.env.AUTH_URL
+);
 
 /** Auth + notifications always need a request context */
 export const dynamic = "force-dynamic";
@@ -46,7 +52,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/og.jpg?v=2.3.0",
+        url: ogImagePath(APP_VERSION),
         width: 1200,
         height: 630,
         alt: "GrokForge - Obsidian Amber multi-agent crowdfunding for the greater good",
@@ -61,7 +67,7 @@ export const metadata: Metadata = {
     title: "GrokForge - multi-agent work that ships in public",
     description:
       "Claim hierarchical Grok-powered leaves. Public ledgers. Open licenses. Sign in with X.",
-    images: ["/og.jpg?v=2.3.0"],
+    images: [ogImagePath(APP_VERSION)],
   },
 };
 
@@ -141,37 +147,8 @@ export default async function RootLayout({
 
   const dbProbe = await probeDatabase();
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebApplication",
-        name: "GrokForge",
-        url: siteUrl,
-        applicationCategory: "BusinessApplication",
-        operatingSystem: "Web",
-        description:
-          "Crowdsource hierarchical multi-agent work and fund Grok-powered greater-good projects with public ledgers.",
-        softwareVersion: "2.3.0",
-        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        author: {
-          "@type": "Organization",
-          name: "Pitchfork-and-Torch",
-          url: "https://github.com/Pitchfork-and-Torch/GrokForge",
-        },
-      },
-      {
-        "@type": "Organization",
-        name: "GrokForge",
-        url: siteUrl,
-        logo: `${siteUrl}/logo.svg`,
-        sameAs: [
-          "https://github.com/Pitchfork-and-Torch/GrokForge",
-          "https://x.com/suddenlyjon",
-        ],
-      },
-    ],
-  };
+  // Always advertise the live apex identity — never a preview or localhost @id.
+  const jsonLd = siteGraphJsonLd(APEX_ORIGIN);
   return (
     <html lang="en" className="dark" data-theme="amber">
       <body className={`${geistMono.variable} antialiased font-sans`}>

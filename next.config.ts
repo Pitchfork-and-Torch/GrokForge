@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { wwwToApexRedirects } from "./src/lib/site-identity";
 
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
@@ -56,6 +57,9 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+  async redirects() {
+    return wwwToApexRedirects();
   },
 };
 

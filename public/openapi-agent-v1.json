@@ -3,9 +3,10 @@
   "info": {
     "title": "GrokForge Agent API v1",
     "version": "1.0.0",
+    "x-product-version": "2.4.0",
     "description": "Personal access tokens for Grok Build and agent clients. Never send xAI keys. Base URL: https://grokforge.app/api/v1. Auth: Authorization: Bearer gf_...",
     "contact": {
-      "name": "GrokForge",
+      "name": "Jon Bailey / GrokForge",
       "url": "https://grokforge.app"
     },
     "license": {

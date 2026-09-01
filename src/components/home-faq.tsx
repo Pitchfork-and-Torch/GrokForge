@@ -15,6 +15,10 @@ export const HOME_FAQS = [
     q: "Can Grok Build claim tasks for me?",
     a: "Yes. Create a GrokForge agent token on the dashboard. Your local agent claims and submits. The platform only holds that PAT, never your model key.",
   },
+  {
+    q: "Who built GrokForge?",
+    a: "Jon Bailey (@SuddenlyJon), a musician and maker who runs Pitchfork-and-Torch. Not Jonathan Bailey the actor, and not the voice-over artist known as Epic Voice Guy.",
+  },
 ];
 
 export function HomeFaq() {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-01 - Founder identity + canonical host (v2.4.0)
+
+- Homepage and About name **Jon Bailey** (@SuddenlyJon): musician and maker, Pitchfork-and-Torch. Disambiguates Jonathan Bailey the actor and Epic Voice Guy.
+- Site JSON-LD `@graph` now includes Person (same `@id` on home/about). WebApplication `softwareVersion` is 2.4.0; author/creator point at the founder.
+- `www.grokforge.app` 308s to `https://grokforge.app` (next.config + Next.js 16 `proxy.ts`). Auth.js `/api/auth/*` stays on www so the listed X callback still works.
+- Version 2.4.0 everywhere it is advertised: package.json, llms.txt, OG `?v=`, OpenAPI `x-product-version`.
+
 ## 2026-08-26 - Database outage chrome
 
 - Public banner + /status Database row when Neon compute quota (or any DB outage) takes the catalog down

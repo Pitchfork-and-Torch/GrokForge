@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 
-const site =
-  process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
-  process.env.AUTH_URL?.replace(/\/$/, "") ||
-  "https://grokforge.app";
+import { canonicalSiteUrl } from "@/lib/site-identity";
+
+const site = canonicalSiteUrl(
+  process.env.NEXTAUTH_URL || process.env.AUTH_URL
+);
 
 export default function robots(): MetadataRoute.Robots {
   return {

@@ -7,6 +7,7 @@ import {
   type AuthedApiUser,
 } from "@/lib/api-tokens";
 import { rateLimitAsync } from "@/lib/rate-limit";
+import { canonicalSiteUrl } from "@/lib/site-identity";
 
 export function jsonOk(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -82,9 +83,12 @@ export function publicBaseUrl(req: NextRequest) {
     process.env.NEXTAUTH_URL ||
     process.env.AUTH_URL ||
     process.env.NEXT_PUBLIC_SITE_URL;
-  if (env) return env.replace(/\/$/, "");
+  if (env) return canonicalSiteUrl(env);
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const proto = req.headers.get("x-forwarded-proto") || "https";
-  if (host) return `${proto}://${host}`;
-  return "https://grokforge.app";
+  if (host) {
+    const origin = `${proto}://${host.split(",")[0]?.trim()}`;
+    return canonicalSiteUrl(origin);
+  }
+  return canonicalSiteUrl(null);
 }

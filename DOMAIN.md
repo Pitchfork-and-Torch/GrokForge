@@ -4,13 +4,13 @@
 
 | Item | Value |
 |------|--------|
-| Apex | https://grokforge.app |
-| www | https://www.grokforge.app |
+| Apex (canonical) | https://grokforge.app |
+| www | https://www.grokforge.app → **308** to apex (except `/api/auth/*`) |
 | Vercel project | `grok-forge` team / project `grokforge` (Pro) |
 | Auth callback | `https://grokforge.app/api/auth/callback/twitter` |
 | Auth env | `NEXTAUTH_URL=https://grokforge.app` · `AUTH_URL=https://grokforge.app` |
 
-DNS and SSL are live. Prefer the apex URL in docs, OG tags, and tweets.
+DNS and SSL are live. Prefer the apex URL in docs, OG tags, and tweets. Product 2.4.0 308s www → apex in `next.config.ts` and `src/proxy.ts` so the two hosts are not duplicate 200s. `/api/auth/*` is left on www because the X OAuth app still lists `https://www.grokforge.app/api/auth/callback/twitter`.
 
 ## X OAuth app (developer.x.com)
 

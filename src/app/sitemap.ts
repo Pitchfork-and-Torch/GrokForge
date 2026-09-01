@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { canonicalSiteUrl } from "@/lib/site-identity";
 
 /**
  * Never touch Prisma at module load. Missing DATABASE_URL must not fail Vercel builds
@@ -7,10 +8,9 @@ import type { MetadataRoute } from "next";
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
-const site =
-  process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
-  process.env.AUTH_URL?.replace(/\/$/, "") ||
-  "https://grokforge.app";
+const site = canonicalSiteUrl(
+  process.env.NEXTAUTH_URL || process.env.AUTH_URL
+);
 
 function staticRoutes(): MetadataRoute.Sitemap {
   const now = new Date();

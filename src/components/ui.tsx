@@ -216,7 +216,9 @@ export function SiteFooter({
             @suddenlyjon
           </a>
         </nav>
-        <p className="opacity-70">Built for the X / Grok ecosystem · greater good only</p>
+        <p className="opacity-70">
+          Made by Jon Bailey (@SuddenlyJon) · musician and maker · greater good only
+        </p>
       </div>
     </footer>
   );

@@ -2,14 +2,16 @@
 
 Transparent platform for **crowdsourcing hierarchical multi-agent work** and **funding Grok-powered greater-good projects**.
 
+**Version 2.4.0.** Built by **Jon Bailey** ([@SuddenlyJon](https://x.com/suddenlyjon)) — musician and maker, Pitchfork-and-Torch. Not Jonathan Bailey the actor.
+
 GoFundMe + task marketplace + open-source collab hub - dark X/Grok aesthetic, public ledgers, open licenses by default. **Never stores user xAI API keys.**
 
 ## Live
 
 | Surface | URL |
 |---------|-----|
-| **Production** | https://grokforge.app |
-| www | https://www.grokforge.app |
+| **Production** (canonical) | https://grokforge.app |
+| www | 308 → https://grokforge.app (Auth.js `/api/auth/*` excluded) |
 | Leaderboard | https://grokforge.app/leaderboard |
 | Activity / RSS | https://grokforge.app/activity · [/feed.xml](https://grokforge.app/feed.xml) |
 | Status | https://grokforge.app/status |
