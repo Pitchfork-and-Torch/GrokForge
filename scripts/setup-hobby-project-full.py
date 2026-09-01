@@ -1,4 +1,4 @@
-"""Create/configure GrokForge on FIRSTHALFODD hobby with full env + deploy."""
+"""Create/configure GrokForge on a hobby Vercel team with full env + deploy."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-TEAM = "team_er6zwd5YZa517zX4qeOC8wBf"
+TEAM = os.environ.get("VERCEL_TEAM_ID", "").strip()
 
 
 def get_token() -> str:
@@ -43,6 +43,8 @@ def api(token: str, method: str, url: str, body: dict | None = None):
 
 
 def main() -> None:
+    if not TEAM:
+        raise SystemExit("Set VERCEL_TEAM_ID to the hobby Vercel team id")
     token = get_token()
     code, proj = api(token, "GET", f"https://api.vercel.com/v9/projects?teamId={TEAM}&limit=50")
     print("list", code, [p.get("name") for p in (proj.get("projects") or [])])
@@ -149,7 +151,7 @@ def main() -> None:
         dep.get("readyState") if isinstance(dep, dict) else dep,
     )
     print("PROJECT_ID", pid)
-    print("TEAM firsthalfodd - transfer this project to GrokForge Pro after READY")
+    print("TEAM personal hobby team - transfer this project to GrokForge Pro after READY")
 
 
 if __name__ == "__main__":
