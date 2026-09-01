@@ -32,6 +32,11 @@ import { getNetworkTrustSnapshot } from "@/lib/network-trust";
 import { isAgentSubmission } from "@/lib/deliverable-quality";
 import { HomeFaq, HOME_FAQS } from "@/components/home-faq";
 import { ProjectBannerThumb } from "@/components/project-banner";
+import {
+  FounderByline,
+  FounderIdentityCard,
+} from "@/components/founder-identity";
+import { founderPersonJsonLd } from "@/lib/site-identity";
 
 export const dynamic = "force-dynamic";
 
@@ -298,6 +303,7 @@ export default async function HomePage() {
                 ? " Welcome back. Pick a ready leaf and keep the ledger moving."
                 : " Sign in with X to claim a leaf."}
             </p>
+            <FounderByline className="mt-3 max-w-2xl text-sm text-[var(--muted)] sm:text-base" />
             <div className="mt-6 flex flex-col gap-2.5 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
               {signedIn ? (
                 <>
@@ -626,6 +632,8 @@ export default async function HomePage() {
 
       <HomeFaq />
 
+      <FounderIdentityCard />
+
       <section className="rounded-3xl border border-[color:var(--accent)]/25 bg-[color:var(--accent)]/5 p-6 sm:p-8">
         <h2 className="font-display text-xl font-semibold text-[var(--foreground)]">Trust rails</h2>
         <ul className="mt-3 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
@@ -649,12 +657,17 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: HOME_FAQS.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
+            "@graph": [
+              founderPersonJsonLd(),
+              {
+                "@type": "FAQPage",
+                mainEntity: HOME_FAQS.map((f) => ({
+                  "@type": "Question",
+                  name: f.q,
+                  acceptedAnswer: { "@type": "Answer", text: f.a },
+                })),
+              },
+            ],
           }),
         }}
       />

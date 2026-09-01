@@ -12,6 +12,11 @@ import { ShareAchievements } from "@/components/share-achievements";
 import { ShareRankTweet } from "@/components/share-rank-tweet";
 import { XMoneyTip } from "@/components/x-money-tip";
 import { isFounderHandle } from "@/lib/identity";
+import {
+  FOUNDER,
+  canonicalSiteUrl,
+  founderPersonJsonLd,
+} from "@/lib/site-identity";
 import { computeStreak, streakBadgeLabel } from "@/lib/streaks";
 import { fetchUserBadgeGallery, fetchUserBadges } from "@/lib/badges-data";
 import { ContributionHeatmap } from "@/components/contribution-heatmap";
@@ -21,10 +26,9 @@ import { StatTip } from "@/components/stat-tip";
 
 export const dynamic = "force-dynamic";
 
-const site =
-  process.env.NEXTAUTH_URL?.replace(/\/$/, "") ||
-  process.env.AUTH_URL?.replace(/\/$/, "") ||
-  "https://grokforge.app";
+const site = canonicalSiteUrl(
+  process.env.NEXTAUTH_URL || process.env.AUTH_URL
+);
 
 export async function generateMetadata({
   params,
@@ -159,18 +163,24 @@ export default async function ProfilePage({
   const streakLabel = streakBadgeLabel(streak.current);
   const donatedCents = donationSum._sum.amountCents || 0;
 
-  const personLd = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: user.name || `@${user.handle}`,
-    alternateName: user.handle ? `@${user.handle}` : undefined,
-    url: user.handle ? `${site}/u/${user.handle}` : undefined,
-    image: user.image || undefined,
-    description:
-      user.bio ||
-      `GrokForge builder · ${user.reputation} reputation · greater-good multi-agent work`,
-    sameAs: user.handle ? [`https://x.com/${user.handle}`] : undefined,
-  };
+  const personLd = founder
+    ? {
+        "@context": "https://schema.org",
+        ...founderPersonJsonLd(site),
+        image: user.image || undefined,
+      }
+    : {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: user.name || `@${user.handle}`,
+        alternateName: user.handle ? `@${user.handle}` : undefined,
+        url: user.handle ? `${site}/u/${user.handle}` : undefined,
+        image: user.image || undefined,
+        description:
+          user.bio ||
+          `GrokForge builder · ${user.reputation} reputation · greater-good multi-agent work`,
+        sameAs: user.handle ? [`https://x.com/${user.handle}`] : undefined,
+      };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -189,7 +199,10 @@ export default async function ProfilePage({
             </Badge>
           )}
         </div>
-        <p className="text-stone-400">{user.name}</p>
+        <p className="text-stone-400">
+          {founder ? FOUNDER.name : user.name}
+          {founder ? ` · ${FOUNDER.jobTitle.toLowerCase()}` : null}
+        </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Badge title="Reputation from accepted work, reviews, tips, and gifts">
             {user.reputation} reputation

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Badge, Button, Card } from "@/components/ui";
+import { FounderIdentityCard } from "@/components/founder-identity";
+import { founderPersonJsonLd } from "@/lib/site-identity";
 
 export const metadata: Metadata = {
   title: "About GrokForge",
@@ -38,12 +40,17 @@ const FAQS = [
 export default function AboutPage() {
   const faqLd = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
+    "@graph": [
+      founderPersonJsonLd(),
+      {
+        "@type": "FAQPage",
+        mainEntity: FAQS.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+      },
+    ],
   };
 
   return (
@@ -57,9 +64,11 @@ export default function AboutPage() {
         <h1 className="mt-3 text-3xl font-bold text-white">About GrokForge</h1>
         <p className="mt-2 text-stone-400">
           Transparent crowdsourcing for hierarchical multi-agent work and funding Grok-powered
-          greater-good projects.
+          greater-good projects. Built by Jon Bailey (@SuddenlyJon), musician and maker.
         </p>
       </div>
+
+      <FounderIdentityCard />
 
       <Card className="space-y-3 text-sm text-stone-300">
         <p>

@@ -112,7 +112,7 @@ Integration against live Neon is manual via DEMO.md loop.
 | Item | Value |
 |------|--------|
 | Canonical | https://grokforge.app |
-| www | https://www.grokforge.app |
+| www | 308 → https://grokforge.app (except `/api/auth/*`) |
 | Team / project | **grok-forge** Pro · project `grokforge` |
 | DB | Neon Postgres (pooled `DATABASE_URL`) |
 | Auth | X OAuth 2.0 primary (`AUTH_TWITTER_*`) + email fallback |
