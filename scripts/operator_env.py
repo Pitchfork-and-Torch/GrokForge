@@ -1,4 +1,4 @@
-"""Load local assignments from the process environment or one out-of-tree directory.
+"""Load local assignments from the process environment, or from a directory the operator sets.
 
 Set GROKFORGE_ENV_DIR to an absolute directory outside this repository.
 Every regular file in that directory is parsed as KEY=VALUE lines; names of

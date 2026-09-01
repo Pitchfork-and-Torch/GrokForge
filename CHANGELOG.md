@@ -2,7 +2,7 @@
 
 ## 2026-09-01 - Local env assembly
 
-- removed disk treasure map; env/out-of-tree only.
+- Operator scripts read credentials from the process environment, or from a directory the operator sets. No hardcoded vault paths in source.
 
 ## 2026-09-01 - Founder identity + canonical host (v2.4.0)
 

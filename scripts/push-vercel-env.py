@@ -2,7 +2,7 @@
 Push GrokForge env vars to a Vercel project.
 
 Uses VERCEL_TOKEN from the process environment.
-Assignments come from the process environment or one out-of-tree directory.
+Assignments come from the process environment, or from a directory the operator sets.
 Never prints secret values.
 """
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Write repo .env.local from the process environment or one out-of-tree directory."""
+"""Write repo .env.local from the process environment, or from a directory the operator sets."""
 from __future__ import annotations
 
 import secrets
