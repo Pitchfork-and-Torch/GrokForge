@@ -1,0 +1,523 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js / NextAuth models ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  handle        String?   @unique
+  passwordHash  String?
+  reputation    Int       @default(0)
+  capacityNotes String?   @db.Text
+  bio           String?   @db.Text
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]          @relation("ProposedProjects")
+  claims        TaskClaim[]
+  contributions Contribution[]
+  donations     Donation[]
+  reviews       ContributionReview[]
+  projectComments ProjectComment[]
+  notifications Notification[]
+  commentReports CommentReport[]
+  watches       ProjectWatch[]
+  apiTokens     ApiToken[]
+  scorecards    ProjectScorecard[]
+  thumbs        ProjectThumb[]
+  sealedArtifacts Artifact[] @relation("SealedBy")
+  themePref     String?
+  // Optional linked GitHub username (from OAuth or profile)
+  githubHandle  String?
+  // Optional HTTPS webhook for leaf-ready / skill-pack events (agent runtime)
+  workerWebhookUrl String? @db.Text
+  agentWorkers  AgentWorkerHeartbeat[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Personal access tokens for agent clients (Grok Build, scripts).
+// Never store xAI / SuperGrok keys - only GrokForge platform auth.
+// tokenHash is SHA-256 of the full secret; raw secret shown once at create.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  // Space-separated scopes: tasks:read claims:write contributions:write
+  scopes     String    @default("tasks:read claims:write contributions:write")
+  tokenHash  String    @unique
+  // e.g. gf_AbCdEf for revoke UI (not secret)
+  tokenPrefix String
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([tokenHash])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String   @db.Text
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Domain ---
+
+enum ProjectCategory {
+  CLIMATE
+  OPEN_SCIENCE
+  EDUCATION
+  PUBLIC_GOODS_SOFTWARE
+  HEALTH
+  OTHER
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  FUNDED
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  OPEN
+  CLAIMED
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+enum FundType {
+  COMPUTE
+  API_CREDITS
+  SUPERGROK_SPONSOR
+  GENERAL
+}
+
+enum ContributionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum LedgerKind {
+  LABOR
+  CAPITAL
+  MILESTONE
+  ADJUSTMENT
+}
+
+model Project {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  title            String
+  description      String          @db.Text
+  category         ProjectCategory
+  license          String          @default("MIT")
+  fundingGoalCents Int             @default(0)
+  status           ProjectStatus   @default(ACTIVE)
+  impactSummary    String?         @db.Text
+  alignmentCheck   String?         @db.Text
+  // Public banner image: HTTPS URL (Vercel Blob) or data:image/*;base64,...
+  bannerUrl        String?         @db.Text
+  // upload | imagine | null
+  bannerSource     String?
+  // Matching funds: platform/proposer pool that 1:1 (or custom ratio) matches community donations
+  matchingEnabled        Boolean @default(false)
+  // Basis points: 10000 = 100% (1:1). Cap 50000 = 5x.
+  matchingRatioBps       Int     @default(10000)
+  // Total match budget committed (cents)
+  matchingPoolCents      Int     @default(0)
+  // Remaining match budget (cents)
+  matchingRemainingCents Int     @default(0)
+  // Hard dual-key: accept on large leaves needs >=1 peer review (Forger+)
+  requireDualKey           Boolean @default(false)
+  // Estimated-token threshold for dual-key when requireDualKey is true
+  dualKeyTokenThreshold    Int     @default(50000)
+  proposerId       String
+  proposer         User            @relation("ProposedProjects", fields: [proposerId], references: [id])
+  tasks            Task[]
+  fundPots         FundPot[]
+  milestones       Milestone[]
+  artifacts        Artifact[]
+  ledgerEntries    LedgerEntry[]
+  donations        Donation[]
+  comments         ProjectComment[]
+  watches          ProjectWatch[]
+  scorecard        ProjectScorecard?
+  thumbs           ProjectThumb[]
+  editHistory      ProjectEditHistory[]
+  // Founder-curated public list order (lower = higher). Default sort for viewers.
+  displayOrder     Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([category, status])
+  @@index([createdAt])
+  @@index([displayOrder, createdAt])
+}
+
+// Always-on agent worker heartbeats (local/VPS loops; no model keys stored)
+model AgentWorkerHeartbeat {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Stable machine label, e.g. vps-hetzner-1 or pc-knock
+  workerName      String
+  // idle | busy | error
+  status          String   @default("idle")
+  // Comma-separated project slugs allowlist (empty = any ready leaf)
+  projectFilter   String?  @db.Text
+  lastTaskId      String?
+  lastProjectSlug String?
+  lastError       String?  @db.Text
+  lastClaimAt     DateTime?
+  lastSubmitAt    DateTime?
+  lastSeenAt      DateTime @default(now())
+  metaJson        String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, workerName])
+  @@index([lastSeenAt])
+  @@index([status, lastSeenAt])
+}
+
+// Public collapsible edit history (title/description and creator task edits)
+model ProjectEditHistory {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actorId     String?
+  actorHandle String?
+  // title | description | impact | license | banner | task_add | task_edit | matching | other
+  field       String
+  oldValue    String?  @db.Text
+  newValue    String?  @db.Text
+  summary     String
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// Signed-in thumbs-up (one per user per project)
+model ProjectThumb {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@index([projectId, createdAt])
+  @@index([userId])
+}
+
+// Weighted ranking scorecard (1-5 per criterion). totalScore max 5.00.
+// Official card: one per project (creator or founder maintains).
+model ProjectScorecard {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scorerId  String
+  scorer    User    @relation(fields: [scorerId], references: [id], onDelete: Cascade)
+
+  // Scores 1-5
+  strategicAlignment   Int
+  technicalFeasibility Int
+  businessValue        Int
+  effortDemand         Int
+  riskUncertainty      Int
+  timeSensitivity      Int
+
+  // Short justifications (transparency)
+  strategicNote String? @db.Text
+  technicalNote String? @db.Text
+  businessNote  String? @db.Text
+  effortNote    String? @db.Text
+  riskNote      String? @db.Text
+  timeNote      String? @db.Text
+
+  // Cached weighted total (0-5)
+  totalScore Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([totalScore])
+  @@index([scorerId])
+}
+
+// Global public counters (visitors + first-time X builders)
+model SiteStats {
+  id                String   @id @default("global")
+  visitors          Int      @default(0)
+  xBuilders         Int      @default(0)
+  // Founder-pinned project shown in home hero (right column)
+  featuredProjectId String?
+  updatedAt         DateTime @updatedAt
+}
+
+// User bookmarks / follows a project for dashboard + future alerts
+model ProjectWatch {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@index([userId, createdAt])
+  @@index([projectId])
+}
+
+model ProjectComment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String   @db.Text
+  // Soft-moderation: hidden by creator (not hard delete)
+  hidden    Boolean  @default(false)
+  reports   CommentReport[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([userId])
+}
+
+model CommentReport {
+  id         String         @id @default(cuid())
+  commentId  String
+  comment    ProjectComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User           @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     String?
+  createdAt  DateTime       @default(now())
+
+  @@unique([commentId, reporterId])
+  @@index([commentId])
+}
+
+model Task {
+  id                 String         @id @default(cuid())
+  projectId          String
+  project            Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId           String?
+  parent             Task?          @relation("TaskTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children           Task[]         @relation("TaskTree")
+  title              String
+  prompt             String         @db.Text
+  acceptanceCriteria String         @db.Text
+  estimatedTokens    Int            @default(0)
+  status             TaskStatus     @default(OPEN)
+  sortOrder          Int            @default(0)
+  // Comma-separated skill/topic tags for agent matching
+  tags               String?
+  // Soft "good first leaf" for new builders
+  goodFirst          Boolean        @default(false)
+  // JSON array of task ids that must be ACCEPTED before claim
+  dependsOnJson      String?        @db.Text
+  claims             TaskClaim[]
+  contributions      Contribution[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([projectId, status])
+  @@index([goodFirst, status])
+}
+
+model TaskClaim {
+  id            String         @id @default(cuid())
+  taskId        String
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  claimedAt     DateTime       @default(now())
+  expiresAt     DateTime?
+  active        Boolean        @default(true)
+  contributions Contribution[]
+
+  @@index([taskId, active])
+  @@index([userId])
+}
+
+model Contribution {
+  id          String               @id @default(cuid())
+  taskId      String
+  task        Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  claimId     String?
+  claim       TaskClaim?           @relation(fields: [claimId], references: [id])
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id])
+  body        String               @db.Text
+  sources     String?              @db.Text
+  contentType String               @default("markdown")
+  status      ContributionStatus   @default(PENDING)
+  score       Int?
+  reviews     ContributionReview[]
+  artifacts   Artifact[]
+  // Peer-review / dispute rails
+  disputedAt   DateTime?
+  disputeNote  String?              @db.Text
+  reopenedAt   DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([taskId, status])
+}
+
+model ContributionReview {
+  id             String       @id @default(cuid())
+  contributionId String
+  contribution   Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  reviewerId     String
+  reviewer       User         @relation(fields: [reviewerId], references: [id])
+  score          Int
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now())
+}
+
+model FundPot {
+  id           String     @id @default(cuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type         FundType   @default(GENERAL)
+  label        String
+  balanceCents Int        @default(0)
+  donations    Donation[]
+  createdAt    DateTime   @default(now())
+}
+
+model Donation {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  potId           String
+  pot             FundPot  @relation(fields: [potId], references: [id])
+  donorId         String?
+  donor           User?    @relation(fields: [donorId], references: [id])
+  amountCents     Int
+  publicName      String?
+  stripeSessionId String?  @unique
+  message         String?
+  createdAt       DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Milestone {
+  id                String    @id @default(cuid())
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title             String
+  description       String    @db.Text
+  targetCents       Int       @default(0)
+  released          Boolean   @default(false)
+  releasedAt        DateTime?
+  sortOrder         Int       @default(0)
+  // Dual verification: human reviewer (creator or peer)
+  humanVerifiedAt   DateTime?
+  humanVerifiedById String?
+  // Dual verification: multi-agent / platform worker
+  agentVerifiedAt   DateTime?
+  agentVerifiedNote String?   @db.Text
+}
+
+model Artifact {
+  id             String        @id @default(cuid())
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contributionId String?
+  contribution   Contribution? @relation(fields: [contributionId], references: [id])
+  title          String
+  url            String
+  license        String        @default("MIT")
+  // github | url | package | generated | other
+  source         String        @default("url")
+  // Optional linked GitHub repo full name owner/repo
+  githubRepo     String?
+  // Seal & Ship package fields (source = package)
+  version        String?
+  sealNote       String?       @db.Text
+  contentHash    String?
+  isPrimary      Boolean       @default(false)
+  sealedById     String?
+  sealedBy       User?         @relation("SealedBy", fields: [sealedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+
+  @@index([projectId, source, isPrimary])
+}
+
+model LedgerEntry {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind        LedgerKind
+  amountCents Int        @default(0)
+  summary     String
+  meta        String?    @db.Text
+  actorHandle String?
+  createdAt   DateTime   @default(now())
+
+  @@index([projectId, createdAt])
+}
