@@ -31,4 +31,4 @@ try {
   Write-Host "created $projectId"
 }
 
-Write-Host "Next: set env + domains via agent with this teamId=$teamId projectId=$projectId"
+Write-Host "Next: set env + domains with this teamId=$teamId projectId=$projectId"

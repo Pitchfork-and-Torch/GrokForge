@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-07 - Public hygiene
+
+- Footer and `/status` show product version `2.4.0` (same number as `VERSION`, `package.json`, `llms.txt`, OpenAPI).
+- Operator scripts no longer default to home-directory Desktop or design-asset paths. Set `GROKFORGE_OUTPUT_DIR`, `GROKFORGE_PROMO_DIR`, or `GROKFORGE_FONT_DIR` when a local folder is needed.
+- Docs drop host-specific resource IDs and private service names. Stripe and Neon stay configured via environment variables.
+
 ## 2026-09-01 - Local env assembly
 
 - Operator scripts read credentials from the process environment, or from a directory the operator sets. No hardcoded vault paths in source.
@@ -305,7 +311,7 @@
 - Expired claims reopen tasks, ledger note, notify claimer + creator
 - **NOTIFY_WEBHOOK** agent-email bridge format (`/send` + high-signal types only)
 - Flags: `claimExpireCron`, `notifyFormat`, `claimAutoExpire`
-- Stripe: still demo-ledger until `STRIPE_SECRET_KEY` is vaulted (MCP account present; secret not on disk)
+- Stripe: still demo-ledger until `STRIPE_SECRET_KEY` is set on the host
 
 ## 2026-08-05 - Keep cooking (watcher labor, stats API, profiles)
 

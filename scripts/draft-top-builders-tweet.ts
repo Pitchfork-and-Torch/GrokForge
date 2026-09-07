@@ -1,13 +1,12 @@
 /**
- * Human-gated top builders tweet draft.
- * Writes Desktop/GrokForge-tweet-ready/top-builders-tweet.txt (never auto-posts).
+ * Human-gated top builders tweet draft. Prints to stdout.
+ * Writes a file only when GROKFORGE_OUTPUT_DIR is set (never auto-posts).
  *
  *   npx tsx scripts/draft-top-builders-tweet.ts
  *   npx tsx scripts/draft-top-builders-tweet.ts week
  */
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
-import { homedir } from "os";
 import { PrismaClient } from "@prisma/client";
 import {
   rankContributors,
@@ -119,11 +118,13 @@ async function main() {
   lines.push("Do not auto-post.");
 
   const body = lines.join("\n");
-  const dir = join(homedir(), "Desktop", "GrokForge-tweet-ready");
-  mkdirSync(dir, { recursive: true });
-  const out = join(dir, "top-builders-tweet.txt");
-  writeFileSync(out, body, "utf8");
-  console.log("wrote", out);
+  const outDir = (process.env.GROKFORGE_OUTPUT_DIR || "").trim();
+  if (outDir) {
+    mkdirSync(outDir, { recursive: true });
+    const out = join(outDir, "top-builders-tweet.txt");
+    writeFileSync(out, body, "utf8");
+    console.log("wrote", out);
+  }
   console.log("---");
   console.log(body);
 }

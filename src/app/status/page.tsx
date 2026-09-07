@@ -8,6 +8,7 @@ import {
   githubPublishConfigured,
 } from "@/lib/github-publish";
 import { stripePricesConfigured } from "@/lib/stripe-prices";
+import { APP_VERSION } from "@/lib/site-identity";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ export default async function StatusPage() {
   };
 
   const rows: { k: string; v: string; ok?: boolean }[] = [
+    { k: "Product version", v: APP_VERSION, ok: true },
     {
       k: "Database",
       v: db.ok

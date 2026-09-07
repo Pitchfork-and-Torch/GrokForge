@@ -1,7 +1,8 @@
 /**
- * Publish the Desktop GrokForge_12_Projects_Package on live GrokForge.
- * Idempotent by slug. Founder = SuddenlyJon.
- * Banners: promo JPGs from the package (Vercel Blob when token present).
+ * Upsert the 12 curated greater-good projects. Idempotent by slug.
+ * Founder = SuddenlyJon.
+ * Optional banners: set GROKFORGE_PROMO_DIR to a directory of promo JPEGs
+ * (Vercel Blob when token present). No default home-directory path.
  *
  * Run from repo root:
  *   npx tsx scripts/seed-12-radical-projects.ts
@@ -43,10 +44,7 @@ loadEnv(".env.local");
 
 const prisma = new PrismaClient();
 
-const PROMO_DIR = resolve(
-  process.env.USERPROFILE || process.env.HOME || "",
-  "Desktop/GrokForge_12_Projects_Package/grokforge_projects_package/promo_graphics"
-);
+const PROMO_DIR = (process.env.GROKFORGE_PROMO_DIR || "").trim();
 
 type Leaf = {
   title: string;
@@ -79,7 +77,7 @@ function leaf(
   return { title, prompt, acceptanceCriteria, estimatedTokens };
 }
 
-/** 12 radical greater-good projects from the operator package. */
+/** 12 curated greater-good project specs. */
 const SPECS: Spec[] = [
   {
     slug: "echovault-global-bioacoustic-archive-decoder",
@@ -779,10 +777,12 @@ async function upsertProject(
 ) {
   const existing = await prisma.project.findUnique({ where: { slug: spec.slug } });
   if (existing) {
-    const banner = await storeBanner(
-      resolve(PROMO_DIR, spec.bannerFile),
-      `${founderId}/${spec.slug}`
-    );
+    const banner = PROMO_DIR
+      ? await storeBanner(
+          resolve(PROMO_DIR, spec.bannerFile),
+          `${founderId}/${spec.slug}`
+        )
+      : null;
     await prisma.project.update({
       where: { id: existing.id },
       data: {
@@ -804,10 +804,12 @@ async function upsertProject(
     return { slug: spec.slug, created: false, url: `https://grokforge.app/projects/${spec.slug}` };
   }
 
-  const banner = await storeBanner(
-    resolve(PROMO_DIR, spec.bannerFile),
-    `${founderId}/${spec.slug}`
-  );
+  const banner = PROMO_DIR
+    ? await storeBanner(
+        resolve(PROMO_DIR, spec.bannerFile),
+        `${founderId}/${spec.slug}`
+      )
+    : null;
 
   const project = await prisma.project.create({
     data: {
@@ -918,10 +920,12 @@ async function upsertProject(
 }
 
 async function main() {
-  if (!existsSync(PROMO_DIR)) {
-    console.warn("PROMO_DIR missing:", PROMO_DIR);
+  if (!PROMO_DIR) {
+    console.log("GROKFORGE_PROMO_DIR unset; skipping local promo banners");
+  } else if (!existsSync(PROMO_DIR)) {
+    console.warn("GROKFORGE_PROMO_DIR missing:", PROMO_DIR);
   } else {
-    console.log("PROMO_DIR", PROMO_DIR);
+    console.log("GROKFORGE_PROMO_DIR set");
   }
 
   const founder = await prisma.user.findFirst({

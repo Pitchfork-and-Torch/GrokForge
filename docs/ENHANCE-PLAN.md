@@ -1,4 +1,4 @@
-# GrokForge enhance plan (from Desktop brief)
+# GrokForge enhance plan
 
 ## Design tokens (locked default)
 

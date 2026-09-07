@@ -32,7 +32,7 @@ DNS and SSL are live. Prefer the apex URL in docs, OG tags, and tweets. Product 
 | Item | Value |
 |------|--------|
 | Claim expire cron | Hourly `GET /api/cron/expire-claims` (Vercel Cron + `CRON_SECRET`) |
-| Notify bridge | `NOTIFY_WEBHOOK_FORMAT=agent-email` → jonbailey-email `/send` (high-signal only) |
+| Notify bridge | `NOTIFY_WEBHOOK_FORMAT=agent-email` → webhook `/send` (high-signal only) |
 | Public stats | `GET /api/stats` |
 | Sealed package ZIP | `GET /api/projects/{slug}/package` (public after seal; GitHub-ready) |
 | Seal review UI | `/projects/{slug}/seal` (creator) |
@@ -42,12 +42,10 @@ DNS and SSL are live. Prefer the apex URL in docs, OG tags, and tweets. Product 
 
 ### Stripe (live Checkout)
 
-- Account: `acct_1TpISNLRSReqU8Na` (dashboard display name "Twitter")
-- `STRIPE_SECRET_KEY` on Vercel = restricted live API key (Checkout Sessions verified)
+- `STRIPE_SECRET_KEY` on the host (restricted live API key; Checkout Sessions verified)
 - Webhook: `https://grokforge.app/api/stripe/webhook` event `checkout.session.completed`
-- `STRIPE_WEBHOOK_SECRET` on Vercel (from endpoint create)
+- `STRIPE_WEBHOOK_SECRET` on the host (from endpoint create)
 - Keep Stripe secrets in the process environment or host env — never git
-- Dashboard key IDs are not secret material
 - Server Checkout redirect does not need a publishable key
 
 ## Optional DNS reference

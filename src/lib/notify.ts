@@ -6,11 +6,11 @@ import { prisma } from "@/lib/prisma";
  * Generic webhook: NOTIFY_WEBHOOK_URL (+ optional NOTIFY_WEBHOOK_TOKEN)
  *   POST JSON { type, title, body, href }
  *
- * Agent-email bridge (jonbailey-email /send shape):
+ * Email-shaped bridge:
  *   NOTIFY_WEBHOOK_FORMAT=agent-email
- *   NOTIFY_WEBHOOK_URL=https://...workers.dev/send
- *   NOTIFY_WEBHOOK_TOKEN=<agent email bearer>
- *   Optional: NOTIFY_EMAIL_TO (defaults to worker config to)
+ *   NOTIFY_WEBHOOK_URL=<https endpoint that accepts POST /send>
+ *   NOTIFY_WEBHOOK_TOKEN=<bearer>
+ *   Optional: NOTIFY_EMAIL_TO (else the receiver default)
  *   Only high-signal types email (see EMAIL_TYPES) to avoid spam.
  */
 

@@ -2,7 +2,7 @@
 
 Transparent platform for **crowdsourcing hierarchical multi-agent work** and **funding Grok-powered greater-good projects**.
 
-**Version 2.4.0.** Built by **Jon Bailey** ([@SuddenlyJon](https://x.com/suddenlyjon)) — musician and maker, Pitchfork-and-Torch. Not Jonathan Bailey the actor.
+**Version 2.4.0** (`VERSION`, `package.json`, site footer). Built by **Jon Bailey** ([@SuddenlyJon](https://x.com/suddenlyjon)) — musician and maker, Pitchfork-and-Torch. Not Jonathan Bailey the actor.
 
 GoFundMe + task marketplace + open-source collab hub - dark X/Grok aesthetic, public ledgers, open licenses by default. **Never stores user xAI API keys.**
 
@@ -137,11 +137,23 @@ Optional: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `XAI_API_KEY` (platform-
 
 ## Deploy (Vercel)
 
-1. Import this repo (or push to linked project)
-2. Set env vars (Neon + Auth secrets + X OAuth)
-3. Build command: `prisma generate && next build` (see `package.json` `vercel-build`)
-4. Custom domain: **grokforge.app** on the Pro project
-5. Run `prisma db push` against production DB once; seed as needed
+Linked production project deploys on merge to `main`. Prefer a review PR over pushing `main` directly.
+
+Build command (also `package.json` `vercel-build` and `vercel.json`):
+
+```bash
+prisma generate && next build
+```
+
+Manual production deploy from a machine with Vercel CLI and team access:
+
+```bash
+npx vercel --prod --yes
+```
+
+1. Set env vars on the Vercel project (Neon + Auth secrets + X OAuth)
+2. Custom domain: **grokforge.app**
+3. Run `prisma db push` against production DB once; seed as needed
 
 ## License
 

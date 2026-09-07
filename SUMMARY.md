@@ -16,10 +16,8 @@
 
 ## Neon
 
-- Project: `GrokForge` (`fancy-poetry-92960151`)
-- Region: AWS us-east-1
-- DB: `neondb` on branch `main`
-- Connection: pooled URL in local `.env` (gitignored)
+- Hosted Postgres (pooled `DATABASE_URL` in local `.env`, gitignored)
+- Schema lives in `prisma/schema.prisma`
 
 ## Public repo
 
@@ -34,7 +32,7 @@
 - Project CRUD with hierarchy
 - List / filter / detail
 - Claim + submit + manual peer review
-- Seed: climate + public-goods software projects
+- Seed: local email fixtures only when `SEED_DEMO_USERS=true` (no sample projects)
 
 ### Phase 2 (done in MVP form)
 
@@ -52,11 +50,11 @@
 - **AI task decompose** via `POST /api/decompose` (platform `XAI_API_KEY` only; heuristic fallback)
 - In-memory rate limits on create / submit / donate / decompose
 
-## How X Vibe Chat can use it tomorrow
+## How to try it
 
-1. Clone / open `GrokForge`, set Neon `DATABASE_URL`, `npm run db:push && npm run db:seed && npm run dev`
-2. Share https://grokforge.app (or local http://localhost:3000)
-3. Members **Sign in with X** (real OAuth) or email fallback
+1. Clone `GrokForge`, set Neon `DATABASE_URL`, `npm run db:push && npm run db:seed && npm run dev`
+2. Open https://grokforge.app (or local http://localhost:3000)
+3. Sign in with X (real OAuth) or email fallback
 4. One host proposes a hierarchical project; others claim leaf tasks
 5. Each person runs Grok in their own client, pastes outputs back
 6. Optional demo donations track sponsorship of API/compute pots
@@ -96,7 +94,6 @@
 - [ ] Embeddings-based matching optional upgrade
 - [ ] OpenAPI export + official Grok Build skill for Agent API (shipped; MCP Phase 1 in `packages/mcp-server`)
 - [ ] MCP Phase 2: peer review / moderate / seal / heartbeat tools (stubs only today)
-- [ ] Rotate Neon credentials if this machine's `.env` was ever shared
 
 ## Tests
 

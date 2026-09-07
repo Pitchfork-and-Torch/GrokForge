@@ -25,6 +25,7 @@ describe("product version 2.4.0", () => {
     expect(APP_VERSION).toBe("2.4.0");
     const pkg = JSON.parse(readRepo("package.json")) as { version: string };
     expect(pkg.version).toBe(APP_VERSION);
+    expect(readRepo("VERSION").trim()).toBe(APP_VERSION);
 
     const llms = readRepo("public/llms.txt");
     expect(llms).toContain(`Version: ${APP_VERSION}`);
@@ -36,6 +37,11 @@ describe("product version 2.4.0", () => {
       info: { "x-product-version"?: string };
     };
     expect(openapi.info["x-product-version"]).toBe(APP_VERSION);
+
+    expect(readRepo("src/components/ui.tsx")).toContain("APP_VERSION");
+    expect(readRepo("src/app/status/page.tsx")).toContain("APP_VERSION");
+    expect(readRepo("CHANGELOG.md")).toContain(APP_VERSION);
+    expect(readRepo("README.md")).toContain(APP_VERSION);
   });
 
   it("og cache-bust path matches APP_VERSION", () => {

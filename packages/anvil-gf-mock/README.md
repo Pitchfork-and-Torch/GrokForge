@@ -2,8 +2,7 @@
 
 Minimal in-memory mock of claim → submit → review → seal for CI.
 
-See monorepo `~/anvil-infinity/packages/anvil_gf` for the full Python package.
-This folder documents the contract for Node/TS agents.
+This folder documents the contract for Node/TS agents. The live Agent API is documented in `docs/AGENT-API.md`.
 
 ```js
 // Conceptual API

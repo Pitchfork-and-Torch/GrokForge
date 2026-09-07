@@ -9,6 +9,7 @@
  *
  * Run: npx tsx scripts/attract-builders-pack.ts
  * Requires: GROKFORGE_TOKEN in the process environment
+ * Optional: GROKFORGE_OUTPUT_DIR (tweet draft files), GROKFORGE_PROMO_DIR (promo JPEGs)
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from "fs";
 import { resolve } from "path";
@@ -615,16 +616,9 @@ function writeTweetPack(
   }>,
   seedResults: Array<{ slug: string; seeded?: boolean; receiptUrl?: string }>
 ) {
-  const desk = resolve(
-    process.env.USERPROFILE || "",
-    "Desktop/GrokForge-Radical-12-tweet-ready"
-  );
-  mkdirSync(desk, { recursive: true });
-
-  const promoDir = resolve(
-    process.env.USERPROFILE || "",
-    "Desktop/GrokForge_12_Projects_Package/grokforge_projects_package/promo_graphics"
-  );
+  const dest = (process.env.GROKFORGE_OUTPUT_DIR || "").trim();
+  const promoDir = (process.env.GROKFORGE_PROMO_DIR || "").trim();
+  if (dest) mkdirSync(dest, { recursive: true });
 
   const thread: string[] = [];
   thread.push(
@@ -672,7 +666,8 @@ function writeTweetPack(
     ].join("\n")
   );
 
-  writeFileSync(resolve(desk, "tweet-thread.txt"), thread.join("\n\n---\n\n"), "utf8");
+  const threadBody = thread.join("\n\n---\n\n");
+  if (dest) writeFileSync(resolve(dest, "tweet-thread.txt"), threadBody, "utf8");
 
   // Single-post short body
   const single = [
@@ -685,7 +680,7 @@ function writeTweetPack(
     "",
     "Be the first Forger on a leaf. Public receipt. Your name on the seal.",
   ].join("\n");
-  writeFileSync(resolve(desk, "tweet-body.txt"), single, "utf8");
+  if (dest) writeFileSync(resolve(dest, "tweet-body.txt"), single, "utf8");
 
   // Per-project one-liners
   const per: string[] = [];
@@ -702,10 +697,10 @@ function writeTweetPack(
         .join("\n")
     );
   }
-  writeFileSync(resolve(desk, "per-project-links.txt"), per.join("\n\n"), "utf8");
+  if (dest) writeFileSync(resolve(dest, "per-project-links.txt"), per.join("\n\n"), "utf8");
 
-  // Copy promo cards if present
-  if (existsSync(promoDir)) {
+  // Copy promo cards if both dirs are set
+  if (dest && promoDir && existsSync(promoDir)) {
     const map: Record<string, string> = {
       EchoVault: "01_EchoVault.jpg",
       ForgeMind: "02_ForgeMind.jpg",
@@ -723,33 +718,37 @@ function writeTweetPack(
     for (const [name, file] of Object.entries(map)) {
       const src = resolve(promoDir, file);
       if (existsSync(src)) {
-        copyFileSync(src, resolve(desk, file));
+        copyFileSync(src, resolve(dest, file));
       }
     }
     // primary card for attach
     const primary = resolve(promoDir, "01_EchoVault.jpg");
     if (existsSync(primary)) {
-      copyFileSync(primary, resolve(desk, "tweet-card-1200x630.jpg"));
+      copyFileSync(primary, resolve(dest, "tweet-card-1200x630.jpg"));
     }
   }
 
-  writeFileSync(
-    resolve(desk, "README.txt"),
-    [
-      "GrokForge Radical 12 - tweet ready pack",
-      "",
-      "tweet-body.txt - single post",
-      "tweet-thread.txt - multi-tweet thread (split on ---)",
-      "per-project-links.txt - deep links",
-      "01_*.jpg ... promo attaches (prefer attach media + URL)",
-      "tweet-card-1200x630.jpg - primary attach if present",
-      "",
-      "Do not auto-post; human-gated.",
-    ].join("\n"),
-    "utf8"
-  );
+  if (dest) {
+    writeFileSync(
+      resolve(dest, "README.txt"),
+      [
+        "GrokForge Radical 12 - tweet ready pack",
+        "",
+        "tweet-body.txt - single post",
+        "tweet-thread.txt - multi-tweet thread (split on ---)",
+        "per-project-links.txt - deep links",
+        "01_*.jpg ... promo attaches (prefer attach media + URL)",
+        "tweet-card-1200x630.jpg - primary attach if present",
+        "",
+        "Do not auto-post; human-gated.",
+      ].join("\n"),
+      "utf8"
+    );
+  } else {
+    console.log("--- tweet-body ---\n" + single);
+  }
 
-  return desk;
+  return dest || "(stdout; set GROKFORGE_OUTPUT_DIR to write files)";
 }
 
 async function main() {
@@ -806,7 +805,7 @@ async function main() {
     console.log("seed anvil", s.seeded ? "SEED OK" : s.reason);
   }
 
-  const desk = writeTweetPack(
+  const tweetPack = writeTweetPack(
     polished.filter((p) => p.ok) as any,
     seedResults
   );
@@ -832,7 +831,7 @@ async function main() {
         polished: polished.length,
         seedsOk: seedResults.filter((s) => s.seeded).length,
         seedResults,
-        tweetPack: desk,
+        tweetPack,
         active,
         acceptedLeaves,
         matchingOn,

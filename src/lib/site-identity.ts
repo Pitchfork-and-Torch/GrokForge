@@ -5,7 +5,7 @@
 
 export const APP_VERSION = "2.4.0";
 export const APP_VERSION_BLURB =
-  "founder identity + www→apex canonical";
+  "founder identity + www to apex canonical";
 
 export const APEX_HOST = "grokforge.app";
 export const WWW_HOST = "www.grokforge.app";

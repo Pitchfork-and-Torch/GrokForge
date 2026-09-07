@@ -104,7 +104,7 @@ export default function AboutPage() {
       </Card>
 
       <Card className="space-y-2 text-sm text-stone-400">
-        <h2 className="font-semibold text-white">Safety and terms (MVP)</h2>
+        <h2 className="font-semibold text-white">Safety and terms</h2>
         <p>
           Greater-good focus only. No weapons, no unauthorized surveillance, no malware-for-hire.
           Contributors run agents with their own accounts. Platform operators may remove projects

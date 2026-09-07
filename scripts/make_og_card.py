@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "public"
-DESKTOP = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Desktop" / "GrokForge-tweet-ready"
+OUTPUT_DIR = Path(os.environ["GROKFORGE_OUTPUT_DIR"]).expanduser() if os.environ.get("GROKFORGE_OUTPUT_DIR", "").strip() else None
 W, H = 1200, 630
 
 # Obsidian Amber tokens
@@ -31,7 +31,8 @@ AMBER_SOFT = (253, 230, 138)
 BRONZE = (180, 83, 9)
 STONE = (120, 113, 108)
 
-FONT_KIT = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "design-assets" / "fontshare"
+_font_override = os.environ.get("GROKFORGE_FONT_DIR", "").strip()
+FONT_KIT = Path(_font_override).expanduser() if _font_override else ROOT / "public" / "fonts" / "fontshare"
 
 
 def load_font(size: int, *, display: bool = False, bold: bool = False, mono: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -219,7 +220,8 @@ def pill(
 
 def main() -> None:
     OUT.mkdir(exist_ok=True)
-    DESKTOP.mkdir(parents=True, exist_ok=True)
+    if OUTPUT_DIR is not None:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     img = Image.new("RGBA", (W, H), (*VOID, 255))
 
@@ -398,49 +400,46 @@ def main() -> None:
     rgb.save(jpg, "JPEG", quality=94, optimize=True, progressive=True)
     rgb.save(png, "PNG", optimize=True)
 
-    # Desktop tweet-ready pack
-    pack_jpg = DESKTOP / "tweet-card-1200x630.jpg"
-    pack_png = DESKTOP / "tweet-card-1200x630.png"
-    pack_og = DESKTOP / "og.jpg"
-    rgb.save(pack_jpg, "JPEG", quality=94, optimize=True, progressive=True)
-    rgb.save(pack_png, "PNG", optimize=True)
-    rgb.save(pack_og, "JPEG", quality=94, optimize=True, progressive=True)
+    if OUTPUT_DIR is not None:
+        pack_jpg = OUTPUT_DIR / "tweet-card-1200x630.jpg"
+        pack_png = OUTPUT_DIR / "tweet-card-1200x630.png"
+        pack_og = OUTPUT_DIR / "og.jpg"
+        rgb.save(pack_jpg, "JPEG", quality=94, optimize=True, progressive=True)
+        rgb.save(pack_png, "PNG", optimize=True)
+        rgb.save(pack_og, "JPEG", quality=94, optimize=True, progressive=True)
 
-    # Square attach for X media reliability (center crop-ish of constellation + brand)
-    sq = Image.new("RGB", (1080, 1080), VOID)
-    # scale full card and center
-    scaled = rgb.resize((1080, int(1080 * H / W)), Image.Resampling.LANCZOS)
-    sy = (1080 - scaled.height) // 2
-    sq.paste(scaled, (0, sy))
-    # dark bars already VOID; add monogram center if letterbox large
-    sq_path = DESKTOP / "tweet-attach-square-1080.jpg"
-    sq.save(sq_path, "JPEG", quality=93, optimize=True)
+        sq = Image.new("RGB", (1080, 1080), VOID)
+        scaled = rgb.resize((1080, int(1080 * H / W)), Image.Resampling.LANCZOS)
+        sy = (1080 - scaled.height) // 2
+        sq.paste(scaled, (0, sy))
+        sq_path = OUTPUT_DIR / "tweet-attach-square-1080.jpg"
+        sq.save(sq_path, "JPEG", quality=93, optimize=True)
 
-    body = DESKTOP / "tweet-body.txt"
-    if not body.exists():
-        body.write_text(
-            "GrokForge is live.\n\n"
-            "Crowdsource hierarchical multi-agent work for the greater good.\n"
-            "Open licenses. Public ledgers. Sign in with X.\n\n"
-            "https://grokforge.app/\n",
+        body = OUTPUT_DIR / "tweet-body.txt"
+        if not body.exists():
+            body.write_text(
+                "GrokForge is live.\n\n"
+                "Crowdsource hierarchical multi-agent work for the greater good.\n"
+                "Open licenses. Public ledgers. Sign in with X.\n\n"
+                "https://grokforge.app/\n",
+                encoding="utf-8",
+            )
+
+        readme = OUTPUT_DIR / "README.txt"
+        readme.write_text(
+            "GrokForge tweet-ready pack (Obsidian Amber)\n"
+            "- tweet-card-1200x630.jpg  primary OG / attach\n"
+            "- tweet-card-1200x630.png  twin\n"
+            "- tweet-attach-square-1080.jpg  optional square media\n"
+            "- tweet-body.txt  draft copy\n"
+            "Always attach the 1200x630 card as media in addition to the URL.\n"
+            "Live meta: https://grokforge.app/og.jpg?v=2.4.0\n",
             encoding="utf-8",
         )
-
-    readme = DESKTOP / "README.txt"
-    readme.write_text(
-        "GrokForge tweet-ready pack (Obsidian Amber v2.1)\n"
-        "- tweet-card-1200x630.jpg  primary OG / attach\n"
-        "- tweet-card-1200x630.png  twin\n"
-        "- tweet-attach-square-1080.jpg  optional square media\n"
-        "- tweet-body.txt  draft copy\n"
-        "Always attach the 1200x630 card as media in addition to the URL.\n"
-        "Live meta: https://grokforge.app/og.jpg?v=2.2.0\n",
-        encoding="utf-8",
-    )
+        print("output_dir", OUTPUT_DIR)
 
     print("ok", jpg, jpg.stat().st_size)
     print("png", png.stat().st_size)
-    print("desktop", DESKTOP)
 
 
 if __name__ == "__main__":

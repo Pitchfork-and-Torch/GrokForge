@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { APP_VERSION } from "@/lib/site-identity";
 import Link from "next/link";
 import React, {
   type ButtonHTMLAttributes,
@@ -218,6 +219,14 @@ export function SiteFooter({
         </nav>
         <p className="opacity-70">
           Made by Jon Bailey (@SuddenlyJon) · musician and maker · greater good only
+        </p>
+        <p>
+          <span
+            className="inline-flex items-center rounded-full border border-[color:var(--border)] px-2.5 py-0.5 font-mono text-[10px] tracking-wide text-[var(--muted)]"
+            title={`GrokForge ${APP_VERSION}`}
+          >
+            v{APP_VERSION}
+          </span>
         </p>
       </div>
     </footer>

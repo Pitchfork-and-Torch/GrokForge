@@ -50,7 +50,7 @@ export const nativeProvider: XMoneyProvider = {
   id: "native",
   label: "X Money API (when available)",
   buildSendUrl(intent) {
-    // Future: POST to X Money API with vaulted credentials.
+    // Future: POST to X Money API with host credentials.
     // Until then, same deep-link path keeps the product honest.
     return deeplinkProvider.buildSendUrl(intent);
   },
