@@ -1,0 +1,19 @@
+[Unit]
+Description=GrokForge local agent worker (ready-set claim/submit + heartbeat)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/grokforge-worker
+EnvironmentFile=/opt/grokforge-worker/worker.env
+ExecStart=/usr/bin/node /opt/grokforge-worker/local-agent-worker.mjs --loop
+Restart=always
+RestartSec=30
+# No SuperGrok keys; only GROKFORGE_TOKEN in EnvironmentFile
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

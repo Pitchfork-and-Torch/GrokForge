@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="GrokForge">
+  <rect width="128" height="128" rx="28" fill="#050505"/>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#121212" stroke="#f59e0b" stroke-opacity="0.5"/>
+  <rect x="28" y="28" width="72" height="72" rx="16" fill="#f59e0b"/>
+  <text x="64" y="76" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="36" font-weight="900" fill="#050505">GF</text>
+</svg>
