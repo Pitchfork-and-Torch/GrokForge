@@ -1,0 +1,24 @@
+{
+  "_comment": "Verdict TLC gives today for each (config, rule). 'pass' means the rule holds in that config. 'finding:Gn' means the current code breaks the rule and Gn in docs/formal-verification/funding-ledger/FINDINGS.md tells the path in the code's words. Change a cell only after you have confirmed, in the code, that the behaviour changed; never to make the check green.",
+  "Flow": {
+    "TypeOK": "pass",
+    "PaymentCreditedOnce": "pass",
+    "RemainingNonNegative": "pass",
+    "MatchedWithinPool": "pass",
+    "PoolConservation": "pass"
+  },
+  "WebhookRetry": {
+    "TypeOK": "pass",
+    "PaymentCreditedOnce": "finding:G1",
+    "RemainingNonNegative": "pass",
+    "MatchedWithinPool": "pass",
+    "PoolConservation": "pass"
+  },
+  "MatchBurn": {
+    "TypeOK": "pass",
+    "PaymentCreditedOnce": "pass",
+    "RemainingNonNegative": "finding:G2",
+    "MatchedWithinPool": "finding:G2",
+    "PoolConservation": "pass"
+  }
+}
