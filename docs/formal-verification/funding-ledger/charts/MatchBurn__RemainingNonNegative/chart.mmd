@@ -1,0 +1,54 @@
+---
+title: "GrokForge project funding: gifts, matching, webhook retries"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Matching on
+    lg1: Wrong
+    lg2: Breaks RemainingNonNegative
+    lg3: Path to the RemainingNonNegative bug
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 breaks
+  class lg3 bugPath
+  s0: pool #36;6.00, #36;6.00 left to match, pot #36;0.00
+  s1: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a demo gift being recorded
+  s2: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a Stripe gift being recorded
+  s3: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a Stripe gift and a demo gift being recorded
+  s4: pool #36;6.00, #36;2.00 left to match, pot #36;8.00
+  s5: pool #36;6.00, #36;2.00 left to match, pot #36;8.00 #183; a demo gift being recorded
+  s6: pool #36;6.00, #36;2.00 left to match, pot #36;8.00 #183; a Stripe gift being recorded
+  s7: pool #36;6.00, #36;0.00 left to match, pot #36;14.00
+  s8: pool #36;6.00, #36;-2.00 left to match, pot #36;16.00 #183; match pool overdrawn
+  [*] --> s0
+  s0 --> s1: a signed-in user gives to a pot (demo ledger)
+  s0 --> s2: Stripe delivers a gift to a pot
+  s1 --> s3: Stripe delivers a gift to a pot
+  s1 --> s4: the demo gift is recorded and matched from the pool
+  s2 --> s3: a signed-in user gives to a pot (demo ledger)
+  s2 --> s4: the gift is recorded and matched from the pool
+  s3 --> s5: the gift is recorded and matched from the pool
+  s3 --> s6: the demo gift is recorded and matched from the pool
+  s4 --> s5: a signed-in user gives to a pot (demo ledger)
+  s4 --> s6: Stripe delivers a gift to a pot
+  s5 --> s7: the demo gift is recorded and matched from the pool
+  s5 --> s8: the demo gift is recorded and matched from the pool
+  s6 --> s7: the gift is recorded and matched from the pool
+  s6 --> s8: the gift is recorded and matched from the pool
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 teal
+  class s0 bugPath
+  class s1 teal
+  class s1 bugPath
+  class s2 teal
+  class s3 teal
+  class s3 bugPath
+  class s4 teal
+  class s5 teal
+  class s6 teal
+  class s6 bugPath
+  class s7 teal
+  class s8 orange
+  class s8 breaks
+  class s8 bugPath

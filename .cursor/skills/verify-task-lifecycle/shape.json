@@ -1,0 +1,107 @@
+[
+  {
+    "file": "src/lib/task-ops.ts",
+    "function": "claimTaskForUser",
+    "model": "ClaimCommit",
+    "why": "ClaimCommit is one atomic step only because the transaction re-checks status OPEN with updateMany and re-counts active claims",
+    "mustContain": [
+      "where: { id: task.id, status: TaskStatus.OPEN },",
+      "if (moved.count !== 1) throw new Error(\"TASK_NOT_OPEN\");",
+      "if (active !== 0) throw new Error(\"TASK_NOT_OPEN\");"
+    ]
+  },
+  {
+    "file": "src/lib/task-ops.ts",
+    "function": "releaseClaimForUser",
+    "model": "ReleaseRead / ReleaseCommit",
+    "why": "ReleaseCommit writes task.status from the otherActive count read before the transaction, with no status guard",
+    "mustContain": [
+      "status: otherActive > 0 ? TaskStatus.CLAIMED : TaskStatus.OPEN,"
+    ]
+  },
+  {
+    "file": "src/lib/task-ops.ts",
+    "function": "submitContributionForUser",
+    "model": "SubmitRead / SubmitCommit",
+    "why": "SubmitRead admits CLAIMED, OPEN and SUBMITTED; SubmitCommit succeeds iff updateMany on status CLAIMED hits one row, deactivates the claim without checking it is still active, and picks SUBMITTED or ACCEPTED by autoAccept (blocked by dualBlocks)",
+    "mustContain": [
+      "if (![\"CLAIMED\", \"OPEN\", \"SUBMITTED\"].includes(task.status)) {",
+      "where: { id: task.id, status: TaskStatus.CLAIMED },",
+      "if (moved.count !== 1) throw new Error(\"TASK_STATUS_CHANGED\");",
+      "where: { id: claimId, userId: user.id, active: true },",
+      "const nextStatus = autoAccept ? TaskStatus.ACCEPTED : TaskStatus.SUBMITTED;",
+      "!dualBlocks"
+    ]
+  },
+  {
+    "file": "src/lib/expire-claims.ts",
+    "function": "expireStaleClaims",
+    "model": "ExpireRead / ExpireCommit",
+    "why": "ExpireCommit reopens the task only when otherActive (read before the transaction) and stillActive (counted inside) are both 0 and the task is still CLAIMED",
+    "mustContain": [
+      "expiresAt: { lte: now },",
+      "if (otherActive === 0 && stillActive === 0) {",
+      "where: { id: claim.taskId, status: TaskStatus.CLAIMED },"
+    ]
+  },
+  {
+    "file": "src/lib/peer-review-ops.ts",
+    "function": "peerReviewContributionForUser",
+    "model": "PeerReviewRead .. PeerReviewSync",
+    "why": "PeerReviewRead needs PENDING, a non-author reviewer and no earlier review by this reviewer (findFirst, no unique index); the verdict is Math.round(avg) >= 3; contribution and task updates have no status guard",
+    "mustContain": [
+      "if (contribution.status !== \"PENDING\") {",
+      "if (contribution.userId === user.id) {",
+      "where: { contributionId, reviewerId: user.id },",
+      "const accepted = avg >= 3;",
+      "status: accepted ? \"ACCEPTED\" : \"REJECTED\",",
+      "data: { status: accepted ? TaskStatus.ACCEPTED : TaskStatus.OPEN },"
+    ]
+  },
+  {
+    "file": "src/lib/moderation-ops.ts",
+    "function": "moderateContributionForUser",
+    "model": "ModerateRead .. ModerateSync",
+    "why": "ModerateRead needs PENDING and, on accept with requireDualKey on a large leaf, one review by a non-author; contribution and task updates have no status guard; accept pays +5 once per call",
+    "mustContain": [
+      "if (contribution.status !== \"PENDING\") {",
+      "if (requireDual && large) {",
+      "if (peerCount < 1 && !force) {",
+      "status: accepted ? \"ACCEPTED\" : \"REJECTED\",",
+      "data: { status: accepted ? TaskStatus.ACCEPTED : TaskStatus.OPEN },",
+      "reputation: { increment: 5 }"
+    ]
+  },
+  {
+    "file": "src/lib/expansion-actions.ts",
+    "function": "reopenContributionTaskAction",
+    "model": "Reopen",
+    "why": "Reopen sets the contribution REJECTED and the task OPEN in one transaction with no status guard and no syncProjectCompletionStatus",
+    "mustContain": [
+      "reopenedAt: new Date(),",
+      "data: { status: TaskStatus.OPEN },"
+    ]
+  },
+  {
+    "file": "src/lib/project-completion.ts",
+    "function": "syncProjectCompletionStatus",
+    "model": "SyncedProject (SubmitSync, PeerReviewSync, ModerateSync)",
+    "why": "the project flips to COMPLETED when every claimable leaf is ACCEPTED and back when one is not",
+    "mustContain": [
+      "if (progress.fullyComplete && project.status !== ProjectStatus.COMPLETED) {",
+      "if (!progress.fullyComplete && project.status === ProjectStatus.COMPLETED) {"
+    ]
+  },
+  {
+    "file": "prisma/schema.prisma",
+    "function": "TaskClaim, ContributionReview",
+    "model": "OneActiveClaimPerTask, OneReviewPerReviewer",
+    "why": "the one-active-claim promise lives in code, not in an index; ContributionReview has no unique (contributionId, reviewerId) index, which is why two concurrent reviews by one reviewer both insert. If an index is added, PeerReviewCreate must fail for the second session and the finding is fixed",
+    "mustContain": [
+      "// One active claim per task is enforced in claimTaskForUser."
+    ],
+    "mustNotContain": [
+      "@@unique([contributionId, reviewerId])"
+    ]
+  }
+]

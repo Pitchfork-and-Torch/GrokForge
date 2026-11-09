@@ -1,0 +1,43 @@
+---
+title: "GrokForge leaf task: claim, submit, review, accept"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Open
+    lg1: Claimed
+    lg2: Submitted, in review
+    lg3: Breaks OneReviewPerReviewer
+    lg4: Path to the OneReviewPerReviewer bug
+  }
+  class lg0 blue
+  class lg1 yellow
+  class lg2 purple
+  class lg3 breaks
+  class lg4 bugPath
+  s0: Open
+  s1: Claimed
+  s2: Claimed #183; submit in progress
+  s3: Submitted, in review
+  s4: Submitted, in review #183; peer review in progress
+  s5: Submitted, in review #183; peer review in progress #183; a reviewer counted twice
+  [*] --> s0
+  s0 --> s1: a builder claims the task
+  s1 --> s2: a builder sends in work
+  s2 --> s3: the submission is saved
+  s3 --> s4: a peer reviewer opens the submission
+  s4 --> s4: a peer reviewer opens the submission or the peer review is saved
+  s4 --> s5: the peer review is saved
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 blue
+  class s0 bugPath
+  class s1 yellow
+  class s1 bugPath
+  class s2 yellow
+  class s2 bugPath
+  class s3 purple
+  class s3 bugPath
+  class s4 purple
+  class s4 bugPath
+  class s5 purple
+  class s5 breaks
+  class s5 bugPath

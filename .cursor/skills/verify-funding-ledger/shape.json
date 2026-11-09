@@ -1,0 +1,65 @@
+[
+  {
+    "file": "prisma/schema.prisma",
+    "function": "Donation",
+    "model": "PotCommit (the unique-violation branch)",
+    "why": "PotCommit retries instead of double-crediting only because Donation.stripeSessionId is unique",
+    "mustContain": [
+      "stripeSessionId String?  @unique"
+    ]
+  },
+  {
+    "file": "src/app/api/stripe/webhook/route.ts",
+    "function": "POST, kind matching_pool",
+    "model": "PoolRead / PoolCommit",
+    "why": "PoolRead is a findFirst on ledger meta before the transaction and PoolCommit has nothing unique, so two deliveries of one session can both commit",
+    "mustContain": [
+      "meta: { contains: session.id },",
+      "if (existing) {",
+      "matchingRemainingCents: { increment: amountCents },"
+    ]
+  },
+  {
+    "file": "src/app/api/stripe/webhook/route.ts",
+    "function": "POST, default pot_donation",
+    "model": "PotRead / PotCommit",
+    "why": "PotRead is donation.findUnique(stripeSessionId) and computeMatch on matchingRemainingCents read before the transaction; PotCommit creates the Donation with stripeSessionId (unique) and decrements matchingRemainingCents by the match computed before",
+    "mustContain": [
+      "where: { stripeSessionId: session.id },",
+      "if (!existing) {",
+      "const match = computeMatch({",
+      "matchingRemainingCents: { decrement: match.matchCents },"
+    ]
+  },
+  {
+    "file": "src/lib/actions.ts",
+    "function": "demoDonateAction",
+    "model": "DemoPotRead / DemoPotCommit",
+    "why": "computeMatch runs on a read of the project before the transaction; the Donation gets a fresh demo_ id so the unique index never fires; the transaction decrements matchingRemainingCents by that match",
+    "mustContain": [
+      "const match = computeMatch({",
+      "stripeSessionId: `demo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,",
+      "matchingRemainingCents: { decrement: match.matchCents },"
+    ]
+  },
+  {
+    "file": "src/lib/actions.ts",
+    "function": "fundMatchingPoolAction",
+    "model": "DemoPoolCommit",
+    "why": "one project.update with two increments, then a ledger row",
+    "mustContain": [
+      "matchingPoolCents: { increment: amountCents },",
+      "matchingRemainingCents: { increment: amountCents },"
+    ]
+  },
+  {
+    "file": "src/lib/matching-funds.ts",
+    "function": "computeMatch",
+    "model": "ComputeMatch",
+    "why": "zero match when matching is off, the gift is under a cent, the pool is empty or the ratio is zero; else min(floor(gift * bps / 10000), remaining)",
+    "mustContain": [
+      "if (!input.matchingEnabled || donationCents < 1 || remaining < 1 || bps < 1) {",
+      "const matchCents = Math.min(ideal, remaining);"
+    ]
+  }
+]
