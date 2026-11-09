@@ -1,0 +1,42 @@
+---
+title: "GrokForge leaf task: claim, submit, review, accept"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Open
+    lg1: Claimed
+    lg2: Submitted, in review
+    lg3: Breaks PendingMeansSubmitted
+    lg4: Path to the PendingMeansSubmitted bug
+  }
+  class lg0 blue
+  class lg1 yellow
+  class lg2 purple
+  class lg3 breaks
+  class lg4 bugPath
+  s0: Open
+  s1: Claimed
+  s2: Claimed #183; release in progress
+  s3: Claimed #183; release + submit in progress
+  s4: Submitted, in review #183; release in progress
+  s5: Open #183; work still waiting for review
+  [*] --> s0
+  s0 --> s1: a builder claims the task
+  s1 --> s2: a builder asks to release the claim
+  s2 --> s3: a builder sends in work
+  s3 --> s4: the submission is saved
+  s4 --> s5: the release is written
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 blue
+  class s0 bugPath
+  class s1 yellow
+  class s1 bugPath
+  class s2 yellow
+  class s2 bugPath
+  class s3 yellow
+  class s3 bugPath
+  class s4 purple
+  class s4 bugPath
+  class s5 blue
+  class s5 breaks
+  class s5 bugPath

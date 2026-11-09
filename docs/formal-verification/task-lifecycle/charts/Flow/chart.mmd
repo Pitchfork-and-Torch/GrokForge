@@ -1,0 +1,71 @@
+---
+title: "GrokForge leaf task: claim, submit, review, accept"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Open
+    lg1: Claimed
+    lg2: Submitted, in review
+    lg3: Accepted, done
+  }
+  class lg0 blue
+  class lg1 yellow
+  class lg2 purple
+  class lg3 teal
+  s0: Open
+  s1: Claimed
+  s2: Claimed #183; release in progress
+  s3: Claimed #183; submit in progress
+  s4: Accepted, done #183; submit in progress
+  s5: Submitted, in review
+  s6: Accepted, done
+  s7: Submitted, in review #183; creator decision in progress
+  s8: Accepted, done #183; creator decision in progress
+  s9: Open again, sent back for rework #183; creator decision in progress
+  s10: Claimed #183; creator decision in progress
+  s11: Claimed #183; release + creator decision in progress
+  s12: Claimed #183; submit + creator decision in progress
+  s13: Accepted, done #183; submit + creator decision in progress
+  s14: Open again, sent back for rework
+  [*] --> s0
+  s0 --> s1: a builder claims the task
+  s1 --> s2: a builder asks to release the claim
+  s1 --> s3: a builder sends in work
+  s2 --> s0: the release is written
+  s3 --> s5: the submission is saved
+  s3 --> s4: the submission is saved and auto-accepted [strong worker]
+  s4 --> s6: the project status is recomputed
+  s5 --> s7: the creator opens the submission
+  s7 --> s8: the creator's accept marks the task accepted
+  s7 --> s9: the creator's reject reopens the task
+  s9 --> s10: a builder claims the task
+  s10 --> s11: a builder asks to release the claim
+  s10 --> s12: a builder sends in work
+  s8 --> s6: the project status is recomputed
+  s9 --> s14: the project status is recomputed
+  s11 --> s9: the release is written
+  s12 --> s7: the submission is saved
+  s12 --> s13: the submission is saved and auto-accepted [strong worker]
+  s13 --> s8: the project status is recomputed
+  s14 --> s1: a builder claims the task
+  s10 --> s1: the project status is recomputed
+  s11 --> s2: the project status is recomputed
+  s12 --> s3: the project status is recomputed
+  s13 --> s4: the project status is recomputed
+  s7 --> s5: the project status is recomputed
+  s2 --> s14: the release is written
+  class s0 blue
+  class s1 yellow
+  class s2 yellow
+  class s3 yellow
+  class s4 teal
+  class s5 purple
+  class s6 teal
+  class s7 purple
+  class s8 teal
+  class s9 blue
+  class s10 yellow
+  class s11 yellow
+  class s12 yellow
+  class s13 teal
+  class s14 blue
