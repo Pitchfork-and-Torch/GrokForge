@@ -1,0 +1,128 @@
+---
+title: "GrokForge project funding: gifts, matching, webhook retries"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: No pool
+    lg1: Matching on
+    lg2: Wrong
+    lg3: Breaks PaymentCreditedOnce
+    lg4: Path to the PaymentCreditedOnce bug
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 orange
+  class lg3 breaks
+  class lg4 bugPath
+  s0: pool #36;0.00, #36;0.00 left to match, pot #36;0.00
+  s1: pool #36;0.00, #36;0.00 left to match, pot #36;0.00 #183; a pool top-up being recorded
+  s2: pool #36;0.00, #36;0.00 left to match, pot #36;0.00 #183; a Stripe gift being recorded
+  s3: pool #36;6.00, #36;6.00 left to match, pot #36;0.00
+  s4: pool #36;0.00, #36;0.00 left to match, pot #36;0.00 #183; a Stripe gift and a pool top-up being recorded
+  s5: pool #36;0.00, #36;0.00 left to match, pot #36;4.00
+  s6: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a pool top-up being recorded
+  s7: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a Stripe gift being recorded
+  s8: pool #36;0.00, #36;0.00 left to match, pot #36;4.00 #183; a pool top-up being recorded
+  s9: pool #36;0.00, #36;0.00 left to match, pot #36;4.00 #183; a Stripe gift being recorded
+  s10: pool #36;12.00, #36;12.00 left to match, pot #36;0.00 #183; one payment on the ledger twice
+  s11: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a Stripe gift and a pool top-up being recorded
+  s12: pool #36;6.00, #36;6.00 left to match, pot #36;4.00
+  s13: pool #36;0.00, #36;0.00 left to match, pot #36;4.00 #183; a Stripe gift and a pool top-up being recorded
+  s14: pool #36;6.00, #36;2.00 left to match, pot #36;8.00
+  s15: pool #36;12.00, #36;12.00 left to match, pot #36;0.00 #183; one payment on the ledger twice #183; a Stripe gift being recorded
+  s16: pool #36;6.00, #36;6.00 left to match, pot #36;4.00 #183; a pool top-up being recorded
+  s17: pool #36;6.00, #36;6.00 left to match, pot #36;4.00 #183; a Stripe gift being recorded
+  s18: pool #36;6.00, #36;2.00 left to match, pot #36;8.00 #183; a pool top-up being recorded
+  s19: pool #36;6.00, #36;2.00 left to match, pot #36;8.00 #183; a Stripe gift being recorded
+  s20: pool #36;12.00, #36;12.00 left to match, pot #36;4.00 #183; one payment on the ledger twice
+  s21: pool #36;6.00, #36;6.00 left to match, pot #36;4.00 #183; a Stripe gift and a pool top-up being recorded
+  s22: pool #36;12.00, #36;8.00 left to match, pot #36;8.00 #183; one payment on the ledger twice
+  s23: pool #36;6.00, #36;2.00 left to match, pot #36;8.00 #183; a Stripe gift and a pool top-up being recorded
+  s24: pool #36;12.00, #36;12.00 left to match, pot #36;4.00 #183; one payment on the ledger twice #183; a Stripe gift being recorded
+  s25: pool #36;12.00, #36;8.00 left to match, pot #36;8.00 #183; one payment on the ledger twice #183; a Stripe gift being recorded
+  [*] --> s0
+  s0 --> s1: Stripe delivers a match-pool top-up
+  s0 --> s2: Stripe delivers a gift to a pot
+  s1 --> s3: the top-up is added to the pool
+  s1 --> s1: Stripe delivers a match-pool top-up
+  s1 --> s4: Stripe delivers a gift to a pot
+  s2 --> s4: Stripe delivers a match-pool top-up
+  s2 --> s5: the gift is recorded
+  s3 --> s7: Stripe delivers a gift to a pot
+  s1 --> s6: the top-up is added to the pool
+  s4 --> s7: the top-up is added to the pool
+  s4 --> s8: the gift is recorded
+  s2 --> s9: the gift is recorded
+  s5 --> s8: Stripe delivers a match-pool top-up
+  s6 --> s10: the top-up is added to the pool
+  s6 --> s11: Stripe delivers a gift to a pot
+  s7 --> s12: the gift is recorded
+  s7 --> s14: the gift is recorded and matched from the pool
+  s4 --> s11: the top-up is added to the pool
+  s4 --> s13: the gift is recorded
+  s8 --> s12: the top-up is added to the pool
+  s9 --> s5: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s9 --> s13: Stripe delivers a match-pool top-up
+  s10 --> s15: Stripe delivers a gift to a pot
+  s11 --> s15: the top-up is added to the pool
+  s11 --> s16: the gift is recorded
+  s11 --> s18: the gift is recorded and matched from the pool
+  s7 --> s17: the gift is recorded
+  s7 --> s19: the gift is recorded and matched from the pool
+  s8 --> s16: the top-up is added to the pool
+  s13 --> s8: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s13 --> s17: the top-up is added to the pool
+  s15 --> s20: the gift is recorded
+  s15 --> s22: the gift is recorded and matched from the pool
+  s11 --> s21: the gift is recorded
+  s11 --> s23: the gift is recorded and matched from the pool
+  s16 --> s20: the top-up is added to the pool
+  s17 --> s12: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s13 --> s21: the top-up is added to the pool
+  s18 --> s22: the top-up is added to the pool
+  s19 --> s14: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s15 --> s24: the gift is recorded
+  s15 --> s25: the gift is recorded and matched from the pool
+  s21 --> s16: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s21 --> s24: the top-up is added to the pool
+  s23 --> s18: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s23 --> s25: the top-up is added to the pool
+  s24 --> s20: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s25 --> s22: the gift's row already exists#59; the insert is refused and Stripe will retry
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 blue
+  class s0 bugPath
+  class s1 blue
+  class s1 bugPath
+  class s2 blue
+  class s3 teal
+  class s4 blue
+  class s5 blue
+  class s6 teal
+  class s6 bugPath
+  class s7 teal
+  class s8 blue
+  class s9 blue
+  class s10 orange
+  class s10 breaks
+  class s10 bugPath
+  class s11 teal
+  class s12 teal
+  class s13 blue
+  class s14 teal
+  class s15 orange
+  class s15 breaks
+  class s16 teal
+  class s17 teal
+  class s18 teal
+  class s19 teal
+  class s20 orange
+  class s20 breaks
+  class s21 teal
+  class s22 orange
+  class s22 breaks
+  class s23 teal
+  class s24 orange
+  class s24 breaks
+  class s25 orange
+  class s25 breaks

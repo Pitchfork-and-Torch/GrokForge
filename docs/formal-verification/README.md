@@ -4,30 +4,34 @@ This folder holds the record of what has been model-checked, what it found, and
 what it does not cover. The checks themselves live in project-local skills under
 `.cursor/skills/verify-*/`, so an agent editing covered code finds them.
 
-Batch 1 (this folder's first commit) covers one subsystem. The ranking that chose
-it is in [`SUBSYSTEMS.md`](./SUBSYSTEMS.md).
+Batch 1 (this folder's first commits) covers the two highest-ranked subsystems.
+The ranking is in [`SUBSYSTEMS.md`](./SUBSYSTEMS.md).
 
 ## Covered
 
 | Subsystem | Skill | Tool | Status at sync commit |
 |---|---|---|---|
 | Leaf-task lifecycle: claim, release, expire, submit, peer review, creator accept/reject, reopen, project completion | [`.cursor/skills/verify-task-lifecycle/SKILL.md`](../../.cursor/skills/verify-task-lifecycle/SKILL.md) | TLA+ model checked with TLC (`tla2tools.jar` 1.7.4, TLC2 2.19) | 11 rules × 8 configs = 88 verdicts. `OneActiveClaimPerTask`, `DualKeyHonored` and `TypeOK` hold everywhere; the intended single-actor flow holds every rule. Six findings against the current code, F1 to F6, in [`task-lifecycle/FINDINGS.md`](./task-lifecycle/FINDINGS.md). |
+| Funding ledger: Stripe webhook pot donations and match-pool top-ups, demo donations, matching burn | [`.cursor/skills/verify-funding-ledger/SKILL.md`](../../.cursor/skills/verify-funding-ledger/SKILL.md) | same | 5 rules × 3 configs = 15 verdicts. Pot donations are idempotent under webhook retries (unique `stripeSessionId`); `PoolConservation` and `TypeOK` hold everywhere. Two findings, G1 and G2, in [`funding-ledger/FINDINGS.md`](./funding-ledger/FINDINGS.md). |
 
-Sync commit for the task-lifecycle check: `4ef25da2b2ccd4643f6f255ced5330de58142a6c`
-(recorded in the skill's `<!-- sync-commit -->` marker; the runner reports drift of
-covered files against it).
+Sync commit for both checks: `4ef25da2b2ccd4643f6f255ced5330de58142a6c` (recorded in
+each skill's `<!-- sync-commit -->` marker; the runners report drift of covered files
+against it).
 
 ## Rerun
 
 ```sh
 node .cursor/skills/verify-task-lifecycle/scripts/check.mjs
+node .cursor/skills/verify-funding-ledger/scripts/check.mjs
 ```
 
-About three minutes on four cores (170 s of TLC in the recorded run). Exit 0 means
-every verdict matches `expected.json` (passes stay passes, known findings stay
-findings) and the covered code still has the lines the model describes.
-[`task-lifecycle/check-summary.md`](./task-lifecycle/check-summary.md) is the
-table from the recorded run.
+About three minutes on four cores for the first (170 s of TLC in the recorded run),
+under a minute for the second. Exit 0 means every verdict matches that skill's
+`expected.json` (passes stay passes, known findings stay findings) and the covered
+code still has the lines the model describes.
+[`task-lifecycle/check-summary.md`](./task-lifecycle/check-summary.md) and
+[`funding-ledger/check-summary.md`](./funding-ledger/check-summary.md) are the
+tables from the recorded runs.
 
 Tools, pinned: `tla2tools.jar` 1.7.4 with sha256
 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88` (fetched once
@@ -47,11 +51,12 @@ interleaving within the bounds, with a shortest path for each break, in minutes.
 
 ## Charts
 
-Each `charts/<Config>__<Rule>/` folder has `report.md` (the shortest path in plain
-words) and `chart.mmd` (Mermaid). `charts/Flow/` is the whole intended flow; the
-others draw only the path to the broken rule. Two `negative-control-*` folders
-show the check failing on deliberately broken code; the transcript is
-[`task-lifecycle/NEGATIVE-CONTROL.md`](./task-lifecycle/NEGATIVE-CONTROL.md).
+Each `<subsystem>/charts/<Config>__<Rule>/` folder has `report.md` (the shortest
+path in plain words) and `chart.mmd` (Mermaid). `charts/Flow/` is the whole intended
+flow; the others draw only the path to the broken rule. The `negative-control-*`
+folders show each check failing on deliberately broken code; transcripts are in
+[`task-lifecycle/NEGATIVE-CONTROL.md`](./task-lifecycle/NEGATIVE-CONTROL.md) and
+the last section of [`funding-ledger/FINDINGS.md`](./funding-ledger/FINDINGS.md).
 
 The charts were drawn with the pstack `/statechart` skill from single-rule configs
 that the runner writes with `--emit DIR`. Read that skill for how to redraw them.
@@ -60,15 +65,13 @@ that the runner writes with `--emit DIR`. Read that skill for how to redraw them
 
 Everything not in the table above, in the order the ranking suggests next:
 
-1. Funding and matching pool (`src/app/api/stripe/webhook/route.ts`,
-   `demoDonateAction`, `fundMatchingPoolAction`, `matching-funds.ts`): the
-   `matching_pool` webhook branch is idempotent only by a `findFirst` on ledger
-   `meta`, and the match burn reads `matchingRemainingCents` before the transaction.
-   A small TLA+ model of webhook retries and concurrent donations would settle both.
-2. Seal and ship (`seal-ops.ts`, `github-ship-ops.ts`): two concurrent seals and
-   the primary-package flag.
-3. Milestone dual verification (`actions.ts` `maybeReleaseMilestone`): double
+1. Seal and ship (`seal-ops.ts`, `github-ship-ops.ts`): two concurrent seals and
+   the primary-package flag; the project-status side is covered by
+   `ProjectTracksTask` in the task-lifecycle check.
+2. Milestone dual verification (`actions.ts` `maybeReleaseMilestone`): double
    release ledger row.
+3. Project archive/unarchive and `syncProjectCompletionStatus`'s own read/write
+   race (modeled as one step today).
 
 Agent API tokens, worker heartbeats and rate limiting were read and judged not to
 be state machines worth a model; see `SUBSYSTEMS.md` for why.

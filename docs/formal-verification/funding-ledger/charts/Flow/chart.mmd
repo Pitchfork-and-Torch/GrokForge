@@ -1,0 +1,62 @@
+---
+title: "GrokForge project funding: gifts, matching, webhook retries"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: No pool
+    lg1: Matching on
+  }
+  class lg0 blue
+  class lg1 teal
+  s0: pool #36;0.00, #36;0.00 left to match, pot #36;0.00
+  s1: pool #36;0.00, #36;0.00 left to match, pot #36;0.00 #183; a pool top-up being recorded
+  s2: pool #36;0.00, #36;0.00 left to match, pot #36;0.00 #183; a Stripe gift being recorded
+  s3: pool #36;6.00, #36;6.00 left to match, pot #36;0.00
+  s4: pool #36;0.00, #36;0.00 left to match, pot #36;0.00 #183; a Stripe gift and a pool top-up being recorded
+  s5: pool #36;0.00, #36;0.00 left to match, pot #36;4.00
+  s6: pool #36;6.00, #36;6.00 left to match, pot #36;0.00 #183; a Stripe gift being recorded
+  s7: pool #36;0.00, #36;0.00 left to match, pot #36;4.00 #183; a pool top-up being recorded
+  s8: pool #36;0.00, #36;0.00 left to match, pot #36;4.00 #183; a Stripe gift being recorded
+  s9: pool #36;6.00, #36;6.00 left to match, pot #36;4.00
+  s10: pool #36;0.00, #36;0.00 left to match, pot #36;4.00 #183; a Stripe gift and a pool top-up being recorded
+  s11: pool #36;6.00, #36;2.00 left to match, pot #36;8.00
+  s12: pool #36;6.00, #36;6.00 left to match, pot #36;4.00 #183; a Stripe gift being recorded
+  s13: pool #36;6.00, #36;2.00 left to match, pot #36;8.00 #183; a Stripe gift being recorded
+  [*] --> s0
+  s0 --> s1: Stripe delivers a match-pool top-up
+  s0 --> s2: Stripe delivers a gift to a pot
+  s1 --> s3: the top-up is added to the pool
+  s1 --> s4: Stripe delivers a gift to a pot
+  s2 --> s4: Stripe delivers a match-pool top-up
+  s2 --> s5: the gift is recorded
+  s3 --> s6: Stripe delivers a gift to a pot
+  s4 --> s6: the top-up is added to the pool
+  s4 --> s7: the gift is recorded
+  s2 --> s8: the gift is recorded
+  s5 --> s7: Stripe delivers a match-pool top-up
+  s6 --> s9: the gift is recorded
+  s6 --> s11: the gift is recorded and matched from the pool
+  s4 --> s10: the gift is recorded
+  s7 --> s9: the top-up is added to the pool
+  s8 --> s5: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s8 --> s10: Stripe delivers a match-pool top-up
+  s6 --> s12: the gift is recorded
+  s6 --> s13: the gift is recorded and matched from the pool
+  s10 --> s7: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s10 --> s12: the top-up is added to the pool
+  s12 --> s9: the gift's row already exists#59; the insert is refused and Stripe will retry
+  s13 --> s11: the gift's row already exists#59; the insert is refused and Stripe will retry
+  class s0 blue
+  class s1 blue
+  class s2 blue
+  class s3 teal
+  class s4 blue
+  class s5 blue
+  class s6 teal
+  class s7 blue
+  class s8 blue
+  class s9 teal
+  class s10 blue
+  class s11 teal
+  class s12 teal
+  class s13 teal
